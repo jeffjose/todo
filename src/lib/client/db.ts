@@ -20,6 +20,9 @@ export interface Todo {
   urgency: string;
   tags: string[];
   attachments: { name: string; url: string }[];
+  path: string;
+  level: number;
+  parentId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +55,9 @@ type TodoRow = {
   urgency: string;
   tags: string[];
   attachments: { name: string; url: string }[];
+  path: string;
+  level: number;
+  parent_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -67,9 +73,37 @@ const DESIRED_SCHEMA: SchemaDefinition = {
   urgency: { type: 'text', nullable: false, defaultValue: 'medium' },
   tags: { type: 'json', nullable: false, defaultValue: '[]' },
   attachments: { type: 'json', nullable: false, defaultValue: '[]' },
+  path: { type: 'text', nullable: false, defaultValue: 'root' },
+  level: { type: 'integer', nullable: false, defaultValue: '0' },
+  parent_id: { type: 'text', nullable: true },
   created_at: { type: 'timestamptz', nullable: false },
   updated_at: { type: 'timestamptz', nullable: false }
 };
+
+// Helper functions for path management
+const PATH_SEPARATOR = '.';
+const ROOT_PATH = 'root';
+
+function buildPath(parentPath: string | null, id: string): string {
+  return parentPath ? `${parentPath}${PATH_SEPARATOR}${id}` : ROOT_PATH;
+}
+
+function getLevel(path: string): number {
+  return path === ROOT_PATH ? 0 : path.split(PATH_SEPARATOR).length - 1;
+}
+
+function getParentPath(path: string): string | null {
+  if (path === ROOT_PATH) return null;
+  const parts = path.split(PATH_SEPARATOR);
+  parts.pop();
+  return parts.join(PATH_SEPARATOR);
+}
+
+function getParentId(path: string): string | null {
+  if (path === ROOT_PATH) return null;
+  const parts = path.split(PATH_SEPARATOR);
+  return parts[parts.length - 2] || null;
+}
 
 // Random data options
 const RANDOM_DATA = {
@@ -214,6 +248,18 @@ class DatabaseClient {
     `);
   }
 
+  private async updateDescendantPaths(oldPath: string, newPath: string): Promise<void> {
+    if (!this.client) throw new Error('Database not initialized');
+
+    // Update paths of all descendants
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET path = $1 || SUBSTRING(path FROM LENGTH($2) + 1),
+          level = LENGTH(path) - LENGTH(REPLACE(path, '.', ''))
+      WHERE path LIKE $2 || '.%'
+    `, [newPath, oldPath]);
+  }
+
   async initialize(): Promise<void> {
     if (this.initPromise) return this.initPromise;
     if (!browser) {
@@ -307,12 +353,13 @@ class DatabaseClient {
 
     const result = await this.client.query<TodoRow>(`
       SELECT 
-        "id", "title", "description", "deadline", "status", "priority", "urgency", "tags", "attachments", "created_at", "updated_at"
+        "id", "title", "description", "deadline", "status", "priority", "urgency", 
+        "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
       FROM "${this.tableName}" 
       ORDER BY "created_at" DESC
     `);
 
-    return result.rows.map(row => ({
+    const todos = result.rows.map(row => ({
       id: row.id,
       title: row.title,
       description: row.description,
@@ -322,12 +369,25 @@ class DatabaseClient {
       urgency: row.urgency,
       tags: row.tags,
       attachments: row.attachments,
+      path: row.path,
+      level: row.level,
+      parentId: row.parent_id,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     }));
+
+    // Debug logging
+    console.log('Todos loaded from DB:', todos.map(t => ({
+      id: t.id,
+      title: t.title,
+      createdAt: new Date(t.createdAt).toISOString(),
+      path: t.path
+    })));
+
+    return todos;
   }
 
-  async addNewTodo(): Promise<{ success: boolean; message: string }> {
+  async addNewTodo(parentId: string | null = null): Promise<{ success: boolean; message: string }> {
     if (!this.initialized || !this.client) {
       throw new Error('Database not initialized');
     }
@@ -335,6 +395,21 @@ class DatabaseClient {
     try {
       const todoId = generateId();
       const now = new Date().toISOString();
+
+      // Get parent path if parentId is provided
+      let parentPath = ROOT_PATH;
+      if (parentId) {
+        const parentResult = await this.client.query<{ path: string }>(
+          `SELECT path FROM "${this.tableName}" WHERE id = $1`,
+          [parentId]
+        );
+        if (parentResult.rows.length > 0) {
+          parentPath = parentResult.rows[0].path;
+        }
+      }
+
+      const path = buildPath(parentPath, todoId);
+      const level = getLevel(path);
       const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
       const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
@@ -366,9 +441,14 @@ class DatabaseClient {
       }));
 
       await this.client.query(
-        `INSERT INTO "${this.tableName}" ("id", "title", "description", "deadline", "status", "priority", "urgency", "tags", "attachments", "created_at", "updated_at") 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
-        [todoId, title, description, deadline.toISOString(), status, priority, urgency, JSON.stringify(tags), JSON.stringify(attachments), now]
+        `INSERT INTO "${this.tableName}" (
+          "id", "title", "description", "deadline", "status", "priority", "urgency", 
+          "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)`,
+        [
+          todoId, title, description, deadline.toISOString(), status, priority, urgency,
+          JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, now
+        ]
       );
 
       return {
@@ -384,7 +464,7 @@ class DatabaseClient {
     }
   }
 
-  async addMultipleTodos(count: number): Promise<{ success: boolean; message: string }> {
+  async addMultipleTodos(count: number, parentId: string | null = null): Promise<{ success: boolean; message: string }> {
     if (!this.initialized || !this.client) {
       throw new Error('Database not initialized');
     }
@@ -394,6 +474,18 @@ class DatabaseClient {
       const batches = Math.ceil(count / batchSize);
       let successCount = 0;
 
+      // Get parent path if parentId is provided
+      let parentPath = ROOT_PATH;
+      if (parentId) {
+        const parentResult = await this.client.query<{ path: string }>(
+          `SELECT path FROM "${this.tableName}" WHERE id = $1`,
+          [parentId]
+        );
+        if (parentResult.rows.length > 0) {
+          parentPath = parentResult.rows[0].path;
+        }
+      }
+
       for (let batch = 0; batch < batches; batch++) {
         const batchCount = Math.min(batchSize, count - (batch * batchSize));
         const placeholders = [];
@@ -401,9 +493,12 @@ class DatabaseClient {
 
         for (let i = 0; i < batchCount; i++) {
           const todoId = generateId();
+          const path = buildPath(parentPath, todoId);
+          const level = getLevel(path);
           const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
           const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
+          // Generate random data
           const today = new Date();
           const futureDate = new Date();
           futureDate.setDate(today.getDate() + 14);
@@ -413,6 +508,7 @@ class DatabaseClient {
           const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
           const urgency = RANDOM_DATA.urgencies[Math.floor(Math.random() * RANDOM_DATA.urgencies.length)];
 
+          // Generate random tags
           const numTags = Math.floor(Math.random() * 3) + 1;
           const tags: string[] = [];
           for (let j = 0; j < numTags; j++) {
@@ -422,6 +518,7 @@ class DatabaseClient {
             }
           }
 
+          // Generate random attachments
           const numAttachments = Math.floor(Math.random() * 3);
           const attachments = Array.from({ length: numAttachments }, (_, j) => ({
             name: `attachment-${j + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
@@ -430,14 +527,19 @@ class DatabaseClient {
 
           const paramIndex = params.length;
           const now = new Date().toISOString();
-          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 10})`);
-          params.push(todoId, title, description, deadline.toISOString(), status, priority, urgency, JSON.stringify(tags), JSON.stringify(attachments), now);
+          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 13})`);
+          params.push(
+            todoId, title, description, deadline.toISOString(), status, priority, urgency,
+            JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, now
+          );
         }
 
         if (placeholders.length > 0) {
           const query = `
-            INSERT INTO "${this.tableName}" ("id", "title", "description", "deadline", "status", "priority", "urgency", "tags", "attachments", "created_at", "updated_at") 
-            VALUES ${placeholders.join(', ')}
+            INSERT INTO "${this.tableName}" (
+              "id", "title", "description", "deadline", "status", "priority", "urgency", 
+              "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
+            ) VALUES ${placeholders.join(', ')}
           `;
           await this.client.query(query, params);
           successCount += batchCount;
@@ -487,6 +589,9 @@ class DatabaseClient {
             "urgency" TEXT NOT NULL,
             "tags" JSONB NOT NULL,
             "attachments" JSONB NOT NULL,
+            "path" TEXT NOT NULL,
+            "level" INTEGER NOT NULL,
+            "parent_id" TEXT,
             "created_at" TIMESTAMP NOT NULL,
             "updated_at" TIMESTAMP NOT NULL
           );
@@ -515,6 +620,6 @@ const db = new DatabaseClient();
 // Export functions that use the singleton
 export const initializeDB = () => db.initialize();
 export const loadTodos = () => db.loadTodos();
-export const addNewTodo = () => db.addNewTodo();
-export const addMultipleTodos = (count: number) => db.addMultipleTodos(count);
+export const addNewTodo = (parentId: string | null = null) => db.addNewTodo(parentId);
+export const addMultipleTodos = (count: number, parentId: string | null = null) => db.addMultipleTodos(count, parentId);
 export const clearAllTodos = () => db.clearAllTodos(); 

@@ -583,6 +583,24 @@
 											<p class="mb-2 text-gray-600">{todo.description}</p>
 										{/if}
 
+										<div class="mb-2">
+											<span class="font-medium text-gray-700">Path: </span>
+											<span class="font-mono text-xs text-gray-600">{todo.path}</span>
+										</div>
+
+										{#if todo.parentId}
+											<div class="mb-2">
+												<span class="font-medium text-gray-700">Parent Task: </span>
+												{#if todos.find((t) => t.id === todo.parentId)}
+													<span class="text-gray-600"
+														>{todos.find((t) => t.id === todo.parentId)?.title}</span
+													>
+												{:else}
+													<span class="italic text-gray-500">Parent task not found</span>
+												{/if}
+											</div>
+										{/if}
+
 										{#if todo.attachments && todo.attachments.length > 0}
 											<div class="mb-2">
 												<span class="font-medium text-gray-700">Attachments: </span>

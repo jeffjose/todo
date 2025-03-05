@@ -6,6 +6,7 @@ import { browser } from '$app/environment';
 let db: ReturnType<typeof drizzle>;
 let client: PGlite;
 let initialized = false;
+let initPromise: Promise<void> | null = null;
 
 async function tableExists(tableName: string): Promise<boolean> {
   const result = await client.query(
@@ -20,6 +21,8 @@ async function tableExists(tableName: string): Promise<boolean> {
 }
 
 export async function initializeDB() {
+  if (initPromise) return initPromise;
+
   console.log('initializeDB called, browser:', browser, 'initialized:', initialized);
 
   if (!browser) {
@@ -32,21 +35,22 @@ export async function initializeDB() {
     return;
   }
 
-  try {
-    console.log('Starting IndexedDB initialization...');
-    client = new PGlite('idb://todo-app-db');
-    console.log('PGLite client created');
+  initPromise = (async () => {
+    try {
+      console.log('Starting IndexedDB initialization...');
+      client = new PGlite('idb://todo-app-db');
+      console.log('PGLite client created');
 
-    db = drizzle({ client, schema });
-    console.log('Drizzle instance created');
+      db = drizzle({ client, schema });
+      console.log('Drizzle instance created');
 
-    // Check and create user table
-    const userTableExists = await tableExists('user');
-    console.log('User table exists:', userTableExists);
+      // Check and create user table
+      const userTableExists = await tableExists('user');
+      console.log('User table exists:', userTableExists);
 
-    if (!userTableExists) {
-      console.log('Creating user table...');
-      await client.query(`
+      if (!userTableExists) {
+        console.log('Creating user table...');
+        await client.query(`
                 CREATE TABLE IF NOT EXISTS "user" (
                     "id" text PRIMARY KEY,
                     "age" integer,
@@ -54,50 +58,53 @@ export async function initializeDB() {
                     "password_hash" text NOT NULL
                 )
             `);
-      console.log('User table created');
-    }
+        console.log('User table created');
+      }
 
-    // Check and create session table
-    const sessionTableExists = await tableExists('session');
-    console.log('Session table exists:', sessionTableExists);
+      // Check and create session table
+      const sessionTableExists = await tableExists('session');
+      console.log('Session table exists:', sessionTableExists);
 
-    if (!sessionTableExists) {
-      console.log('Creating session table...');
-      await client.query(`
+      if (!sessionTableExists) {
+        console.log('Creating session table...');
+        await client.query(`
                 CREATE TABLE IF NOT EXISTS "session" (
                     "id" text PRIMARY KEY,
                     "user_id" text NOT NULL REFERENCES "user"("id"),
                     "expires_at" timestamptz NOT NULL
                 )
             `);
-      console.log('Session table created');
+        console.log('Session table created');
+      }
+
+      initialized = true;
+      console.log('IndexedDB initialized successfully');
+
+      // List all tables
+      const tables = await client.query(`
+                SELECT table_name, (
+                    SELECT COUNT(*) FROM information_schema.columns 
+                    WHERE table_name = t.table_name
+                ) as column_count
+                FROM information_schema.tables t
+                WHERE table_schema = 'public'
+            `);
+      console.log('Available tables:', tables.rows);
+
+    } catch (error) {
+      console.error('Failed to initialize IndexedDB:', error);
+      throw error;
     }
+  })();
 
-    initialized = true;
-    console.log('IndexedDB initialized successfully');
-
-    // List all tables
-    const tables = await client.query(`
-            SELECT table_name, (
-                SELECT COUNT(*) FROM information_schema.columns 
-                WHERE table_name = t.table_name
-            ) as column_count
-            FROM information_schema.tables t
-            WHERE table_schema = 'public'
-        `);
-    console.log('Available tables:', tables.rows);
-
-  } catch (error) {
-    console.error('Failed to initialize IndexedDB:', error);
-    throw error;
-  }
+  return initPromise;
 }
 
 export function getClientDB() {
   if (!initialized) {
     throw new Error('Database not initialized. Call initializeDB() first');
   }
-  return db;
+  return { query: client.query.bind(client) };
 }
 
 // Test function to verify data persistence

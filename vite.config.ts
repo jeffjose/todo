@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit(), tailwindcss()],
+	optimizeDeps: {
+		exclude: ['@electric-sql/pglite']
+	},
 
 	test: {
 		workspace: [

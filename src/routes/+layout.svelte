@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import { testDataPersistence } from '$lib/client/db';
+	import { addNewTodo } from '$lib/client/db';
 
 	let { children } = $props();
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -14,14 +14,14 @@
 		}, 3000);
 	}
 
-	async function handleTestClick() {
+	async function handleAddTodo() {
 		try {
-			const result = await testDataPersistence();
-			console.log('Persistence test result:', result);
+			const result = await addNewTodo();
+			console.log('Add todo result:', result);
 			showNotification(result.message, result.success ? 'success' : 'error');
 		} catch (error) {
-			console.error('Test failed:', error);
-			showNotification(error instanceof Error ? error.message : 'Test failed', 'error');
+			console.error('Failed to add todo:', error);
+			showNotification(error instanceof Error ? error.message : 'Failed to add todo', 'error');
 		}
 	}
 </script>

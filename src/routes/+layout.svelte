@@ -7,15 +7,12 @@
 	let notification: { message: string; type: 'success' | 'error' } | null = null;
 	let notificationTimeout: ReturnType<typeof setTimeout>;
 
-	onMount(() => {
-		console.log('Layout mounted, initializing database...');
-		initializeDB()
-			.then(() => {
-				console.log('Database initialization completed in layout');
-			})
-			.catch((error) => {
-				console.error('Failed to initialize database in layout:', error);
-			});
+	onMount(async () => {
+		try {
+			await initializeDB();
+		} catch (error) {
+			console.error('Failed to initialize database:', error);
+		}
 	});
 
 	function showNotification(message: string, type: 'success' | 'error' = 'success') {

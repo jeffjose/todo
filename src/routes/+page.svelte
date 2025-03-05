@@ -1,21 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { initializeDB, testDataPersistence, loadUsers, type User } from '$lib/client/db';
+	import { testDataPersistence, loadUsers, type User } from '$lib/client/db';
 
 	let users = $state<User[]>([]);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 
 	onMount(async () => {
-		try {
-			await initializeDB();
-			users = await loadUsers();
-		} catch (error) {
-			console.error('Failed to initialize:', error);
-			notification = {
-				message: 'Failed to initialize database',
-				type: 'error'
-			};
-		}
+		users = await loadUsers();
 	});
 
 	async function handleTestPersistence() {

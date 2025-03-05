@@ -198,4 +198,110 @@ export async function addNewTodo() {
       message: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+}
+
+// Function to add multiple todo items at once
+export async function addMultipleTodos(count: number): Promise<{ success: boolean; message: string }> {
+  if (!initialized || !client) {
+    throw new Error('Database not initialized');
+  }
+
+  try {
+    const startTime = Date.now();
+    let successCount = 0;
+
+    // Random data options
+    const todoTitles = [
+      'Complete project proposal',
+      'Review documentation',
+      'Prepare presentation',
+      'Schedule meeting',
+      'Research new technologies',
+      'Fix bugs in application',
+      'Update dependencies',
+      'Create user documentation',
+      'Design new feature',
+      'Implement feedback changes'
+    ];
+
+    const statusOptions = ['pending', 'in-progress', 'completed', 'blocked'];
+    const tagOptions = ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design'];
+
+    // Batch insert for better performance
+    const batchSize = 50;
+    const batches = Math.ceil(count / batchSize);
+
+    for (let batch = 0; batch < batches; batch++) {
+      const batchCount = Math.min(batchSize, count - (batch * batchSize));
+      const values = [];
+      const placeholders = [];
+      const params = [];
+
+      for (let i = 0; i < batchCount; i++) {
+        const todoId = `todo-${Date.now()}-${batch * batchSize + i}`;
+
+        // Generate random data
+        const title = todoTitles[Math.floor(Math.random() * todoTitles.length)];
+        const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
+
+        // Random deadline between today and 14 days from now
+        const today = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + 14);
+        const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
+
+        // Random status
+        const status = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+
+        // Random tags (1-3 tags)
+        const numTags = Math.floor(Math.random() * 3) + 1;
+        const tags = [];
+        for (let j = 0; j < numTags; j++) {
+          const randomTag = tagOptions[Math.floor(Math.random() * tagOptions.length)];
+          if (!tags.includes(randomTag)) {
+            tags.push(randomTag);
+          }
+        }
+
+        // Random attachments (0-2 attachments)
+        const numAttachments = Math.floor(Math.random() * 3);
+        const attachments = [];
+        for (let j = 0; j < numAttachments; j++) {
+          attachments.push({
+            name: `attachment-${j + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
+            url: `https://example.com/attachments/${todoId}/${j + 1}`
+          });
+        }
+
+        // Add to batch
+        placeholders.push(`($${params.length + 1}, $${params.length + 2}, $${params.length + 3}, $${params.length + 4}, $${params.length + 5}, $${params.length + 6}, $${params.length + 7}, NOW(), NOW())`);
+        params.push(todoId, title, description, deadline.toISOString(), status, JSON.stringify(tags), JSON.stringify(attachments));
+      }
+
+      // Execute batch insert
+      if (placeholders.length > 0) {
+        const query = `
+          INSERT INTO "${todoTableName}" (id, title, description, deadline, status, tags, attachments, created_at, updated_at) 
+          VALUES ${placeholders.join(', ')}
+        `;
+
+        await client.query(query, params);
+        successCount += batchCount;
+      }
+    }
+
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000; // in seconds
+
+    return {
+      success: true,
+      message: `Added ${successCount} todo items in ${duration.toFixed(2)} seconds`
+    };
+  } catch (error) {
+    console.error('Error adding multiple todos:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 } 

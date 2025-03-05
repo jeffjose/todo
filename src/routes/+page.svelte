@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { addNewTodo, loadTodos, type Todo } from '$lib/client/db';
+	import { addNewTodo, addMultipleTodos, loadTodos, type Todo } from '$lib/client/db';
 	import { Button } from '$lib/components/ui/button';
 
 	let todos = $state<Todo[]>([]);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let expandedTodoId = $state<string | null>(null);
+	let isLoading = $state<boolean>(false);
 
 	onMount(async () => {
 		todos = await loadTodos();
@@ -36,15 +37,111 @@
 		}
 	}
 
+	async function handleAddMultipleTodos(count: number) {
+		if (isLoading) return;
+
+		try {
+			isLoading = true;
+			notification = {
+				message: `Adding ${count} todo items...`,
+				type: 'success'
+			};
+
+			const result = await addMultipleTodos(count);
+
+			if (result.success) {
+				todos = await loadTodos();
+				notification = {
+					message: result.message,
+					type: 'success'
+				};
+			} else {
+				throw new Error(result.message);
+			}
+		} catch (error) {
+			console.error(`Failed to add ${count} todos:`, error);
+			notification = {
+				message: error instanceof Error ? error.message : `Failed to add ${count} todos`,
+				type: 'error'
+			};
+		} finally {
+			isLoading = false;
+			// Clear notification after 5 seconds
+			setTimeout(() => {
+				notification = null;
+			}, 5000);
+		}
+	}
+
 	function toggleExpand(todoId: string) {
 		expandedTodoId = expandedTodoId === todoId ? null : todoId;
 	}
 </script>
 
 <div class="container mx-auto p-4">
-	<h1 class="mb-4 text-2xl font-bold">Todo Management</h1>
+	<h1 class="mb-4 text-2xl font-bold">Todo Management ({todos.length} items)</h1>
 
-	<Button onclick={handleAddNewTodo}>Add New Item</Button>
+	<div class="mb-6 flex flex-wrap items-center gap-2">
+		<Button onclick={handleAddNewTodo} disabled={isLoading}>Add New Item</Button>
+
+		<div class="ml-4 flex items-center gap-2">
+			<span class="text-sm font-medium text-gray-700">Bulk add:</span>
+			<Button
+				onclick={() => handleAddMultipleTodos(10)}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="min-w-16"
+			>
+				10
+			</Button>
+			<Button
+				onclick={() => handleAddMultipleTodos(50)}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="min-w-16"
+			>
+				50
+			</Button>
+			<Button
+				onclick={() => handleAddMultipleTodos(100)}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="min-w-16"
+			>
+				100
+			</Button>
+			<Button
+				onclick={() => handleAddMultipleTodos(500)}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="min-w-16"
+			>
+				500
+			</Button>
+			<Button
+				onclick={() => handleAddMultipleTodos(1000)}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="min-w-16"
+			>
+				1000
+			</Button>
+		</div>
+
+		{#if isLoading}
+			<div class="ml-2 flex items-center">
+				<div
+					class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
+				></div>
+				<span class="text-sm text-gray-600">Processing...</span>
+			</div>
+		{/if}
+	</div>
 
 	{#if notification}
 		<div
@@ -58,13 +155,24 @@
 	{/if}
 
 	<div class="mb-4 mt-6 rounded bg-white px-4 py-3 shadow-md">
-		<h2 class="mb-3 text-xl font-semibold">Todo Items</h2>
+		<div class="mb-3 flex items-center justify-between">
+			<h2 class="text-xl font-semibold">Todo Items ({todos.length})</h2>
+			<span class="text-sm text-gray-500">
+				{#if todos.length > 0}
+					Showing all items
+				{:else}
+					No items
+				{/if}
+			</span>
+		</div>
+
 		{#if todos.length === 0}
 			<p class="text-gray-600">No todo items found</p>
 		{:else}
 			<table class="w-full min-w-full table-auto">
 				<thead class="bg-gray-50 text-xs font-medium uppercase text-gray-500">
 					<tr>
+						<th class="px-2 py-1 text-left">ID</th>
 						<th class="px-2 py-1 text-left">Status</th>
 						<th class="px-2 py-1 text-left">Title</th>
 						<th class="px-2 py-1 text-left">Tags</th>
@@ -75,6 +183,15 @@
 				<tbody class="divide-y divide-gray-200">
 					{#each todos as todo}
 						<tr class="hover:bg-gray-50">
+							<!-- ID -->
+							<td class="whitespace-nowrap px-2 py-2">
+								<span class="font-mono text-xs text-gray-500" title={todo.id}>
+									{todo.id.startsWith('todo-')
+										? todo.id.substring(5, 13) + '...'
+										: todo.id.substring(0, 8) + '...'}
+								</span>
+							</td>
+
 							<!-- Status indicator -->
 							<td class="whitespace-nowrap px-2 py-2">
 								<div class="flex items-center">
@@ -174,7 +291,7 @@
 						<!-- Expanded details row -->
 						{#if expandedTodoId === todo.id}
 							<tr class="bg-gray-50">
-								<td colspan="5" class="px-4 py-2">
+								<td colspan="6" class="px-4 py-2">
 									<div class="text-sm">
 										{#if todo.description}
 											<p class="mb-2 text-gray-600">{todo.description}</p>
@@ -214,7 +331,8 @@
 										{/if}
 
 										<div class="text-xs text-gray-500">
-											<span>Created: {new Date(todo.createdAt).toLocaleString()}</span>
+											<span>ID: <span class="font-mono">{todo.id}</span></span>
+											<span class="ml-3">Created: {new Date(todo.createdAt).toLocaleString()}</span>
 											<span class="ml-3">Updated: {new Date(todo.updatedAt).toLocaleString()}</span>
 										</div>
 									</div>

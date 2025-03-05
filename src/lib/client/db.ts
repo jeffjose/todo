@@ -178,21 +178,21 @@ class DatabaseClient {
     // Update priority values
     await this.client.query(`
       UPDATE "${this.tableName}"
-      SET priority = 'P3'
-      WHERE priority NOT IN ('P0', 'P1', 'P2', 'P3')
+      SET "priority" = 'P3'
+      WHERE "priority" NOT IN ('P0', 'P1', 'P2', 'P3')
     `);
 
     // Update JSON columns
     await this.client.query(`
       UPDATE "${this.tableName}"
-      SET tags = '[]'::json
-      WHERE tags IS NULL
+      SET "tags" = '[]'::json
+      WHERE "tags" IS NULL
     `);
 
     await this.client.query(`
       UPDATE "${this.tableName}"
-      SET attachments = '[]'::json
-      WHERE attachments IS NULL
+      SET "attachments" = '[]'::json
+      WHERE "attachments" IS NULL
     `);
   }
 

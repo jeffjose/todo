@@ -3,7 +3,11 @@ import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from './schema';
 import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
+
+// Custom alphabet for nanoid - using only lowercase letters and numbers, excluding confusing characters
+const CUSTOM_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const generateId = customAlphabet(CUSTOM_ALPHABET);
 
 // Types
 export interface Todo {
@@ -329,7 +333,7 @@ class DatabaseClient {
     }
 
     try {
-      const todoId = nanoid();
+      const todoId = generateId();
       const now = new Date().toISOString();
       const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
       const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
@@ -396,7 +400,7 @@ class DatabaseClient {
         const params = [];
 
         for (let i = 0; i < batchCount; i++) {
-          const todoId = nanoid();
+          const todoId = generateId();
           const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
           const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 

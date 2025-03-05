@@ -122,7 +122,7 @@ class DatabaseClient {
 
     // Set default value if specified
     if (def.defaultValue) {
-      const defaultValue = def.type === 'json' ? `'${def.defaultValue}'` : def.defaultValue;
+      const defaultValue = def.type === 'json' ? `'${def.defaultValue}'` : `'${def.defaultValue}'`;
       await this.client.query(`
         UPDATE "${this.tableName}"
         SET "${column}" = ${defaultValue}
@@ -159,16 +159,16 @@ class DatabaseClient {
     // Update existing rows
     await this.client.query(`
       UPDATE "${this.tableName}"
-      SET created_at = $1,
-          updated_at = $1
-      WHERE created_at IS NULL OR updated_at IS NULL
+      SET "created_at" = $1,
+          "updated_at" = $1
+      WHERE "created_at" IS NULL OR "updated_at" IS NULL
     `, [now]);
 
     // Make columns non-nullable
     await this.client.query(`
       ALTER TABLE "${this.tableName}"
-      ALTER COLUMN created_at SET NOT NULL,
-      ALTER COLUMN updated_at SET NOT NULL
+      ALTER COLUMN "created_at" SET NOT NULL,
+      ALTER COLUMN "updated_at" SET NOT NULL
     `);
   }
 
@@ -180,6 +180,20 @@ class DatabaseClient {
       UPDATE "${this.tableName}"
       SET "priority" = 'P3'
       WHERE "priority" NOT IN ('P0', 'P1', 'P2', 'P3')
+    `);
+
+    // Update urgency values
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET "urgency" = 'medium'
+      WHERE "urgency" NOT IN ('high', 'medium', 'low')
+    `);
+
+    // Update status values
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET "status" = 'pending'
+      WHERE "status" NOT IN ('pending', 'in-progress', 'completed', 'blocked')
     `);
 
     // Update JSON columns
@@ -289,9 +303,9 @@ class DatabaseClient {
 
     const result = await this.client.query<TodoRow>(`
       SELECT 
-        id, title, description, deadline, status, priority, urgency, tags, attachments, created_at, updated_at
+        "id", "title", "description", "deadline", "status", "priority", "urgency", "tags", "attachments", "created_at", "updated_at"
       FROM "${this.tableName}" 
-      ORDER BY created_at DESC
+      ORDER BY "created_at" DESC
     `);
 
     return result.rows.map(row => ({
@@ -348,7 +362,7 @@ class DatabaseClient {
       }));
 
       await this.client.query(
-        `INSERT INTO "${this.tableName}" (id, title, description, deadline, status, priority, urgency, tags, attachments, created_at, updated_at) 
+        `INSERT INTO "${this.tableName}" ("id", "title", "description", "deadline", "status", "priority", "urgency", "tags", "attachments", "created_at", "updated_at") 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
         [todoId, title, description, deadline.toISOString(), status, priority, urgency, JSON.stringify(tags), JSON.stringify(attachments), now]
       );
@@ -418,7 +432,7 @@ class DatabaseClient {
 
         if (placeholders.length > 0) {
           const query = `
-            INSERT INTO "${this.tableName}" (id, title, description, deadline, status, priority, urgency, tags, attachments, created_at, updated_at) 
+            INSERT INTO "${this.tableName}" ("id", "title", "description", "deadline", "status", "priority", "urgency", "tags", "attachments", "created_at", "updated_at") 
             VALUES ${placeholders.join(', ')}
           `;
           await this.client.query(query, params);
@@ -460,17 +474,17 @@ class DatabaseClient {
         await this.client.query(`
           DROP TABLE IF EXISTS "${this.tableName}";
           CREATE TABLE "${this.tableName}" (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            deadline TEXT,
-            status TEXT NOT NULL,
-            priority TEXT NOT NULL,
-            urgency TEXT NOT NULL,
-            tags JSONB NOT NULL,
-            attachments JSONB NOT NULL,
-            created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL
+            "id" TEXT PRIMARY KEY,
+            "title" TEXT NOT NULL,
+            "description" TEXT,
+            "deadline" TEXT,
+            "status" TEXT NOT NULL,
+            "priority" TEXT NOT NULL,
+            "urgency" TEXT NOT NULL,
+            "tags" JSONB NOT NULL,
+            "attachments" JSONB NOT NULL,
+            "created_at" TIMESTAMP NOT NULL,
+            "updated_at" TIMESTAMP NOT NULL
           );
         `);
       } else {

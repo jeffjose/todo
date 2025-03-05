@@ -428,6 +428,8 @@
 					<tr>
 						<th class="px-2 py-1 text-left">ID</th>
 						<th class="px-2 py-1 text-left">Status</th>
+						<th class="px-2 py-1 text-left">Priority</th>
+						<th class="px-2 py-1 text-left">Urgency</th>
 						<th class="px-2 py-1 text-left">Title</th>
 						<th class="px-2 py-1 text-left">Tags</th>
 						<th class="px-2 py-1 text-left">Deadline</th>
@@ -440,9 +442,7 @@
 							<!-- ID -->
 							<td class="whitespace-nowrap px-2 py-2">
 								<span class="font-mono text-xs text-gray-500" title={todo.id}>
-									{todo.id.startsWith('todo-')
-										? todo.id.substring(5, 13) + '...'
-										: todo.id.substring(0, 8) + '...'}
+									{todo.id.substring(0, 8)}...
 								</span>
 							</td>
 
@@ -470,6 +470,38 @@
 										{todo.status}
 									</span>
 								</div>
+							</td>
+
+							<!-- Priority -->
+							<td class="whitespace-nowrap px-2 py-2">
+								<span
+									class="rounded px-1.5 py-0.5 text-xs font-medium"
+									class:bg-red-100={todo.priority === 'P0'}
+									class:text-red-800={todo.priority === 'P0'}
+									class:bg-orange-100={todo.priority === 'P1'}
+									class:text-orange-800={todo.priority === 'P1'}
+									class:bg-yellow-100={todo.priority === 'P2'}
+									class:text-yellow-800={todo.priority === 'P2'}
+									class:bg-gray-100={todo.priority === 'P3'}
+									class:text-gray-800={todo.priority === 'P3'}
+								>
+									{todo.priority}
+								</span>
+							</td>
+
+							<!-- Urgency -->
+							<td class="whitespace-nowrap px-2 py-2">
+								<span
+									class="rounded px-1.5 py-0.5 text-xs font-medium"
+									class:bg-red-100={todo.urgency === 'high'}
+									class:text-red-800={todo.urgency === 'high'}
+									class:bg-yellow-100={todo.urgency === 'medium'}
+									class:text-yellow-800={todo.urgency === 'medium'}
+									class:bg-gray-100={todo.urgency === 'low'}
+									class:text-gray-800={todo.urgency === 'low'}
+								>
+									{todo.urgency}
+								</span>
 							</td>
 
 							<!-- Title -->
@@ -545,7 +577,7 @@
 						<!-- Expanded details row -->
 						{#if expandedTodoId === todo.id}
 							<tr class="bg-gray-50">
-								<td colspan="6" class="px-4 py-2">
+								<td colspan="8" class="px-4 py-2">
 									<div class="text-sm">
 										{#if todo.description}
 											<p class="mb-2 text-gray-600">{todo.description}</p>

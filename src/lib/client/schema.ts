@@ -10,6 +10,8 @@ export const todos = pgTable(todoTableName, {
   description: text('description'),
   deadline: timestamp('deadline', { withTimezone: true, mode: 'date' }),
   status: text('status').notNull().default('pending'),
+  priority: text('priority').notNull().default('P3'),
+  urgency: text('urgency').notNull().default('medium'),
   tags: json('tags').$type<string[]>().default([]),
   attachments: json('attachments').$type<{ name: string; url: string }[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),

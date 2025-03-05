@@ -3,465 +3,500 @@ import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from './schema';
 import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
+import { nanoid } from 'nanoid';
 
+// Types
 export interface Todo {
   id: string;
   title: string;
   description: string | null;
   deadline: Date | null;
   status: string;
+  priority: string;
+  urgency: string;
   tags: string[];
   attachments: { name: string; url: string }[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-let db: ReturnType<typeof drizzle>;
-let client: PGlite;
-let initialized = false;
-let initPromise: Promise<void> | null = null;
+type ColumnDefinition = {
+  type: string;
+  nullable: boolean;
+  defaultValue?: string;
+  primaryKey?: boolean;
+};
 
-// Get table name from environment variable or use default
-const todoTableName = env.TODO_TABLE_NAME || 'todos';
+type SchemaDefinition = {
+  [key: string]: ColumnDefinition;
+};
 
-async function tableExists(tableName: string): Promise<boolean> {
-  const result = await client.query(
-    `SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = $1
-        )`,
-    [tableName]
-  );
-  return (result.rows[0] as { exists: boolean })?.exists ?? false;
-}
+type ColumnInfo = {
+  column_name: string;
+  data_type: string;
+  is_nullable: string;
+  column_default: string | null;
+};
 
-export async function loadTodos(): Promise<Todo[]> {
-  if (!initialized || !client) return [];
+type TodoRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  status: string;
+  priority: string;
+  urgency: string;
+  tags: string[];
+  attachments: { name: string; url: string }[];
+  created_at: string;
+  updated_at: string;
+};
 
-  const startTime = performance.now();
+// Database schema definition
+const DESIRED_SCHEMA: SchemaDefinition = {
+  id: { type: 'text', primaryKey: true, nullable: false },
+  title: { type: 'text', nullable: false },
+  description: { type: 'text', nullable: true },
+  deadline: { type: 'timestamptz', nullable: true },
+  status: { type: 'text', nullable: false, defaultValue: 'pending' },
+  priority: { type: 'text', nullable: false, defaultValue: 'P3' },
+  urgency: { type: 'text', nullable: false, defaultValue: 'medium' },
+  tags: { type: 'json', nullable: false, defaultValue: '[]' },
+  attachments: { type: 'json', nullable: false, defaultValue: '[]' },
+  created_at: { type: 'timestamptz', nullable: false },
+  updated_at: { type: 'timestamptz', nullable: false }
+};
 
-  // Use a more efficient query that only selects the columns we need
-  // This reduces the amount of data transferred from the database
-  const queryStartTime = performance.now();
-  const result = await client.query(`
-    SELECT 
-      id, title, description, deadline, status, tags, attachments, created_at, updated_at
-    FROM "${todoTableName}" 
-    ORDER BY created_at DESC
-  `);
-  const queryEndTime = performance.now();
-  const queryDuration = queryEndTime - queryStartTime;
+// Random data options
+const RANDOM_DATA = {
+  titles: [
+    'Complete project proposal',
+    'Review documentation',
+    'Prepare presentation',
+    'Schedule meeting',
+    'Research new technologies',
+    'Fix bugs in application',
+    'Update dependencies',
+    'Create user documentation',
+    'Design new feature',
+    'Implement feedback changes'
+  ],
+  statuses: ['pending', 'in-progress', 'completed', 'blocked'],
+  priorities: ['P0', 'P1', 'P2', 'P3'],
+  urgencies: ['high', 'medium', 'low'],
+  tags: ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design']
+};
 
-  // Process the results in chunks to avoid blocking the main thread
-  const processingStartTime = performance.now();
-  const todos = result.rows.map((row: any) => {
-    // Ensure proper date parsing
-    return {
-      ...row,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
-      deadline: row.deadline ? new Date(row.deadline) : null
-    } as Todo;
-  });
-  const processingEndTime = performance.now();
-  const processingDuration = processingEndTime - processingStartTime;
+class DatabaseClient {
+  private client: PGlite | null = null;
+  private db: ReturnType<typeof drizzle> | null = null;
+  private initialized = false;
+  private initPromise: Promise<void> | null = null;
+  private readonly tableName: string;
 
-  const endTime = performance.now();
-  const totalDuration = endTime - startTime;
-
-  console.log(`Loaded ${todos.length} todos in ${totalDuration.toFixed(2)}ms (${(todos.length / (totalDuration / 1000)).toFixed(2)} items/sec)`);
-
-  return todos;
-}
-
-export async function initializeDB() {
-  if (initPromise) return initPromise;
-
-  console.log('initializeDB called, browser:', browser, 'initialized:', initialized);
-
-  if (!browser) {
-    console.log('Not in browser environment, skipping initialization');
-    return;
+  constructor(tableName: string = env.PUBLIC_TODO_TABLE_NAME || 'todos') {
+    this.tableName = tableName;
   }
 
-  if (initialized) {
-    console.log('Database already initialized');
-    return;
+  private async tableExists(): Promise<boolean> {
+    if (!this.client) throw new Error('Database not initialized');
+    const result = await this.client.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = $1
+      )`,
+      [this.tableName]
+    );
+    return (result.rows[0] as { exists: boolean })?.exists ?? false;
   }
 
-  initPromise = (async () => {
-    try {
-      console.log('Starting IndexedDB initialization...');
-      client = new PGlite('idb://todo-app-db');
-      console.log('PGLite client created');
+  private async addColumn(column: string, def: ColumnDefinition): Promise<void> {
+    if (!this.client) throw new Error('Database not initialized');
 
-      db = drizzle({ client, schema });
-      console.log('Drizzle instance created');
+    // Add column as nullable
+    await this.client.query(`
+      ALTER TABLE "${this.tableName}"
+      ADD COLUMN "${column}" ${def.type}
+    `);
 
-      // Check and create todos table
-      const todosTableExists = await tableExists(todoTableName);
-      console.log('Todos table exists:', todosTableExists);
-
-      if (!todosTableExists) {
-        console.log(`Creating ${todoTableName} table...`);
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS "${todoTableName}" (
-            "id" text PRIMARY KEY,
-            "title" text NOT NULL,
-            "description" text,
-            "deadline" timestamptz,
-            "status" text NOT NULL DEFAULT 'pending',
-            "tags" json DEFAULT '[]',
-            "attachments" json DEFAULT '[]',
-            "created_at" timestamptz NOT NULL DEFAULT NOW(),
-            "updated_at" timestamptz NOT NULL DEFAULT NOW()
-          )
-        `);
-        console.log(`${todoTableName} table created`);
-      }
-
-      initialized = true;
-      console.log('IndexedDB initialized successfully');
-
-      // List all tables
-      const tables = await client.query(`
-        SELECT table_name, (
-          SELECT COUNT(*) FROM information_schema.columns 
-          WHERE table_name = t.table_name
-        ) as column_count
-        FROM information_schema.tables t
-        WHERE table_schema = 'public'
+    // Set default value if specified
+    if (def.defaultValue) {
+      const defaultValue = def.type === 'json' ? `'${def.defaultValue}'` : def.defaultValue;
+      await this.client.query(`
+        UPDATE "${this.tableName}"
+        SET "${column}" = ${defaultValue}
+        WHERE "${column}" IS NULL
       `);
-      console.log('Available tables:', tables.rows);
-
-    } catch (error) {
-      console.error('Failed to initialize IndexedDB:', error);
-      throw error;
     }
-  })();
 
-  return initPromise;
-}
-
-export function getClientDB() {
-  if (!initialized) {
-    throw new Error('Database not initialized. Call initializeDB() first');
-  }
-  return { query: client.query.bind(client) };
-}
-
-// Function to add a new todo item
-export async function addNewTodo() {
-  if (!initialized || !client) {
-    throw new Error('Database not initialized');
+    // Make column non-nullable if specified
+    if (!def.nullable && column !== 'created_at' && column !== 'updated_at') {
+      await this.client.query(`
+        ALTER TABLE "${this.tableName}"
+        ALTER COLUMN "${column}" SET NOT NULL
+      `);
+    }
   }
 
-  try {
-    // Generate random todo data
-    const todoId = `todo-${Date.now()}`;
+  private async updateColumn(column: string, def: ColumnDefinition): Promise<void> {
+    if (!this.client) throw new Error('Database not initialized');
 
-    // Random title options
-    const todoTitles = [
-      'Complete project proposal',
-      'Review documentation',
-      'Prepare presentation',
-      'Schedule meeting',
-      'Research new technologies',
-      'Fix bugs in application',
-      'Update dependencies',
-      'Create user documentation',
-      'Design new feature',
-      'Implement feedback changes'
-    ];
+    // Drop and recreate column
+    await this.client.query(`
+      ALTER TABLE "${this.tableName}"
+      DROP COLUMN "${column}"
+    `);
 
-    // Random status options
-    const statusOptions = ['pending', 'in-progress', 'completed', 'blocked'];
+    await this.addColumn(column, def);
+  }
 
-    // Random tag options
-    const tagOptions = ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design'];
+  private async handleTimestampColumns(): Promise<void> {
+    if (!this.client) throw new Error('Database not initialized');
 
-    // Generate random data
-    const title = todoTitles[Math.floor(Math.random() * todoTitles.length)];
-    const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
+    const now = new Date().toISOString();
 
-    // Random deadline between today and 14 days from now
-    const today = new Date();
-    const futureDate = new Date();
-    futureDate.setDate(today.getDate() + 14);
-    const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
+    // Update existing rows
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET created_at = $1,
+          updated_at = $1
+      WHERE created_at IS NULL OR updated_at IS NULL
+    `, [now]);
 
-    // Random status
-    const status = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+    // Make columns non-nullable
+    await this.client.query(`
+      ALTER TABLE "${this.tableName}"
+      ALTER COLUMN created_at SET NOT NULL,
+      ALTER COLUMN updated_at SET NOT NULL
+    `);
+  }
 
-    // Random tags (1-3 tags)
-    const numTags = Math.floor(Math.random() * 3) + 1;
-    const tags = [];
-    for (let i = 0; i < numTags; i++) {
-      const randomTag = tagOptions[Math.floor(Math.random() * tagOptions.length)];
-      if (!tags.includes(randomTag)) {
-        tags.push(randomTag);
+  private async updateDataDefaults(): Promise<void> {
+    if (!this.client) throw new Error('Database not initialized');
+
+    // Update priority values
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET priority = 'P3'
+      WHERE priority NOT IN ('P0', 'P1', 'P2', 'P3')
+    `);
+
+    // Update JSON columns
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET tags = '[]'::json
+      WHERE tags IS NULL
+    `);
+
+    await this.client.query(`
+      UPDATE "${this.tableName}"
+      SET attachments = '[]'::json
+      WHERE attachments IS NULL
+    `);
+  }
+
+  async initialize(): Promise<void> {
+    if (this.initPromise) return this.initPromise;
+    if (!browser) {
+      console.log('Not in browser environment, skipping initialization');
+      return;
+    }
+    if (this.initialized) {
+      console.log('Database already initialized');
+      return;
+    }
+
+    this.initPromise = (async () => {
+      try {
+        console.log('Starting IndexedDB initialization...');
+        this.client = new PGlite('idb://todo-app-db');
+        this.db = drizzle({ client: this.client, schema });
+        console.log('Database client created');
+
+        const tableExists = await this.tableExists();
+        console.log('Table exists:', tableExists);
+
+        if (!tableExists) {
+          // Create new table
+          const createTableSQL = `
+            CREATE TABLE IF NOT EXISTS "${this.tableName}" (
+              ${Object.entries(DESIRED_SCHEMA)
+              .map(([column, def]) => {
+                const nullable = def.nullable ? '' : ' NOT NULL';
+                const defaultValue = def.defaultValue ? ` DEFAULT ${def.defaultValue}` : '';
+                const primaryKey = def.primaryKey ? ' PRIMARY KEY' : '';
+                return `"${column}" ${def.type}${nullable}${defaultValue}${primaryKey}`;
+              })
+              .join(',\n              ')}
+            )
+          `;
+          await this.client.query(createTableSQL);
+          console.log('Table created');
+        } else {
+          // Get current structure
+          const currentColumns = await this.client.query<ColumnInfo>(`
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = $1
+            ORDER BY ordinal_position
+          `, [this.tableName]);
+
+          const currentColumnNames = new Set(currentColumns.rows.map(row => row.column_name));
+
+          // Add missing columns
+          for (const [column, def] of Object.entries(DESIRED_SCHEMA)) {
+            if (!currentColumnNames.has(column)) {
+              await this.addColumn(column, def);
+            }
+          }
+
+          // Update existing columns
+          for (const [column, def] of Object.entries(DESIRED_SCHEMA)) {
+            if (currentColumnNames.has(column)) {
+              const currentCol = currentColumns.rows.find(row => row.column_name === column);
+              if (currentCol) {
+                const needsUpdate =
+                  currentCol.data_type !== def.type ||
+                  (currentCol.is_nullable === 'YES' && !def.nullable);
+
+                if (needsUpdate) {
+                  await this.updateColumn(column, def);
+                }
+              }
+            }
+          }
+
+          // Handle timestamps and defaults
+          await this.handleTimestampColumns();
+          await this.updateDataDefaults();
+        }
+
+        this.initialized = true;
+        console.log('Database initialized successfully');
+
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+        throw error;
       }
+    })();
+
+    return this.initPromise;
+  }
+
+  async loadTodos(): Promise<Todo[]> {
+    if (!this.initialized || !this.client) return [];
+
+    const result = await this.client.query<TodoRow>(`
+      SELECT 
+        id, title, description, deadline, status, priority, urgency, tags, attachments, created_at, updated_at
+      FROM "${this.tableName}" 
+      ORDER BY created_at DESC
+    `);
+
+    return result.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      deadline: row.deadline ? new Date(row.deadline) : null,
+      status: row.status,
+      priority: row.priority,
+      urgency: row.urgency,
+      tags: row.tags,
+      attachments: row.attachments,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at)
+    }));
+  }
+
+  async addNewTodo(): Promise<{ success: boolean; message: string }> {
+    if (!this.initialized || !this.client) {
+      throw new Error('Database not initialized');
     }
 
-    // Random attachments (0-2 attachments)
-    const numAttachments = Math.floor(Math.random() * 3);
-    const attachments = [];
-    for (let i = 0; i < numAttachments; i++) {
-      attachments.push({
+    try {
+      const todoId = nanoid();
+      const now = new Date().toISOString();
+      const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
+      const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
+
+      // Generate random data
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + 14);
+      const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
+
+      const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
+      const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
+      const urgency = RANDOM_DATA.urgencies[Math.floor(Math.random() * RANDOM_DATA.urgencies.length)];
+
+      // Generate random tags
+      const numTags = Math.floor(Math.random() * 3) + 1;
+      const tags: string[] = [];
+      for (let i = 0; i < numTags; i++) {
+        const randomTag = RANDOM_DATA.tags[Math.floor(Math.random() * RANDOM_DATA.tags.length)];
+        if (!tags.includes(randomTag)) {
+          tags.push(randomTag);
+        }
+      }
+
+      // Generate random attachments
+      const numAttachments = Math.floor(Math.random() * 3);
+      const attachments = Array.from({ length: numAttachments }, (_, i) => ({
         name: `attachment-${i + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
         url: `https://example.com/attachments/${todoId}/${i + 1}`
-      });
-    }
+      }));
 
-    await client.query(
-      `INSERT INTO "${todoTableName}" (id, title, description, deadline, status, tags, attachments, created_at, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-      [todoId, title, description, deadline.toISOString(), status, JSON.stringify(tags), JSON.stringify(attachments)]
-    );
+      await this.client.query(
+        `INSERT INTO "${this.tableName}" (id, title, description, deadline, status, priority, urgency, tags, attachments, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
+        [todoId, title, description, deadline.toISOString(), status, priority, urgency, JSON.stringify(tags), JSON.stringify(attachments), now]
+      );
 
-    return {
-      success: true,
-      message: `New todo "${title}" added successfully`
-    };
-  } catch (error) {
-    console.error('Error adding new todo:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-// Function to add multiple todo items at once
-export async function addMultipleTodos(count: number): Promise<{ success: boolean; message: string }> {
-  if (!initialized || !client) {
-    throw new Error('Database not initialized');
-  }
-
-  try {
-    const startTime = Date.now();
-
-    // Random data options - precompute as much as possible
-    const todoTitles = [
-      'Complete project proposal',
-      'Review documentation',
-      'Prepare presentation',
-      'Schedule meeting',
-      'Research new technologies',
-      'Fix bugs in application',
-      'Update dependencies',
-      'Create user documentation',
-      'Design new feature',
-      'Implement feedback changes'
-    ];
-
-    const statusOptions = ['pending', 'in-progress', 'completed', 'blocked'];
-    const tagOptions = ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design'];
-
-    // Optimize batch size based on count
-    // Use larger batches for better performance, but not too large to avoid memory issues
-    const batchSize = count > 1000 ? 200 : (count > 500 ? 150 : (count > 100 ? 100 : 50));
-    const batches = Math.ceil(count / batchSize);
-    let successCount = 0;
-
-    console.log(`Adding ${count} items in ${batches} batches of ${batchSize}`);
-
-    // Pre-generate random data for all items to avoid doing it in the loop
-    const batchTimestamp = Date.now(); // Use same timestamp for all items
-
-    // Track batch timings
-    const batchTimings = [];
-    const totalStartTime = performance.now();
-
-    for (let batch = 0; batch < batches; batch++) {
-      const batchStartTime = performance.now();
-
-      const batchCount = Math.min(batchSize, count - (batch * batchSize));
-      const placeholders = [];
-      const params = [];
-
-      // Prepare all parameters for this batch at once
-      for (let i = 0; i < batchCount; i++) {
-        const todoId = `todo-${batchTimestamp}-${batch * batchSize + i}`;
-
-        // Generate random data
-        const title = todoTitles[Math.floor(Math.random() * todoTitles.length)];
-        const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
-
-        // Random deadline between today and 14 days from now
-        const today = new Date();
-        const futureDate = new Date();
-        futureDate.setDate(today.getDate() + 14);
-        const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
-
-        // Random status
-        const status = statusOptions[Math.floor(Math.random() * statusOptions.length)];
-
-        // Random tags (1-3 tags)
-        const numTags = Math.floor(Math.random() * 3) + 1;
-        const tags = [];
-        for (let j = 0; j < numTags; j++) {
-          const randomTag = tagOptions[Math.floor(Math.random() * tagOptions.length)];
-          if (!tags.includes(randomTag)) {
-            tags.push(randomTag);
-          }
-        }
-
-        // Random attachments (0-2 attachments)
-        const numAttachments = Math.floor(Math.random() * 3);
-        const attachments = [];
-        for (let j = 0; j < numAttachments; j++) {
-          attachments.push({
-            name: `attachment-${j + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
-            url: `https://example.com/attachments/${todoId}/${j + 1}`
-          });
-        }
-
-        // Add to batch
-        const paramIndex = params.length;
-        placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, NOW(), NOW())`);
-        params.push(todoId, title, description, deadline.toISOString(), status, JSON.stringify(tags), JSON.stringify(attachments));
-      }
-
-      // Execute batch insert
-      if (placeholders.length > 0) {
-        const query = `
-          INSERT INTO "${todoTableName}" (id, title, description, deadline, status, tags, attachments, created_at, updated_at) 
-          VALUES ${placeholders.join(', ')}
-        `;
-
-        const queryStartTime = performance.now();
-        await client.query(query, params);
-        const queryEndTime = performance.now();
-
-        successCount += batchCount;
-
-        const batchEndTime = performance.now();
-        const batchDuration = batchEndTime - batchStartTime;
-        const queryDuration = queryEndTime - queryStartTime;
-
-        batchTimings.push({
-          batch: batch + 1,
-          items: batchCount,
-          total: batchDuration,
-          query: queryDuration,
-          prep: batchDuration - queryDuration
-        });
-
-        // Log progress for large batches
-        if (batches > 1) {
-          console.log(`Batch ${batch + 1}/${batches} completed: ${successCount}/${count} items added (${batchDuration.toFixed(2)}ms, query: ${queryDuration.toFixed(2)}ms)`);
-        }
-      }
-    }
-
-    const totalEndTime = performance.now();
-    const totalDuration = totalEndTime - totalStartTime;
-
-    // Log simplified timing information
-    console.log(`--- Batch Insert Performance ---`);
-    console.log(`Total time: ${totalDuration.toFixed(2)}ms for ${successCount} items (${(successCount / (totalDuration / 1000)).toFixed(2)} items/sec)`);
-
-    // Calculate averages without detailed breakdown
-    const avgBatchTime = batchTimings.reduce((sum, timing) => sum + timing.total, 0) / batchTimings.length;
-    const avgQueryTime = batchTimings.reduce((sum, timing) => sum + timing.query, 0) / batchTimings.length;
-
-    console.log(`Average batch time: ${avgBatchTime.toFixed(2)}ms (query: ${avgQueryTime.toFixed(2)}ms)`);
-
-    const endTime = Date.now();
-    const duration = (endTime - startTime) / 1000; // in seconds
-    const rate = Math.round(successCount / duration);
-
-    return {
-      success: true,
-      message: `Added ${successCount} todo items in ${duration.toFixed(2)} seconds (${rate} items/sec)`
-    };
-  } catch (error) {
-    console.error('Error adding multiple todos:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-// Function to clear all todo items
-export async function clearAllTodos(): Promise<{ success: boolean; message: string }> {
-  if (!initialized || !client) {
-    throw new Error('Database not initialized');
-  }
-
-  try {
-    const startTime = performance.now();
-
-    // First count how many items we have
-    const countStartTime = performance.now();
-    const countResult = await client.query(`SELECT COUNT(*) FROM "${todoTableName}"`);
-    const countEndTime = performance.now();
-    const countDuration = countEndTime - countStartTime;
-
-    const count = parseInt(countResult.rows[0].count);
-
-    console.log(`Counting ${count} items took ${countDuration.toFixed(2)}ms`);
-
-    if (count === 0) {
       return {
         success: true,
-        message: 'No todo items to clear'
+        message: `New todo "${title}" added successfully`
+      };
+    } catch (error) {
+      console.error('Error adding new todo:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
 
-    // For very large datasets, use a more efficient deletion strategy
-    const deleteStartTime = performance.now();
-
-    if (count > 10000) {
-      // Drop and recreate the table for extremely large datasets
-      // This is much faster than deleting rows individually
-      console.log(`Using DROP/CREATE strategy for ${count} items`);
-      await client.query(`
-        DROP TABLE IF EXISTS "${todoTableName}";
-        CREATE TABLE "${todoTableName}" (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          deadline TEXT,
-          status TEXT NOT NULL,
-          tags JSONB NOT NULL,
-          attachments JSONB NOT NULL,
-          created_at TIMESTAMP NOT NULL,
-          updated_at TIMESTAMP NOT NULL
-        );
-      `);
-    } else {
-      // For smaller datasets, use a simple DELETE
-      console.log(`Using DELETE strategy for ${count} items`);
-      await client.query(`DELETE FROM "${todoTableName}"`);
+  async addMultipleTodos(count: number): Promise<{ success: boolean; message: string }> {
+    if (!this.initialized || !this.client) {
+      throw new Error('Database not initialized');
     }
 
-    const deleteEndTime = performance.now();
-    const deleteDuration = deleteEndTime - deleteStartTime;
+    try {
+      const batchSize = count > 1000 ? 200 : (count > 500 ? 150 : (count > 100 ? 100 : 50));
+      const batches = Math.ceil(count / batchSize);
+      let successCount = 0;
 
-    console.log(`Deletion of ${count} items took ${deleteDuration.toFixed(2)}ms (${(count / (deleteDuration / 1000)).toFixed(2)} items/sec)`);
+      for (let batch = 0; batch < batches; batch++) {
+        const batchCount = Math.min(batchSize, count - (batch * batchSize));
+        const placeholders = [];
+        const params = [];
 
-    const endTime = performance.now();
-    const totalDuration = endTime - startTime;
+        for (let i = 0; i < batchCount; i++) {
+          const todoId = nanoid();
+          const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
+          const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
-    console.log(`--- Clear Performance ---`);
-    console.log(`Total time: ${totalDuration.toFixed(2)}ms for ${count} items (${(count / (totalDuration / 1000)).toFixed(2)} items/sec)`);
+          const today = new Date();
+          const futureDate = new Date();
+          futureDate.setDate(today.getDate() + 14);
+          const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
 
-    const duration = (endTime - startTime) / 1000; // in seconds
-    const rate = Math.round(count / duration);
+          const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
+          const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
+          const urgency = RANDOM_DATA.urgencies[Math.floor(Math.random() * RANDOM_DATA.urgencies.length)];
 
-    return {
-      success: true,
-      message: `Cleared ${count} todo items in ${duration.toFixed(2)} seconds (${rate} items/sec)`
-    };
-  } catch (error) {
-    console.error('Error clearing todos:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    };
+          const numTags = Math.floor(Math.random() * 3) + 1;
+          const tags: string[] = [];
+          for (let j = 0; j < numTags; j++) {
+            const randomTag = RANDOM_DATA.tags[Math.floor(Math.random() * RANDOM_DATA.tags.length)];
+            if (!tags.includes(randomTag)) {
+              tags.push(randomTag);
+            }
+          }
+
+          const numAttachments = Math.floor(Math.random() * 3);
+          const attachments = Array.from({ length: numAttachments }, (_, j) => ({
+            name: `attachment-${j + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
+            url: `https://example.com/attachments/${todoId}/${j + 1}`
+          }));
+
+          const paramIndex = params.length;
+          const now = new Date().toISOString();
+          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 10})`);
+          params.push(todoId, title, description, deadline.toISOString(), status, priority, urgency, JSON.stringify(tags), JSON.stringify(attachments), now);
+        }
+
+        if (placeholders.length > 0) {
+          const query = `
+            INSERT INTO "${this.tableName}" (id, title, description, deadline, status, priority, urgency, tags, attachments, created_at, updated_at) 
+            VALUES ${placeholders.join(', ')}
+          `;
+          await this.client.query(query, params);
+          successCount += batchCount;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Successfully added ${successCount} todo items`
+      };
+    } catch (error) {
+      console.error('Error adding multiple todos:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
-} 
+
+  async clearAllTodos(): Promise<{ success: boolean; message: string }> {
+    if (!this.initialized || !this.client) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const countResult = await this.client.query<{ count: string }>(`SELECT COUNT(*) FROM "${this.tableName}"`);
+      const count = parseInt(countResult.rows[0].count);
+
+      if (count === 0) {
+        return {
+          success: true,
+          message: 'No todo items to clear'
+        };
+      }
+
+      if (count > 10000) {
+        // Drop and recreate table for large datasets
+        await this.client.query(`
+          DROP TABLE IF EXISTS "${this.tableName}";
+          CREATE TABLE "${this.tableName}" (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            deadline TEXT,
+            status TEXT NOT NULL,
+            priority TEXT NOT NULL,
+            urgency TEXT NOT NULL,
+            tags JSONB NOT NULL,
+            attachments JSONB NOT NULL,
+            created_at TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP NOT NULL
+          );
+        `);
+      } else {
+        await this.client.query(`DELETE FROM "${this.tableName}"`);
+      }
+
+      return {
+        success: true,
+        message: `Cleared ${count} todo items`
+      };
+    } catch (error) {
+      console.error('Error clearing todos:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+}
+
+// Create singleton instance
+const db = new DatabaseClient();
+
+// Export functions that use the singleton
+export const initializeDB = () => db.initialize();
+export const loadTodos = () => db.loadTodos();
+export const addNewTodo = () => db.addNewTodo();
+export const addMultipleTodos = (count: number) => db.addMultipleTodos(count);
+export const clearAllTodos = () => db.clearAllTodos(); 

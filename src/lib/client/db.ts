@@ -28,7 +28,7 @@ async function tableExists(tableName: string): Promise<boolean> {
 
 export async function loadUsers(): Promise<User[]> {
   if (!initialized || !client) return [];
-  const result = await client.query('SELECT id, username, age FROM "user" ORDER BY username');
+  const result = await client.query('SELECT id, username, age FROM "user" ORDER BY id DESC');
   return result.rows as User[];
 }
 
@@ -126,18 +126,26 @@ export async function testDataPersistence() {
   }
 
   try {
-    // Insert a test user
+    // Generate random user data
     const testId = `test-${Date.now()}`;
+    const firstNames = ['emma', 'liam', 'olivia', 'noah', 'ava', 'ethan', 'sophia', 'mason', 'isabella', 'lucas', 'mia', 'james'];
+    const lastNames = ['smith', 'johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis', 'rodriguez', 'martinez'];
+    const randomFirstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const randomLastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const randomNumber = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const randomAge = Math.floor(Math.random() * 50) + 18; // Random age between 18 and 67
+
+    const username = `${randomFirstName}-${randomLastName}-${randomNumber}`;
 
     await client.query(
       `INSERT INTO "user" (id, username, age, password_hash) 
              VALUES ($1, $2, $3, $4)`,
-      [testId, `test-user-${Date.now()}`, 25, 'test-hash']
+      [testId, username, randomAge, 'test-hash']
     );
 
     return {
       success: true,
-      message: `Test user inserted successfully`
+      message: `Test user ${username} inserted successfully`
     };
   } catch (error) {
     console.error('Error in persistence test:', error);

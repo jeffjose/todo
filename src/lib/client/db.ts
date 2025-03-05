@@ -2,7 +2,12 @@ import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from './schema';
 import { browser } from '$app/environment';
-import { users, type User } from './stores';
+
+export interface User {
+  id: string;
+  username: string;
+  age: number;
+}
 
 let db: ReturnType<typeof drizzle>;
 let client: PGlite;
@@ -21,10 +26,10 @@ async function tableExists(tableName: string): Promise<boolean> {
   return (result.rows[0] as { exists: boolean })?.exists ?? false;
 }
 
-export async function loadUsers() {
-  if (!initialized || !client) return;
+export async function loadUsers(): Promise<User[]> {
+  if (!initialized || !client) return [];
   const result = await client.query('SELECT id, username, age FROM "user" ORDER BY username');
-  users.set(result.rows as User[]);
+  return result.rows as User[];
 }
 
 export async function initializeDB() {
@@ -58,13 +63,13 @@ export async function initializeDB() {
       if (!userTableExists) {
         console.log('Creating user table...');
         await client.query(`
-                CREATE TABLE IF NOT EXISTS "user" (
-                    "id" text PRIMARY KEY,
-                    "age" integer,
-                    "username" text NOT NULL UNIQUE,
-                    "password_hash" text NOT NULL
-                )
-            `);
+                    CREATE TABLE IF NOT EXISTS "user" (
+                        "id" text PRIMARY KEY,
+                        "age" integer,
+                        "username" text NOT NULL UNIQUE,
+                        "password_hash" text NOT NULL
+                    )
+                `);
         console.log('User table created');
       }
 
@@ -75,12 +80,12 @@ export async function initializeDB() {
       if (!sessionTableExists) {
         console.log('Creating session table...');
         await client.query(`
-                CREATE TABLE IF NOT EXISTS "session" (
-                    "id" text PRIMARY KEY,
-                    "user_id" text NOT NULL REFERENCES "user"("id"),
-                    "expires_at" timestamptz NOT NULL
-                )
-            `);
+                    CREATE TABLE IF NOT EXISTS "session" (
+                        "id" text PRIMARY KEY,
+                        "user_id" text NOT NULL REFERENCES "user"("id"),
+                        "expires_at" timestamptz NOT NULL
+                    )
+                `);
         console.log('Session table created');
       }
 
@@ -97,9 +102,6 @@ export async function initializeDB() {
                 WHERE table_schema = 'public'
             `);
       console.log('Available tables:', tables.rows);
-
-      // Load initial users
-      await loadUsers();
 
     } catch (error) {
       console.error('Failed to initialize IndexedDB:', error);
@@ -132,9 +134,6 @@ export async function testDataPersistence() {
              VALUES ($1, $2, $3, $4)`,
       [testId, `test-user-${Date.now()}`, 25, 'test-hash']
     );
-
-    // Reload users to update the UI
-    await loadUsers();
 
     return {
       success: true,

@@ -1,19 +1,10 @@
 <script lang="ts">
 	import '../app.css';
-	import { onMount } from 'svelte';
-	import { initializeDB, testDataPersistence } from '$lib/client/db';
+	import { testDataPersistence } from '$lib/client/db';
 
 	let { children } = $props();
-	let notification: { message: string; type: 'success' | 'error' } | null = null;
+	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let notificationTimeout: ReturnType<typeof setTimeout>;
-
-	onMount(async () => {
-		try {
-			await initializeDB();
-		} catch (error) {
-			console.error('Failed to initialize database:', error);
-		}
-	});
 
 	function showNotification(message: string, type: 'success' | 'error' = 'success') {
 		if (notificationTimeout) clearTimeout(notificationTimeout);

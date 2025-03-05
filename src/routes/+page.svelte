@@ -15,6 +15,10 @@
 	let isLoading = $state<boolean>(false);
 	let showClearConfirm = $state<boolean>(false);
 	let lastLoadTime = $state<number>(0);
+	let showPerformanceStats = $state<boolean>(false);
+	let performanceHistory = $state<
+		{ operation: string; count: number; time: number; timestamp: Date }[]
+	>([]);
 
 	onMount(async () => {
 		await loadTodosWithTiming();
@@ -25,6 +29,20 @@
 		todos = await loadTodos();
 		const endTime = performance.now();
 		lastLoadTime = endTime - startTime;
+
+		// Add to performance history
+		addPerformanceStat('load', todos.length, lastLoadTime);
+	}
+
+	function addPerformanceStat(operation: string, count: number, time: number) {
+		performanceHistory = [
+			{ operation, count, time, timestamp: new Date() },
+			...performanceHistory.slice(0, 9) // Keep last 10 operations
+		];
+	}
+
+	function togglePerformanceStats() {
+		showPerformanceStats = !showPerformanceStats;
 	}
 
 	async function handleAddNewTodo() {
@@ -65,7 +83,16 @@
 			const result = await addMultipleTodos(count);
 
 			if (result.success) {
+				// Extract the time from the result message if available
+				const timeMatch = result.message.match(/in (\d+\.\d+) seconds/);
+				if (timeMatch && timeMatch[1]) {
+					const operationTime = parseFloat(timeMatch[1]) * 1000; // Convert to ms
+					addPerformanceStat('add', count, operationTime);
+				}
+
+				// Always reload todos after adding items
 				await loadTodosWithTiming();
+
 				notification = {
 					message: result.message,
 					type: 'success'
@@ -103,6 +130,16 @@
 			const result = await clearAllTodos();
 
 			if (result.success) {
+				// Extract the time from the result message if available
+				const countMatch = result.message.match(/Cleared (\d+) todo/);
+				const timeMatch = result.message.match(/in (\d+\.\d+) seconds/);
+
+				if (countMatch && countMatch[1] && timeMatch && timeMatch[1]) {
+					const count = parseInt(countMatch[1]);
+					const operationTime = parseFloat(timeMatch[1]) * 1000; // Convert to ms
+					addPerformanceStat('clear', count, operationTime);
+				}
+
 				await loadTodosWithTiming();
 				notification = {
 					message: result.message,
@@ -145,7 +182,63 @@
 				(loaded in {formatLoadTime(lastLoadTime)})
 			</span>
 		{/if}
+		<button
+			class="ml-3 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+			on:click={togglePerformanceStats}
+			aria-label="Toggle performance stats"
+			title="Toggle performance stats"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M12 20v-6M6 20V10M18 20V4"></path>
+			</svg>
+		</button>
 	</h1>
+
+	{#if showPerformanceStats}
+		<div class="mb-4 rounded bg-gray-50 p-3 shadow-sm">
+			<h3 class="mb-2 text-sm font-semibold text-gray-700">Performance Stats</h3>
+			{#if performanceHistory.length === 0}
+				<p class="text-xs text-gray-500">No performance data available yet</p>
+			{:else}
+				<table class="w-full text-xs">
+					<thead class="border-b text-gray-500">
+						<tr>
+							<th class="pb-1 text-left">Operation</th>
+							<th class="pb-1 text-left">Items</th>
+							<th class="pb-1 text-left">Time</th>
+							<th class="pb-1 text-left">Items/sec</th>
+							<th class="pb-1 text-left">Timestamp</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each performanceHistory as stat}
+							<tr class="border-b border-gray-100">
+								<td class="py-1 pr-2">{stat.operation}</td>
+								<td class="py-1 pr-2">{stat.count}</td>
+								<td class="py-1 pr-2">{formatLoadTime(stat.time)}</td>
+								<td class="py-1 pr-2">
+									{stat.time > 0 ? Math.round((stat.count / stat.time) * 1000) : 'N/A'}
+								</td>
+								<td class="py-1 pr-2 text-gray-500">
+									{stat.timestamp.toLocaleTimeString()}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
+		</div>
+	{/if}
 
 	<div class="mb-6 flex flex-wrap items-center gap-2">
 		<Button onclick={handleAddNewTodo} disabled={isLoading}>Add New Item</Button>

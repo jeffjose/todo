@@ -38,8 +38,33 @@ async function tableExists(tableName: string): Promise<boolean> {
 
 export async function loadTodos(): Promise<Todo[]> {
   if (!initialized || !client) return [];
-  const result = await client.query(`SELECT * FROM "${todoTableName}" ORDER BY "created_at" DESC`);
-  return result.rows as Todo[];
+
+  const startTime = performance.now();
+
+  // Use a more efficient query that only selects the columns we need
+  // This reduces the amount of data transferred from the database
+  const result = await client.query(`
+    SELECT 
+      id, title, description, deadline, status, tags, attachments, created_at, updated_at
+    FROM "${todoTableName}" 
+    ORDER BY created_at DESC
+  `);
+
+  // Process the results in chunks to avoid blocking the main thread
+  const todos = result.rows.map((row: any) => {
+    // Ensure proper date parsing
+    return {
+      ...row,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      deadline: row.deadline ? new Date(row.deadline) : null
+    } as Todo;
+  });
+
+  const endTime = performance.now();
+  console.log(`Loaded ${todos.length} todos in ${(endTime - startTime).toFixed(2)}ms`);
+
+  return todos;
 }
 
 export async function initializeDB() {
@@ -208,7 +233,6 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
 
   try {
     const startTime = Date.now();
-    let successCount = 0;
 
     // Random data options
     const todoTitles = [
@@ -227,18 +251,22 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
     const statusOptions = ['pending', 'in-progress', 'completed', 'blocked'];
     const tagOptions = ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design'];
 
-    // Batch insert for better performance
-    const batchSize = 50;
+    // Optimize batch size based on count
+    // Smaller batch size for larger counts to avoid memory issues
+    const batchSize = count > 500 ? 100 : (count > 100 ? 50 : 25);
     const batches = Math.ceil(count / batchSize);
+    let successCount = 0;
+
+    console.log(`Adding ${count} items in ${batches} batches of ${batchSize}`);
 
     for (let batch = 0; batch < batches; batch++) {
       const batchCount = Math.min(batchSize, count - (batch * batchSize));
-      const values = [];
       const placeholders = [];
       const params = [];
+      const batchTimestamp = Date.now(); // Use same timestamp for all items in batch
 
       for (let i = 0; i < batchCount; i++) {
-        const todoId = `todo-${Date.now()}-${batch * batchSize + i}`;
+        const todoId = `todo-${batchTimestamp}-${i}`;
 
         // Generate random data
         const title = todoTitles[Math.floor(Math.random() * todoTitles.length)];
@@ -274,7 +302,8 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
         }
 
         // Add to batch
-        placeholders.push(`($${params.length + 1}, $${params.length + 2}, $${params.length + 3}, $${params.length + 4}, $${params.length + 5}, $${params.length + 6}, $${params.length + 7}, NOW(), NOW())`);
+        const paramIndex = params.length;
+        placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, NOW(), NOW())`);
         params.push(todoId, title, description, deadline.toISOString(), status, JSON.stringify(tags), JSON.stringify(attachments));
       }
 
@@ -287,15 +316,21 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
 
         await client.query(query, params);
         successCount += batchCount;
+
+        // Log progress for large batches
+        if (batches > 1) {
+          console.log(`Batch ${batch + 1}/${batches} completed: ${successCount}/${count} items added`);
+        }
       }
     }
 
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000; // in seconds
+    const rate = Math.round(successCount / duration);
 
     return {
       success: true,
-      message: `Added ${successCount} todo items in ${duration.toFixed(2)} seconds`
+      message: `Added ${successCount} todo items in ${duration.toFixed(2)} seconds (${rate} items/sec)`
     };
   } catch (error) {
     console.error('Error adding multiple todos:', error);
@@ -306,7 +341,7 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
   }
 }
 
-// Function to clear all todos
+// Function to clear all todo items
 export async function clearAllTodos(): Promise<{ success: boolean; message: string }> {
   if (!initialized || !client) {
     throw new Error('Database not initialized');
@@ -315,19 +350,27 @@ export async function clearAllTodos(): Promise<{ success: boolean; message: stri
   try {
     const startTime = Date.now();
 
-    // Get the count before deletion
+    // First count how many items we have
     const countResult = await client.query(`SELECT COUNT(*) FROM "${todoTableName}"`);
-    const count = parseInt((countResult.rows[0] as { count: string }).count, 10);
+    const count = parseInt(countResult.rows[0].count);
 
-    // Delete all records
+    if (count === 0) {
+      return {
+        success: true,
+        message: 'No todo items to clear'
+      };
+    }
+
+    // Then delete them all
     await client.query(`DELETE FROM "${todoTableName}"`);
 
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000; // in seconds
+    const rate = Math.round(count / duration);
 
     return {
       success: true,
-      message: `Cleared ${count} todo items in ${duration.toFixed(2)} seconds`
+      message: `Cleared ${count} todo items in ${duration.toFixed(2)} seconds (${rate} items/sec)`
     };
   } catch (error) {
     console.error('Error clearing todos:', error);

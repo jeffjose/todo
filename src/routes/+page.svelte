@@ -1,33 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getClientDB, initializeDB } from '$lib/client/db';
+	import { initializeDB } from '$lib/client/db';
+	import { users, type User } from '$lib/client/stores';
 
-	interface User {
-		id: string;
-		username: string;
-		age: number;
-	}
-
-	let users: User[] = [];
 	let loading = true;
 	let error: string | null = null;
 
-	async function loadUsers() {
+	onMount(async () => {
 		try {
 			await initializeDB();
-			const client = getClientDB();
-			const result = await client.query('SELECT id, username, age FROM "user" ORDER BY username');
-			users = result.rows as User[];
 		} catch (err) {
-			console.error('Failed to fetch users:', err);
+			console.error('Failed to initialize database:', err);
 			error = err instanceof Error ? err.message : 'Unknown error';
 		} finally {
 			loading = false;
 		}
-	}
-
-	onMount(() => {
-		loadUsers();
 	});
 </script>
 
@@ -45,7 +32,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each users as user}
+				{#each $users as user}
 					<tr>
 						<td>{user.username}</td>
 						<td>{user.age}</td>

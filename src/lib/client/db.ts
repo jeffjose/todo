@@ -2,6 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from './schema';
 import { browser } from '$app/environment';
+import { users, type User } from './stores';
 
 let db: ReturnType<typeof drizzle>;
 let client: PGlite;
@@ -18,6 +19,12 @@ async function tableExists(tableName: string): Promise<boolean> {
     [tableName]
   );
   return (result.rows[0] as { exists: boolean })?.exists ?? false;
+}
+
+export async function loadUsers() {
+  if (!initialized || !client) return;
+  const result = await client.query('SELECT id, username, age FROM "user" ORDER BY username');
+  users.set(result.rows as User[]);
 }
 
 export async function initializeDB() {
@@ -91,6 +98,9 @@ export async function initializeDB() {
             `);
       console.log('Available tables:', tables.rows);
 
+      // Load initial users
+      await loadUsers();
+
     } catch (error) {
       console.error('Failed to initialize IndexedDB:', error);
       throw error;
@@ -123,24 +133,12 @@ export async function testDataPersistence() {
       [testId, `test-user-${Date.now()}`, 25, 'test-hash']
     );
 
-    // Query all users to verify persistence
-    const allUsers = await client.query('SELECT * FROM "user"');
-    console.log('All users:', allUsers);
-
-    // Query the inserted user
-    const result = await client.query(
-      `SELECT * FROM "user" WHERE id = $1`,
-      [testId]
-    );
-
-    console.log('Test results:', result);
+    // Reload users to update the UI
+    await loadUsers();
 
     return {
       success: true,
-      message: `Test user inserted successfully. Total users: ${allUsers.rows.length}. Check IndexedDB "todo-app-db" in DevTools.`,
-      testId,
-      result,
-      allUsers: allUsers.rows
+      message: `Test user inserted successfully`
     };
   } catch (error) {
     console.error('Error in persistence test:', error);

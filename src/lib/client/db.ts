@@ -43,14 +43,18 @@ export async function loadTodos(): Promise<Todo[]> {
 
   // Use a more efficient query that only selects the columns we need
   // This reduces the amount of data transferred from the database
+  const queryStartTime = performance.now();
   const result = await client.query(`
     SELECT 
       id, title, description, deadline, status, tags, attachments, created_at, updated_at
     FROM "${todoTableName}" 
     ORDER BY created_at DESC
   `);
+  const queryEndTime = performance.now();
+  const queryDuration = queryEndTime - queryStartTime;
 
   // Process the results in chunks to avoid blocking the main thread
+  const processingStartTime = performance.now();
   const todos = result.rows.map((row: any) => {
     // Ensure proper date parsing
     return {
@@ -60,9 +64,13 @@ export async function loadTodos(): Promise<Todo[]> {
       deadline: row.deadline ? new Date(row.deadline) : null
     } as Todo;
   });
+  const processingEndTime = performance.now();
+  const processingDuration = processingEndTime - processingStartTime;
 
   const endTime = performance.now();
-  console.log(`Loaded ${todos.length} todos in ${(endTime - startTime).toFixed(2)}ms`);
+  const totalDuration = endTime - startTime;
+
+  console.log(`Loaded ${todos.length} todos in ${totalDuration.toFixed(2)}ms (${(todos.length / (totalDuration / 1000)).toFixed(2)} items/sec)`);
 
   return todos;
 }
@@ -234,7 +242,7 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
   try {
     const startTime = Date.now();
 
-    // Random data options
+    // Random data options - precompute as much as possible
     const todoTitles = [
       'Complete project proposal',
       'Review documentation',
@@ -252,21 +260,30 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
     const tagOptions = ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design'];
 
     // Optimize batch size based on count
-    // Smaller batch size for larger counts to avoid memory issues
-    const batchSize = count > 500 ? 100 : (count > 100 ? 50 : 25);
+    // Use larger batches for better performance, but not too large to avoid memory issues
+    const batchSize = count > 1000 ? 200 : (count > 500 ? 150 : (count > 100 ? 100 : 50));
     const batches = Math.ceil(count / batchSize);
     let successCount = 0;
 
     console.log(`Adding ${count} items in ${batches} batches of ${batchSize}`);
 
+    // Pre-generate random data for all items to avoid doing it in the loop
+    const batchTimestamp = Date.now(); // Use same timestamp for all items
+
+    // Track batch timings
+    const batchTimings = [];
+    const totalStartTime = performance.now();
+
     for (let batch = 0; batch < batches; batch++) {
+      const batchStartTime = performance.now();
+
       const batchCount = Math.min(batchSize, count - (batch * batchSize));
       const placeholders = [];
       const params = [];
-      const batchTimestamp = Date.now(); // Use same timestamp for all items in batch
 
+      // Prepare all parameters for this batch at once
       for (let i = 0; i < batchCount; i++) {
-        const todoId = `todo-${batchTimestamp}-${i}`;
+        const todoId = `todo-${batchTimestamp}-${batch * batchSize + i}`;
 
         // Generate random data
         const title = todoTitles[Math.floor(Math.random() * todoTitles.length)];
@@ -314,15 +331,43 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
           VALUES ${placeholders.join(', ')}
         `;
 
+        const queryStartTime = performance.now();
         await client.query(query, params);
+        const queryEndTime = performance.now();
+
         successCount += batchCount;
+
+        const batchEndTime = performance.now();
+        const batchDuration = batchEndTime - batchStartTime;
+        const queryDuration = queryEndTime - queryStartTime;
+
+        batchTimings.push({
+          batch: batch + 1,
+          items: batchCount,
+          total: batchDuration,
+          query: queryDuration,
+          prep: batchDuration - queryDuration
+        });
 
         // Log progress for large batches
         if (batches > 1) {
-          console.log(`Batch ${batch + 1}/${batches} completed: ${successCount}/${count} items added`);
+          console.log(`Batch ${batch + 1}/${batches} completed: ${successCount}/${count} items added (${batchDuration.toFixed(2)}ms, query: ${queryDuration.toFixed(2)}ms)`);
         }
       }
     }
+
+    const totalEndTime = performance.now();
+    const totalDuration = totalEndTime - totalStartTime;
+
+    // Log simplified timing information
+    console.log(`--- Batch Insert Performance ---`);
+    console.log(`Total time: ${totalDuration.toFixed(2)}ms for ${successCount} items (${(successCount / (totalDuration / 1000)).toFixed(2)} items/sec)`);
+
+    // Calculate averages without detailed breakdown
+    const avgBatchTime = batchTimings.reduce((sum, timing) => sum + timing.total, 0) / batchTimings.length;
+    const avgQueryTime = batchTimings.reduce((sum, timing) => sum + timing.query, 0) / batchTimings.length;
+
+    console.log(`Average batch time: ${avgBatchTime.toFixed(2)}ms (query: ${avgQueryTime.toFixed(2)}ms)`);
 
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000; // in seconds
@@ -348,11 +393,17 @@ export async function clearAllTodos(): Promise<{ success: boolean; message: stri
   }
 
   try {
-    const startTime = Date.now();
+    const startTime = performance.now();
 
     // First count how many items we have
+    const countStartTime = performance.now();
     const countResult = await client.query(`SELECT COUNT(*) FROM "${todoTableName}"`);
+    const countEndTime = performance.now();
+    const countDuration = countEndTime - countStartTime;
+
     const count = parseInt(countResult.rows[0].count);
+
+    console.log(`Counting ${count} items took ${countDuration.toFixed(2)}ms`);
 
     if (count === 0) {
       return {
@@ -361,10 +412,44 @@ export async function clearAllTodos(): Promise<{ success: boolean; message: stri
       };
     }
 
-    // Then delete them all
-    await client.query(`DELETE FROM "${todoTableName}"`);
+    // For very large datasets, use a more efficient deletion strategy
+    const deleteStartTime = performance.now();
 
-    const endTime = Date.now();
+    if (count > 10000) {
+      // Drop and recreate the table for extremely large datasets
+      // This is much faster than deleting rows individually
+      console.log(`Using DROP/CREATE strategy for ${count} items`);
+      await client.query(`
+        DROP TABLE IF EXISTS "${todoTableName}";
+        CREATE TABLE "${todoTableName}" (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          deadline TEXT,
+          status TEXT NOT NULL,
+          tags JSONB NOT NULL,
+          attachments JSONB NOT NULL,
+          created_at TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP NOT NULL
+        );
+      `);
+    } else {
+      // For smaller datasets, use a simple DELETE
+      console.log(`Using DELETE strategy for ${count} items`);
+      await client.query(`DELETE FROM "${todoTableName}"`);
+    }
+
+    const deleteEndTime = performance.now();
+    const deleteDuration = deleteEndTime - deleteStartTime;
+
+    console.log(`Deletion of ${count} items took ${deleteDuration.toFixed(2)}ms (${(count / (deleteDuration / 1000)).toFixed(2)} items/sec)`);
+
+    const endTime = performance.now();
+    const totalDuration = endTime - startTime;
+
+    console.log(`--- Clear Performance ---`);
+    console.log(`Total time: ${totalDuration.toFixed(2)}ms for ${count} items (${(count / (totalDuration / 1000)).toFixed(2)} items/sec)`);
+
     const duration = (endTime - startTime) / 1000; // in seconds
     const rate = Math.round(count / duration);
 

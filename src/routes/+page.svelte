@@ -17,8 +17,15 @@
 	let lastLoadTime = $state<number>(0);
 	let showPerformanceStats = $state<boolean>(false);
 	let performanceHistory = $state<
-		{ operation: string; count: number; time: number; timestamp: Date }[]
+		{
+			operation: string;
+			count: number;
+			time: number;
+			timestamp: Date;
+			details: Record<string, any>;
+		}[]
 	>([]);
+	let isOptimizingRender = $state(false);
 
 	onMount(async () => {
 		await loadTodosWithTiming();
@@ -32,11 +39,19 @@
 
 		// Add to performance history
 		addPerformanceStat('load', todos.length, lastLoadTime);
+
+		// Update the document title with the count
+		document.title = `Todo (${todos.length})`;
 	}
 
-	function addPerformanceStat(operation: string, count: number, time: number) {
+	function addPerformanceStat(
+		operation: string,
+		count: number,
+		time: number,
+		details: Record<string, any> = {}
+	) {
 		performanceHistory = [
-			{ operation, count, time, timestamp: new Date() },
+			{ operation, count, time, timestamp: new Date(), details },
 			...performanceHistory.slice(0, 9) // Keep last 10 operations
 		];
 	}
@@ -171,6 +186,17 @@
 		if (ms < 1) return '< 1ms';
 		if (ms < 1000) return `${Math.round(ms)}ms`;
 		return `${(ms / 1000).toFixed(2)}s`;
+	}
+
+	// Add a function to optimize rendering performance
+	function optimizeRender() {
+		// Use requestAnimationFrame to ensure smooth UI updates
+		if (isOptimizingRender) return;
+		isOptimizingRender = true;
+
+		requestAnimationFrame(() => {
+			isOptimizingRender = false;
+		});
 	}
 </script>
 

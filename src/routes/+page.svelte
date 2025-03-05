@@ -1,22 +1,37 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { addNewTodo, addMultipleTodos, loadTodos, type Todo } from '$lib/client/db';
+	import {
+		addNewTodo,
+		addMultipleTodos,
+		clearAllTodos,
+		loadTodos,
+		type Todo
+	} from '$lib/client/db';
 	import { Button } from '$lib/components/ui/button';
 
 	let todos = $state<Todo[]>([]);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let expandedTodoId = $state<string | null>(null);
 	let isLoading = $state<boolean>(false);
+	let showClearConfirm = $state<boolean>(false);
+	let lastLoadTime = $state<number>(0);
 
 	onMount(async () => {
-		todos = await loadTodos();
+		await loadTodosWithTiming();
 	});
+
+	async function loadTodosWithTiming() {
+		const startTime = performance.now();
+		todos = await loadTodos();
+		const endTime = performance.now();
+		lastLoadTime = endTime - startTime;
+	}
 
 	async function handleAddNewTodo() {
 		try {
 			const result = await addNewTodo();
 			if (result.success) {
-				todos = await loadTodos();
+				await loadTodosWithTiming();
 				notification = {
 					message: result.message,
 					type: 'success'
@@ -50,7 +65,7 @@
 			const result = await addMultipleTodos(count);
 
 			if (result.success) {
-				todos = await loadTodos();
+				await loadTodosWithTiming();
 				notification = {
 					message: result.message,
 					type: 'success'
@@ -73,13 +88,64 @@
 		}
 	}
 
+	async function handleClearAllTodos() {
+		if (isLoading) return;
+
+		try {
+			isLoading = true;
+			showClearConfirm = false;
+
+			notification = {
+				message: 'Clearing all todo items...',
+				type: 'success'
+			};
+
+			const result = await clearAllTodos();
+
+			if (result.success) {
+				await loadTodosWithTiming();
+				notification = {
+					message: result.message,
+					type: 'success'
+				};
+			} else {
+				throw new Error(result.message);
+			}
+		} catch (error) {
+			console.error('Failed to clear todos:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to clear todos',
+				type: 'error'
+			};
+		} finally {
+			isLoading = false;
+			// Clear notification after 5 seconds
+			setTimeout(() => {
+				notification = null;
+			}, 5000);
+		}
+	}
+
 	function toggleExpand(todoId: string) {
 		expandedTodoId = expandedTodoId === todoId ? null : todoId;
+	}
+
+	function formatLoadTime(ms: number): string {
+		if (ms < 1) return '< 1ms';
+		if (ms < 1000) return `${Math.round(ms)}ms`;
+		return `${(ms / 1000).toFixed(2)}s`;
 	}
 </script>
 
 <div class="container mx-auto p-4">
-	<h1 class="mb-4 text-2xl font-bold">Todo Management ({todos.length} items)</h1>
+	<h1 class="mb-4 text-2xl font-bold">
+		Todo Management ({todos.length} items)
+		{#if lastLoadTime > 0}
+			<span class="ml-2 text-sm font-normal text-gray-500">
+				(loaded in {formatLoadTime(lastLoadTime)})
+			</span>
+		{/if}
+	</h1>
 
 	<div class="mb-6 flex flex-wrap items-center gap-2">
 		<Button onclick={handleAddNewTodo} disabled={isLoading}>Add New Item</Button>
@@ -133,6 +199,42 @@
 			</Button>
 		</div>
 
+		{#if todos.length > 0}
+			<div class="ml-auto">
+				{#if showClearConfirm}
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-red-600">Are you sure?</span>
+						<Button
+							onclick={handleClearAllTodos}
+							variant="destructive"
+							size="sm"
+							disabled={isLoading}
+						>
+							Yes, clear all
+						</Button>
+						<Button
+							onclick={() => (showClearConfirm = false)}
+							variant="outline"
+							size="sm"
+							disabled={isLoading}
+						>
+							Cancel
+						</Button>
+					</div>
+				{:else}
+					<Button
+						onclick={() => (showClearConfirm = true)}
+						variant="outline"
+						size="sm"
+						disabled={isLoading}
+						class="text-red-600 hover:bg-red-50 hover:text-red-700"
+					>
+						Clear All
+					</Button>
+				{/if}
+			</div>
+		{/if}
+
 		{#if isLoading}
 			<div class="ml-2 flex items-center">
 				<div
@@ -156,7 +258,40 @@
 
 	<div class="mb-4 mt-6 rounded bg-white px-4 py-3 shadow-md">
 		<div class="mb-3 flex items-center justify-between">
-			<h2 class="text-xl font-semibold">Todo Items ({todos.length})</h2>
+			<div class="flex items-center">
+				<h2 class="text-xl font-semibold">
+					Todo Items ({todos.length})
+					{#if lastLoadTime > 0}
+						<span class="ml-2 text-sm font-normal text-gray-500">
+							({formatLoadTime(lastLoadTime)})
+						</span>
+					{/if}
+				</h2>
+				<button
+					class="ml-2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+					on:click={loadTodosWithTiming}
+					aria-label="Refresh todos"
+					title="Refresh todos"
+					disabled={isLoading}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M21 2v6h-6"></path>
+						<path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+						<path d="M3 22v-6h6"></path>
+						<path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+					</svg>
+				</button>
+			</div>
 			<span class="text-sm text-gray-500">
 				{#if todos.length > 0}
 					Showing all items

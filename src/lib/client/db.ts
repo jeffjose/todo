@@ -304,4 +304,36 @@ export async function addMultipleTodos(count: number): Promise<{ success: boolea
       message: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+}
+
+// Function to clear all todos
+export async function clearAllTodos(): Promise<{ success: boolean; message: string }> {
+  if (!initialized || !client) {
+    throw new Error('Database not initialized');
+  }
+
+  try {
+    const startTime = Date.now();
+
+    // Get the count before deletion
+    const countResult = await client.query(`SELECT COUNT(*) FROM "${todoTableName}"`);
+    const count = parseInt((countResult.rows[0] as { count: string }).count, 10);
+
+    // Delete all records
+    await client.query(`DELETE FROM "${todoTableName}"`);
+
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000; // in seconds
+
+    return {
+      success: true,
+      message: `Cleared ${count} todo items in ${duration.toFixed(2)} seconds`
+    };
+  } catch (error) {
+    console.error('Error clearing todos:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 } 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { testDataPersistence, loadUsers, type User } from '$lib/client/db';
+	import { Button } from '$lib/components/ui/button';
 
 	let users = $state<User[]>([]);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -38,16 +39,11 @@
 <div class="container mx-auto p-4">
 	<h1 class="mb-4 text-2xl font-bold">User Management</h1>
 
-	<button
-		on:click={handleTestPersistence}
-		class="mb-4 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-	>
-		Test DB Persistence
-	</button>
+	<Button onclick={handleTestPersistence}>Test DB Persistence</Button>
 
 	{#if notification}
 		<div
-			class="fixed top-4 right-4 rounded p-4 shadow-lg transition-opacity duration-300"
+			class="fixed right-4 top-4 rounded p-4 shadow-lg transition-opacity duration-300"
 			class:bg-green-500={notification.type === 'success'}
 			class:bg-red-500={notification.type === 'error'}
 			class:text-white={true}
@@ -56,7 +52,7 @@
 		</div>
 	{/if}
 
-	<div class="mb-4 rounded bg-white px-8 pt-6 pb-8 shadow-md">
+	<div class="mb-4 rounded bg-white px-8 pb-8 pt-6 shadow-md">
 		<h2 class="mb-4 text-xl font-semibold">Users</h2>
 		{#if users.length === 0}
 			<p class="text-gray-600">No users found</p>

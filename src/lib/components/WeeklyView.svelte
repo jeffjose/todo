@@ -201,7 +201,8 @@
 	}
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {
-		return todos.filter((todo: Todo) => {
+		// First, filter todos for the week
+		const weekTodos = todos.filter((todo: Todo) => {
 			const date = type === 'deadline' ? todo.deadline : todo.finishBy;
 			if (!date) return false;
 
@@ -215,6 +216,41 @@
 
 			return date >= startDate && date <= endDate;
 		});
+
+		// Create a map of parent IDs to their children
+		const childrenMap = new Map<string | null, Todo[]>();
+		weekTodos.forEach((todo: Todo) => {
+			const parentId = todo.parentId;
+			if (!childrenMap.has(parentId)) {
+				childrenMap.set(parentId, []);
+			}
+			childrenMap.get(parentId)!.push(todo);
+		});
+
+		// Helper function to recursively build the sorted list
+		function buildSortedList(parentId: string | null): Todo[] {
+			const children = childrenMap.get(parentId) || [];
+			const result: Todo[] = [];
+
+			// Sort children by date
+			children.sort((a, b) => {
+				const dateA = type === 'deadline' ? a.deadline : a.finishBy;
+				const dateB = type === 'deadline' ? b.deadline : b.finishBy;
+				if (!dateA || !dateB) return 0;
+				return dateA.getTime() - dateB.getTime();
+			});
+
+			// Add root level items and their children recursively
+			for (const todo of children) {
+				result.push(todo);
+				result.push(...buildSortedList(todo.id));
+			}
+
+			return result;
+		}
+
+		// Start with root level items (parentId is null)
+		return buildSortedList(null);
 	}
 
 	function formatDate(date: Date): string {
@@ -362,7 +398,10 @@
 								{#each getTodosForWeek(weekEvent, 'deadline') as todo}
 									<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
 										<div class="flex items-center gap-2">
-											<span class="text-sm" style="color: {getColorForId(todo.id)}">
+											<span
+												class="text-sm"
+												style="color: {getColorForId(todo.id)}; padding-left: {todo.level * 1.5}rem"
+											>
 												{#if todo.emoji}
 													<span class="mr-1">{todo.emoji}</span>
 												{/if}
@@ -389,7 +428,10 @@
 								{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
 									<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
 										<div class="flex items-center gap-2">
-											<span class="text-sm" style="color: {getColorForId(todo.id)}">
+											<span
+												class="text-sm"
+												style="color: {getColorForId(todo.id)}; padding-left: {todo.level * 1.5}rem"
+											>
 												{#if todo.emoji}
 													<span class="mr-1">{todo.emoji}</span>
 												{/if}

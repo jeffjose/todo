@@ -337,3 +337,39 @@ export async function deleteTodo(id: string): Promise<void> {
   const db = await getDB();
   await db.todos.delete(id);
 }
+
+// Database operations
+export async function getAllTodos(): Promise<Todo[]> {
+  const db = await getDB();
+  return db.todos.toArray();
+}
+
+export async function createRandomTodo(): Promise<Todo> {
+  const db = await getDB();
+  const todoData = generateRandomTodoData();
+
+  // 85% chance to create a subtask if there are existing todos
+  const existingTodos = await getAllTodos();
+  if (existingTodos.length > 0 && Math.random() < 0.85) {
+    const parentTodo = existingTodos[Math.floor(Math.random() * existingTodos.length)];
+    todoData.parentId = parentTodo.id;
+    todoData.path = buildPath(parentTodo.path, todoData.parentId);
+    todoData.level = parentTodo.level + 1;
+  }
+
+  return createTodo(todoData);
+}
+
+export async function createMultipleRandomTodos(count: number): Promise<Todo[]> {
+  const todos: Todo[] = [];
+  for (let i = 0; i < count; i++) {
+    todos.push(await createRandomTodo());
+  }
+  return todos;
+}
+
+export async function clearAllTodos(): Promise<{ success: boolean; message: string }> {
+  const db = await getDB();
+  await db.todos.clear();
+  return { success: true, message: 'All todos cleared successfully' };
+}

@@ -66,6 +66,32 @@ describe('Todo Utilities', () => {
       const path = buildPath(parentPath, id);
       expect(path).toBe(`${parentPath}${PATH_SEPARATOR}${id}`);
     });
+
+    it('should handle deep nesting levels', () => {
+      const level1 = buildPath(ROOT_PATH, 'task1');
+      const level2 = buildPath(level1, 'task2');
+      const level3 = buildPath(level2, 'task3');
+      
+      expect(level1).toBe('root.task1');
+      expect(level2).toBe('root.task1.task2');
+      expect(level3).toBe('root.task1.task2.task3');
+    });
+
+    it('should maintain path hierarchy', () => {
+      const paths = [
+        ROOT_PATH,
+        buildPath(ROOT_PATH, 'task1'),
+        buildPath(buildPath(ROOT_PATH, 'task1'), 'subtask1'),
+        buildPath(buildPath(buildPath(ROOT_PATH, 'task1'), 'subtask1'), 'subsubtask1')
+      ];
+
+      expect(paths).toEqual([
+        'root',
+        'root.task1',
+        'root.task1.subtask1',
+        'root.task1.subtask1.subsubtask1'
+      ]);
+    });
   });
 
   describe('Date and Time Functions', () => {

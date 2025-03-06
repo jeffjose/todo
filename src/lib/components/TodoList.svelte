@@ -483,14 +483,16 @@
 
 							<!-- Title -->
 							<td class="whitespace-nowrap px-2 py-2">
-								<div
-									class="max-w-[200px] truncate font-medium"
-									style="color: {getColorForId(todo.id)}"
-								>
-									{#if todo.emoji}
-										<span class="mr-1">{todo.emoji}</span>
-									{/if}
-									{todo.title}
+								<div class="flex items-center" style="padding-left: {todo.level * 1.5}rem">
+									<div
+										class="max-w-[200px] truncate font-medium"
+										style="color: {getColorForId(todo.id)}"
+									>
+										{#if todo.emoji}
+											<span class="mr-1">{todo.emoji}</span>
+										{/if}
+										{todo.title}
+									</div>
 								</div>
 							</td>
 

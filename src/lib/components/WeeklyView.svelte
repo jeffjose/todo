@@ -13,12 +13,12 @@
 	async function loadData() {
 		isLoading = true;
 		try {
-			// Load data for 2 years (1 year past to 1 year future)
+			// Load data for 2 months (1 month past to 1 month future)
 			const today = new Date();
 			const startDate = new Date(today);
-			startDate.setFullYear(today.getFullYear() - 1);
+			startDate.setMonth(today.getMonth() - 1);
 			const endDate = new Date(today);
-			endDate.setFullYear(today.getFullYear() + 1);
+			endDate.setMonth(today.getMonth() + 1);
 
 			const events = await loadWeekEvents(startDate, endDate);
 			weekEvents = events;
@@ -32,17 +32,7 @@
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {
 		return todos.filter((todo: Todo) => {
 			const date = type === 'deadline' ? todo.deadline : todo.finishBy;
-			console.log('Todo:', todo.title, date);
 			if (!date) return false;
-
-			// Debug logging
-			console.log('Todo:', {
-				title: todo.title,
-				date: date.toISOString(),
-				weekStart: weekEvent.startDate.toISOString(),
-				weekEnd: weekEvent.endDate.toISOString(),
-				isInRange: date >= weekEvent.startDate && date <= weekEvent.endDate
-			});
 
 			return date >= weekEvent.startDate && date <= weekEvent.endDate;
 		});

@@ -480,8 +480,8 @@ class DatabaseClient {
       id: row.id,
       title: row.title,
       description: row.description,
-      deadline: row.deadline ? new Date(row.deadline) : null,
-      finishBy: row.finish_by ? new Date(row.finish_by) : (row.deadline ? new Date(row.deadline) : null),
+      deadline: row.deadline ? new Date(row.deadline + 'Z') : null,
+      finishBy: row.finish_by ? new Date(row.finish_by + 'Z') : (row.deadline ? new Date(row.deadline + 'Z') : null),
       status: row.status,
       priority: row.priority,
       urgency: row.urgency,
@@ -490,8 +490,8 @@ class DatabaseClient {
       path: row.path,
       level: row.level,
       parentId: row.parent_id,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at)
+      createdAt: new Date(row.created_at + 'Z'),
+      updatedAt: new Date(row.updated_at + 'Z')
     }));
 
     // Debug logging
@@ -523,7 +523,7 @@ class DatabaseClient {
 
     try {
       const todoId = generateId();
-      const now = new Date().toISOString();
+      const now = new Date();
 
       // Get parent path if parentId is provided
       let parentPath = ROOT_PATH;
@@ -542,21 +542,43 @@ class DatabaseClient {
       const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
       const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
-      // Generate random data
-      const today = new Date();
-      const twoMonthsAgo = new Date();
-      twoMonthsAgo.setMonth(today.getMonth() - 2);
-      const createdAt = new Date(twoMonthsAgo.getTime() + Math.random() * (today.getTime() - twoMonthsAgo.getTime()));
+      // Helper function to get next business day (Monday-Friday)
+      function getNextBusinessDay(date: Date): Date {
+        const nextDay = new Date(date);
+        nextDay.setDate(date.getDate() + 1);
+        while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
+          nextDay.setDate(nextDay.getDate() + 1);
+        }
+        return nextDay;
+      }
 
-      // Set deadline to be between createdAt and createdAt + 14 days
-      const deadline = new Date(createdAt.getTime() + Math.random() * (14 * 24 * 60 * 60 * 1000));
+      // Helper function to get random time between 9 AM and 5 PM
+      function getRandomBusinessTime(date: Date): Date {
+        const time = new Date(date);
+        const hours = 9 + Math.floor(Math.random() * 8); // Random hour between 9 and 16
+        const minutes = Math.floor(Math.random() * 60);
+        time.setHours(hours, minutes, 0, 0);
+        return time;
+      }
 
-      // Set finishBy to be between createdAt and deadline, but not more than 1 week before deadline
-      const oneWeekBeforeDeadline = new Date(deadline.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const finishBy = new Date(
-        Math.max(createdAt.getTime(), oneWeekBeforeDeadline.getTime()) +
-        Math.random() * (deadline.getTime() - Math.max(createdAt.getTime(), oneWeekBeforeDeadline.getTime()))
-      );
+      // Set deadline to be between now and now + 14 business days
+      let deadline = new Date(now);
+      const numBusinessDays = Math.floor(Math.random() * 14) + 1;
+      for (let i = 0; i < numBusinessDays; i++) {
+        deadline = getNextBusinessDay(deadline);
+      }
+      deadline = getRandomBusinessTime(deadline);
+      const deadlineISO = deadline.toISOString();
+
+      // Set finishBy to be between now and deadline, but not more than 1 week before deadline
+      let finishBy = new Date(now);
+      const maxBusinessDaysBeforeDeadline = Math.min(5, numBusinessDays - 1); // At least 1 business day before deadline
+      const numBusinessDaysBeforeDeadline = Math.floor(Math.random() * maxBusinessDaysBeforeDeadline) + 1;
+      for (let i = 0; i < numBusinessDaysBeforeDeadline; i++) {
+        finishBy = getNextBusinessDay(finishBy);
+      }
+      finishBy = getRandomBusinessTime(finishBy);
+      const finishByISO = finishBy.toISOString();
 
       const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
       const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
@@ -585,8 +607,8 @@ class DatabaseClient {
           "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
         [
-          todoId, title, description, deadline.toISOString(), finishBy.toISOString(), status, priority, urgency,
-          JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, createdAt.toISOString(), now
+          todoId, title, description, deadlineISO, finishByISO, status, priority, urgency,
+          JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, now.toISOString(), now.toISOString()
         ]
       );
 

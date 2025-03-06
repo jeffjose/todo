@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import type { Todo } from '$lib/client/db';
-	import { addNewTodo, addMultipleTodos, clearAllTodos } from '$lib/client/db';
+	import { addNewTodo, addMultipleTodos, clearAllTodos, resetDatabase } from '$lib/client/db';
 
 	// Core props from parent
 	export let todos: Todo[] = [];
@@ -22,6 +22,7 @@
 	// Local state
 	let expandedTodoId: string | null = null;
 	let showClearConfirm = false;
+	let isResetting = false;
 
 	// Function to generate a consistent color based on an ID
 	function getColorForId(id: string): string {
@@ -152,37 +153,77 @@
 			}, 5000);
 		}
 	}
+
+	async function handleResetDatabase() {
+		if (confirm('Are you sure you want to reset the database? This will delete all data.')) {
+			isResetting = true;
+			try {
+				const result = await resetDatabase();
+				if (result.success) {
+					await onTodosChange();
+					notification = {
+						message: result.message,
+						type: 'success'
+					};
+				} else {
+					throw new Error(result.message);
+				}
+			} catch (error) {
+				console.error('Failed to reset database:', error);
+				notification = {
+					message: error instanceof Error ? error.message : 'Failed to reset database',
+					type: 'error'
+				};
+			} finally {
+				isResetting = false;
+				setTimeout(() => {
+					notification = null;
+				}, 5000);
+			}
+		}
+	}
 </script>
 
 <div class="container mx-auto p-4">
-	<h1 class="mb-4 text-2xl font-bold">
-		Todo Management ({todos.length} items)
-		{#if lastLoadTime > 0}
-			<span class="ml-2 text-sm font-normal text-gray-500">
-				(loaded in {formatLoadTime(lastLoadTime)})
-			</span>
-		{/if}
-		<button
-			class="ml-3 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-			on:click={onTogglePerformanceStats}
-			aria-label="Toggle performance stats"
-			title="Toggle performance stats"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
+	<div class="mb-4 flex items-center justify-between">
+		<h1 class="text-2xl font-bold">
+			Todo Management ({todos.length} items)
+			{#if lastLoadTime > 0}
+				<span class="ml-2 text-sm font-normal text-gray-500">
+					(loaded in {formatLoadTime(lastLoadTime)})
+				</span>
+			{/if}
+			<button
+				class="ml-3 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+				on:click={onTogglePerformanceStats}
+				aria-label="Toggle performance stats"
+				title="Toggle performance stats"
 			>
-				<path d="M12 20v-6M6 20V10M18 20V4"></path>
-			</svg>
-		</button>
-	</h1>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M12 20v-6M6 20V10M18 20V4"></path>
+				</svg>
+			</button>
+		</h1>
+		<Button
+			onclick={handleResetDatabase}
+			variant="destructive"
+			size="sm"
+			disabled={isResetting}
+			class="ml-auto"
+		>
+			{isResetting ? 'Resetting...' : 'Reset Database'}
+		</Button>
+	</div>
 
 	{#if showPerformanceStats}
 		<div class="mb-4 rounded bg-gray-50 p-3 shadow-sm">

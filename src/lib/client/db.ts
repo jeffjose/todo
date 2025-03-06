@@ -92,12 +92,12 @@ const DESIRED_SCHEMA: SchemaDefinition = {
   emoji: { type: 'text', nullable: true },
   deadline: { type: 'timestamptz', nullable: true },
   finish_by: { type: 'timestamptz', nullable: true },
-  status: { type: 'text', nullable: false, defaultValue: 'pending' },
-  priority: { type: 'text', nullable: false, defaultValue: 'P3' },
-  urgency: { type: 'text', nullable: false, defaultValue: 'medium' },
-  tags: { type: 'json', nullable: false, defaultValue: '[]' },
-  attachments: { type: 'json', nullable: false, defaultValue: '[]' },
-  path: { type: 'text', nullable: false, defaultValue: 'root' },
+  status: { type: 'text', nullable: false, defaultValue: "'pending'" },
+  priority: { type: 'text', nullable: false, defaultValue: "'P3'" },
+  urgency: { type: 'text', nullable: false, defaultValue: "'medium'" },
+  tags: { type: 'json', nullable: false, defaultValue: "'[]'" },
+  attachments: { type: 'json', nullable: false, defaultValue: "'[]'" },
+  path: { type: 'text', nullable: false, defaultValue: "'root'" },
   level: { type: 'integer', nullable: false, defaultValue: '0' },
   parent_id: { type: 'text', nullable: true },
   created_at: { type: 'timestamptz', nullable: false },
@@ -266,106 +266,158 @@ class DatabaseClient {
   }
 
   private async tableExists(): Promise<boolean> {
-    if (!this.client) throw new Error('Database not initialized');
-    const result = await this.client.query(
-      `SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = $1
-      )`,
-      [this.tableName]
-    );
-    return (result.rows[0] as { exists: boolean })?.exists ?? false;
+    if (!this.client) {
+      throw new Error('Database not initialized');
+    }
+
+    const query = `SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = $1
+    )`;
+
+    try {
+      const result = await this.client.query(query, [this.tableName]);
+      const exists = (result.rows[0] as { exists: boolean })?.exists ?? false;
+      return exists;
+    } catch (error) {
+      console.error(`Error checking if table ${this.tableName} exists:`, error);
+      throw error;
+    }
   }
 
   private async addColumn(column: string, def: ColumnDefinition): Promise<void> {
-    if (!this.client) throw new Error('Database not initialized');
-
-    // Add column as nullable
-    await this.client.query(`
-      ALTER TABLE "${this.tableName}"
-      ADD COLUMN "${column}" ${def.type}
-    `);
-
-    // Set default value if specified
-    if (def.defaultValue) {
-      const defaultValue = def.type === 'json' ? `'${def.defaultValue}'` : `'${def.defaultValue}'`;
-      await this.client.query(`
-        UPDATE "${this.tableName}"
-        SET "${column}" = ${defaultValue}
-        WHERE "${column}" IS NULL
-      `);
+    if (!this.client) {
+      throw new Error('Database not initialized');
     }
 
-    // Make column non-nullable if specified
-    if (!def.nullable && column !== 'created_at' && column !== 'updated_at') {
-      await this.client.query(`
+    try {
+      // Add column as nullable
+      const addColumnSQL = `
         ALTER TABLE "${this.tableName}"
-        ALTER COLUMN "${column}" SET NOT NULL
-      `);
+        ADD COLUMN "${column}" ${def.type}
+      `;
+      await this.client.query(addColumnSQL);
+
+      // Set default value if specified
+      if (def.defaultValue) {
+        // The defaultValue is already properly quoted in the schema definition
+        const updateDefaultSQL = `
+          UPDATE "${this.tableName}"
+          SET "${column}" = ${def.defaultValue}
+          WHERE "${column}" IS NULL
+        `;
+        await this.client.query(updateDefaultSQL);
+      }
+
+      // Set NOT NULL constraint if required
+      if (!def.nullable) {
+        const setNotNullSQL = `
+          ALTER TABLE "${this.tableName}"
+          ALTER COLUMN "${column}" SET NOT NULL
+        `;
+        await this.client.query(setNotNullSQL);
+      }
+    } catch (error) {
+      console.error(`Error adding column "${column}" to table "${this.tableName}":`, error);
+      throw error;
     }
   }
 
   private async updateColumn(column: string, def: ColumnDefinition): Promise<void> {
-    if (!this.client) throw new Error('Database not initialized');
+    if (!this.client) {
+      throw new Error('Database not initialized');
+    }
 
-    // First, get the current data
-    const currentData = await this.client.query(
-      `SELECT "${column}" FROM "${this.tableName}" WHERE "${column}" IS NOT NULL`
-    );
+    try {
+      // Check if a temporary column already exists from a previous failed update
+      const tempColumn = `${column}_temp`;
+      const checkTempColumnSQL = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns
+          WHERE table_name = $1
+          AND column_name = $2
+        )
+      `;
+      const tempColumnExists = await this.client.query(checkTempColumnSQL, [this.tableName, tempColumn]);
+      const tempColumnExistsValue = (tempColumnExists.rows[0] as { exists: boolean })?.exists ?? false;
 
-    // Create a temporary column with the new type
-    const tempColumn = `${column}_temp`;
-    await this.client.query(`
-      ALTER TABLE "${this.tableName}"
-      ADD COLUMN "${tempColumn}" ${def.type}
-    `);
-
-    // Copy data to the temporary column
-    if (currentData.rows.length > 0) {
-      if (def.type === 'timestamptz') {
-        // For timestamps, ensure we preserve the timezone information
-        await this.client.query(`
-          UPDATE "${this.tableName}"
-          SET "${tempColumn}" = "${column}"::timestamptz
-        `);
-      } else {
-        // For other types, do a direct copy
-        await this.client.query(`
-          UPDATE "${this.tableName}"
-          SET "${tempColumn}" = "${column}"
-        `);
+      // Drop the temporary column if it exists
+      if (tempColumnExistsValue) {
+        console.info(`Found existing temporary column "${tempColumn}", dropping it first`);
+        const dropTempColumnSQL = `
+          ALTER TABLE "${this.tableName}"
+          DROP COLUMN "${tempColumn}"
+        `;
+        await this.client.query(dropTempColumnSQL);
       }
-    }
 
-    // Drop the old column
-    await this.client.query(`
-      ALTER TABLE "${this.tableName}"
-      DROP COLUMN "${column}"
-    `);
+      // First, get the current data
+      const currentDataSQL = `SELECT "${column}" FROM "${this.tableName}" WHERE "${column}" IS NOT NULL`;
+      const currentData = await this.client.query(currentDataSQL);
 
-    // Rename the temporary column to the original name
-    await this.client.query(`
-      ALTER TABLE "${this.tableName}"
-      RENAME COLUMN "${tempColumn}" TO "${column}"
-    `);
-
-    // Set default value if specified
-    if (def.defaultValue) {
-      const defaultValue = def.type === 'json' ? `'${def.defaultValue}'` : `'${def.defaultValue}'`;
-      await this.client.query(`
-        UPDATE "${this.tableName}"
-        SET "${column}" = ${defaultValue}
-        WHERE "${column}" IS NULL
-      `);
-    }
-
-    // Make column non-nullable if specified
-    if (!def.nullable && column !== 'created_at' && column !== 'updated_at') {
-      await this.client.query(`
+      // Create a temporary column with the new type
+      const addTempColumnSQL = `
         ALTER TABLE "${this.tableName}"
-        ALTER COLUMN "${column}" SET NOT NULL
-      `);
+        ADD COLUMN "${tempColumn}" ${def.type}
+      `;
+      await this.client.query(addTempColumnSQL);
+
+      // Copy data to the temporary column
+      if (currentData.rows.length > 0) {
+        let copyDataSQL;
+        if (def.type === 'timestamptz') {
+          // For timestamps, ensure we preserve the timezone information
+          copyDataSQL = `
+            UPDATE "${this.tableName}"
+            SET "${tempColumn}" = "${column}"::timestamptz
+          `;
+        } else {
+          // For other types, do a direct copy
+          copyDataSQL = `
+            UPDATE "${this.tableName}"
+            SET "${tempColumn}" = "${column}"
+          `;
+        }
+        await this.client.query(copyDataSQL);
+      }
+
+      // Drop the old column
+      const dropColumnSQL = `
+        ALTER TABLE "${this.tableName}"
+        DROP COLUMN "${column}"
+      `;
+      await this.client.query(dropColumnSQL);
+
+      // Rename the temporary column to the original name
+      const renameColumnSQL = `
+        ALTER TABLE "${this.tableName}"
+        RENAME COLUMN "${tempColumn}" TO "${column}"
+      `;
+      await this.client.query(renameColumnSQL);
+
+      // Set default value if specified
+      if (def.defaultValue) {
+        // The defaultValue is already properly quoted in the schema definition
+        const updateDefaultSQL = `
+          UPDATE "${this.tableName}"
+          SET "${column}" = ${def.defaultValue}
+          WHERE "${column}" IS NULL
+        `;
+        await this.client.query(updateDefaultSQL);
+      }
+
+      // Make column non-nullable if specified
+      if (!def.nullable && column !== 'created_at' && column !== 'updated_at') {
+        const setNotNullSQL = `
+          ALTER TABLE "${this.tableName}"
+          ALTER COLUMN "${column}" SET NOT NULL
+        `;
+        await this.client.query(setNotNullSQL);
+      }
+    } catch (error) {
+      console.error(`Error updating column "${column}" in table "${this.tableName}":`, error);
+      throw error;
     }
   }
 
@@ -440,8 +492,45 @@ class DatabaseClient {
     `, [newPath, oldPath]);
   }
 
+  private async cleanupTemporaryColumns(): Promise<void> {
+    if (!this.client) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      // Find all columns that end with _temp
+      const findTempColumnsSQL = `
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = $1
+        AND column_name LIKE '%\_temp'
+      `;
+      const tempColumns = await this.client.query(findTempColumnsSQL, [this.tableName]);
+
+      if (tempColumns.rows.length > 0) {
+        console.info(`Found ${tempColumns.rows.length} temporary columns to clean up`);
+
+        // Drop each temporary column
+        for (const row of tempColumns.rows) {
+          const tempColumn = row.column_name;
+          const dropTempColumnSQL = `
+            ALTER TABLE "${this.tableName}"
+            DROP COLUMN "${tempColumn}"
+          `;
+          await this.client.query(dropTempColumnSQL);
+          console.info(`Dropped temporary column "${tempColumn}"`);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up temporary columns:', error);
+      // Don't throw the error, just log it and continue
+    }
+  }
+
   async initialize(): Promise<void> {
-    if (this.initPromise) return this.initPromise;
+    if (this.initPromise) {
+      return this.initPromise;
+    }
     if (!browser) {
       return;
     }
@@ -449,6 +538,7 @@ class DatabaseClient {
       return;
     }
 
+    console.info('Starting database initialization');
     this.initPromise = (async () => {
       try {
         this.client = new PGlite('idb://todo-app-db');
@@ -472,18 +562,21 @@ class DatabaseClient {
             )
           `;
           await this.client.query(createTodosTableSQL);
+          console.info('Todos table created successfully');
         }
 
         // Initialize known_events table
-        const eventsTableExists = await this.client.query(
-          `SELECT EXISTS (
+        const eventsTableExistsQuery = `
+          SELECT EXISTS (
             SELECT FROM information_schema.tables 
             WHERE table_schema = 'public' 
             AND table_name = 'known_events'
-          )`
-        );
+          )
+        `;
+        const eventsTableExists = await this.client.query(eventsTableExistsQuery);
+        const eventsTableExistsValue = (eventsTableExists.rows[0] as { exists: boolean })?.exists;
 
-        if (!(eventsTableExists.rows[0] as { exists: boolean })?.exists) {
+        if (!eventsTableExistsValue) {
           // Create new known_events table
           const createEventsTableSQL = `
             CREATE TABLE IF NOT EXISTS "known_events" (
@@ -498,18 +591,20 @@ class DatabaseClient {
             )
           `;
           await this.client.query(createEventsTableSQL);
+          console.info('Known_events table created successfully');
         }
 
         // Update existing tables if needed
         if (todosTableExists) {
+          console.info('Updating existing todos table structure if needed');
           // Get current structure
-          const currentColumns = await this.client.query<ColumnInfo>(`
+          const columnsQuery = `
             SELECT column_name, data_type, is_nullable, column_default
             FROM information_schema.columns
             WHERE table_name = $1
             ORDER BY ordinal_position
-          `, [this.tableName]);
-
+          `;
+          const currentColumns = await this.client.query<ColumnInfo>(columnsQuery, [this.tableName]);
           const currentColumnNames = new Set(currentColumns.rows.map(row => row.column_name));
 
           // Add missing columns
@@ -540,6 +635,10 @@ class DatabaseClient {
           await this.updateDataDefaults();
         }
 
+        // Clean up temporary columns
+        await this.cleanupTemporaryColumns();
+
+        console.info('Database initialization completed successfully');
         this.initialized = true;
 
       } catch (error) {
@@ -968,6 +1067,44 @@ class DatabaseClient {
       };
     }
   }
+
+  async resetDatabase(): Promise<{ success: boolean; message: string }> {
+    if (!browser) {
+      return { success: false, message: 'Cannot reset database outside of browser environment' };
+    }
+
+    try {
+      // Reset the initialized state
+      this.initialized = false;
+
+      // Create a new client if needed
+      if (!this.client) {
+        this.client = new PGlite('idb://todo-app-db');
+      }
+
+      // Drop the tables if they exist
+      try {
+        await this.client.query(`DROP TABLE IF EXISTS "${this.tableName}"`);
+        await this.client.query(`DROP TABLE IF EXISTS "known_events"`);
+      } catch (error) {
+        console.error('Error dropping tables:', error);
+      }
+
+      // Re-initialize the database
+      await this.initialize();
+
+      return {
+        success: true,
+        message: 'Database reset successfully'
+      };
+    } catch (error) {
+      console.error('Failed to reset database:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error resetting database'
+      };
+    }
+  }
 }
 
 // Create singleton instance
@@ -980,4 +1117,5 @@ export const addNewTodo = (parentId: string | null = null) => db.addNewTodo(pare
 export const addMultipleTodos = (count: number, parentId: string | null = null) => db.addMultipleTodos(count, parentId);
 export const loadWeekEvents = (startDate: Date, endDate: Date) => db.loadWeekEvents(startDate, endDate);
 export const addKnownEvent = (description: string, date: Date) => db.addKnownEvent(description, date);
-export const clearAllTodos = () => db.clearAllTodos(); 
+export const clearAllTodos = () => db.clearAllTodos();
+export const resetDatabase = () => db.resetDatabase(); 

@@ -5,9 +5,10 @@ export const ssr = false;
 
 export async function load() {
   if (browser) {
+    console.info('Initializing database in browser environment');
     try {
       await initializeDB();
-      console.log('Database initialized in layout.ts');
+      console.info('Database initialization completed');
     } catch (error) {
       console.error('Failed to initialize database:', error);
     }

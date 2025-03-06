@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { addNewTodo } from '$lib/client/db';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -17,7 +18,6 @@
 	async function handleAddTodo() {
 		try {
 			const result = await addNewTodo();
-			console.log('Add todo result:', result);
 			showNotification(result.message, result.success ? 'success' : 'error');
 		} catch (error) {
 			console.error('Failed to add todo:', error);

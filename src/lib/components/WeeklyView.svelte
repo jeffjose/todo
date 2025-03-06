@@ -6,7 +6,8 @@
 		type Todo,
 		addNewTodo,
 		addMultipleTodos,
-		clearAllTodos
+		clearAllTodos,
+		resetDatabase
 	} from '$lib/client/db';
 	import { Button } from '$lib/components/ui/button';
 
@@ -17,6 +18,7 @@
 	let weekEvents = $state<WeekEvent[]>([]);
 	let showClearConfirm = $state<boolean>(false);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
+	let isResetting = $state<boolean>(false);
 
 	onMount(async () => {
 		await loadData();
@@ -113,6 +115,36 @@
 		}
 	}
 
+	async function handleResetDatabase() {
+		if (confirm('Are you sure you want to reset the database? This will delete all data.')) {
+			isResetting = true;
+			try {
+				const result = await resetDatabase();
+				if (result.success) {
+					await onTodosChange();
+					await loadData();
+					notification = {
+						message: result.message,
+						type: 'success'
+					};
+				} else {
+					throw new Error(result.message);
+				}
+			} catch (error) {
+				console.error('Failed to reset database:', error);
+				notification = {
+					message: error instanceof Error ? error.message : 'Failed to reset database',
+					type: 'error'
+				};
+			} finally {
+				isResetting = false;
+				setTimeout(() => {
+					notification = null;
+				}, 5000);
+			}
+		}
+	}
+
 	async function loadData() {
 		try {
 			// Load data for 2 months (1 month past to 1 month future)
@@ -166,7 +198,12 @@
 </script>
 
 <div class="container mx-auto p-4">
-	<h1 class="mb-6 text-2xl font-bold">Weekly View ({todos.length})</h1>
+	<div class="mb-6 flex items-center justify-between">
+		<h1 class="text-2xl font-bold">Weekly View ({todos.length})</h1>
+		<Button onclick={handleResetDatabase} variant="destructive" size="sm" disabled={isResetting}>
+			{isResetting ? 'Resetting...' : 'Reset Database'}
+		</Button>
+	</div>
 
 	<div class="mb-6 flex flex-wrap items-center gap-2">
 		<Button onclick={handleAddNewTodo}>Add New Item</Button>

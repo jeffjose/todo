@@ -1,8 +1,19 @@
 import { pgTable, text, integer, timestamp, boolean, json } from 'drizzle-orm/pg-core';
-import { env } from '$env/dynamic/public';
 
 // Get table name from environment variable or use default
-const todoTableName = env.PUBLIC_TODO_TABLE_NAME || 'todos';
+let todoTableName = 'todos';
+try {
+  // Try to import env, but fallback to default if not available (e.g., in tests)
+  import('$env/dynamic/public').then(({ env }) => {
+    todoTableName = env.PUBLIC_TODO_TABLE_NAME || 'todos';
+  }).catch(() => {
+    // In test environments, the env module might not be available
+    console.warn('Could not load environment variables, using default table name');
+  });
+} catch (error) {
+  // In test environments, the env module might not be available
+  console.warn('Could not load environment variables, using default table name');
+}
 
 export const todos = pgTable(todoTableName, {
   id: text('id').primaryKey(),

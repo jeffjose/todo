@@ -194,6 +194,15 @@
 				</svg>
 			</button>
 		</h1>
+		<Button
+			onclick={handleResetDatabase}
+			variant="destructive"
+			size="sm"
+			disabled={isResetting}
+			class="ml-auto"
+		>
+			{isResetting ? 'Resetting...' : 'Reset Database'}
+		</Button>
 	</div>
 
 	{#if showPerformanceStats}
@@ -290,12 +299,12 @@
 					<div class="flex items-center gap-2">
 						<span class="text-sm text-red-600">Are you sure?</span>
 						<Button
-							onclick={handleResetDatabase}
+							onclick={handleClearAllTodos}
 							variant="destructive"
 							size="sm"
 							disabled={isLoading}
 						>
-							Yes, reset database
+							Yes, clear all
 						</Button>
 						<Button
 							onclick={() => (showClearConfirm = false)}
@@ -314,7 +323,7 @@
 						disabled={isLoading}
 						class="text-red-600 hover:bg-red-50 hover:text-red-700"
 					>
-						Reset Database
+						Clear All
 					</Button>
 				{/if}
 			</div>

@@ -10,7 +10,10 @@
 	} from '$lib/client/db';
 	import { Button } from '$lib/components/ui/button';
 
-	const { todos = [] } = $props<{ todos: Todo[] }>();
+	const { todos = [], onTodosChange } = $props<{
+		todos: Todo[];
+		onTodosChange: () => Promise<void>;
+	}>();
 	let weekEvents = $state<WeekEvent[]>([]);
 	let isLoading = $state<boolean>(false);
 	let showClearConfirm = $state<boolean>(false);
@@ -37,6 +40,7 @@
 		try {
 			const result = await addNewTodo();
 			if (result.success) {
+				await onTodosChange();
 				await loadData();
 				notification = {
 					message: result.message,
@@ -61,6 +65,7 @@
 		try {
 			const result = await addMultipleTodos(count);
 			if (result.success) {
+				await onTodosChange();
 				await loadData();
 				notification = {
 					message: result.message,
@@ -87,6 +92,7 @@
 			showClearConfirm = false;
 			const result = await clearAllTodos();
 			if (result.success) {
+				await onTodosChange();
 				await loadData();
 				notification = {
 					message: result.message,

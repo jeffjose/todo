@@ -202,12 +202,13 @@
 	}
 </script>
 
-<WeeklyView {todos} />
+<WeeklyView {todos} onTodosChange={loadTodosWithTiming} />
 
 <TodoList
 	{todos}
 	{lastLoadTime}
 	{isLoading}
+	{notification}
 	{performanceHistory}
 	{showPerformanceStats}
 	onTodosChange={loadTodosWithTiming}

@@ -433,6 +433,8 @@
 						<th class="px-2 py-1 text-left">Title</th>
 						<th class="px-2 py-1 text-left">Tags</th>
 						<th class="px-2 py-1 text-left">Deadline</th>
+						<th class="px-2 py-1 text-left">Finish By</th>
+						<th class="px-2 py-1 text-left">Created At</th>
 						<th class="px-2 py-1 text-center">Actions</th>
 					</tr>
 				</thead>
@@ -531,11 +533,37 @@
 							<td class="whitespace-nowrap px-2 py-2">
 								{#if todo.deadline}
 									<span class="text-xs text-gray-500"
-										>{new Date(todo.deadline).toLocaleDateString()}</span
+										>{new Date(todo.deadline).toLocaleString()}</span
 									>
 								{:else}
-									<span class="text-xs text-gray-400">-</span>
+									<span class="text-xs text-gray-500"
+										>{new Date(
+											new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
+										).toLocaleString()}</span
+									>
 								{/if}
+							</td>
+
+							<!-- Finish By -->
+							<td class="whitespace-nowrap px-2 py-2">
+								{#if todo.finishBy}
+									<span class="text-xs text-gray-500"
+										>{new Date(todo.finishBy).toLocaleString()}</span
+									>
+								{:else}
+									<span class="text-xs text-gray-500"
+										>{new Date(
+											new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
+										).toLocaleString()}</span
+									>
+								{/if}
+							</td>
+
+							<!-- Created At -->
+							<td class="whitespace-nowrap px-2 py-2">
+								<span class="text-xs text-gray-500"
+									>{new Date(todo.createdAt).toLocaleString()}</span
+								>
 							</td>
 
 							<!-- Actions -->
@@ -586,6 +614,32 @@
 										<div class="mb-2">
 											<span class="font-medium text-gray-700">Path: </span>
 											<span class="font-mono text-xs text-gray-600">{todo.path}</span>
+										</div>
+
+										<div class="mb-2">
+											<span class="font-medium text-gray-700">Deadline: </span>
+											<span class="text-gray-600">
+												{#if todo.deadline}
+													{new Date(todo.deadline).toLocaleString()}
+												{:else}
+													{new Date(
+														new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
+													).toLocaleString()}
+												{/if}
+											</span>
+										</div>
+
+										<div class="mb-2">
+											<span class="font-medium text-gray-700">Finish By: </span>
+											<span class="text-gray-600">
+												{#if todo.finishBy}
+													{new Date(todo.finishBy).toLocaleString()}
+												{:else}
+													{new Date(
+														new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
+													).toLocaleString()}
+												{/if}
+											</span>
 										</div>
 
 										{#if todo.parentId}

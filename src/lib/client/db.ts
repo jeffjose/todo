@@ -15,6 +15,7 @@ export interface Todo {
   title: string;
   description: string | null;
   deadline: Date | null;
+  finishBy: Date | null;
   status: string;
   priority: string;
   urgency: string;
@@ -50,6 +51,7 @@ type TodoRow = {
   title: string;
   description: string | null;
   deadline: string | null;
+  finish_by: string | null;
   status: string;
   priority: string;
   urgency: string;
@@ -68,6 +70,7 @@ const DESIRED_SCHEMA: SchemaDefinition = {
   title: { type: 'text', nullable: false },
   description: { type: 'text', nullable: true },
   deadline: { type: 'timestamptz', nullable: true },
+  finish_by: { type: 'timestamptz', nullable: true },
   status: { type: 'text', nullable: false, defaultValue: 'pending' },
   priority: { type: 'text', nullable: false, defaultValue: 'P3' },
   urgency: { type: 'text', nullable: false, defaultValue: 'medium' },
@@ -353,7 +356,7 @@ class DatabaseClient {
 
     const result = await this.client.query<TodoRow>(`
       SELECT 
-        "id", "title", "description", "deadline", "status", "priority", "urgency", 
+        "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
         "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
       FROM "${this.tableName}" 
       ORDER BY "created_at" DESC
@@ -364,6 +367,7 @@ class DatabaseClient {
       title: row.title,
       description: row.description,
       deadline: row.deadline ? new Date(row.deadline) : null,
+      finishBy: row.finish_by ? new Date(row.finish_by) : (row.deadline ? new Date(row.deadline) : null),
       status: row.status,
       priority: row.priority,
       urgency: row.urgency,
@@ -380,8 +384,19 @@ class DatabaseClient {
     console.log('Todos loaded from DB:', todos.map(t => ({
       id: t.id,
       title: t.title,
+      description: t.description,
+      deadline: t.deadline ? new Date(t.deadline).toISOString() : null,
+      finishBy: t.finishBy ? new Date(t.finishBy).toISOString() : null,
+      status: t.status,
+      priority: t.priority,
+      urgency: t.urgency,
+      tags: t.tags,
+      attachments: t.attachments,
+      path: t.path,
+      level: t.level,
+      parentId: t.parentId,
       createdAt: new Date(t.createdAt).toISOString(),
-      path: t.path
+      updatedAt: new Date(t.updatedAt).toISOString()
     })));
 
     return todos;
@@ -415,9 +430,19 @@ class DatabaseClient {
 
       // Generate random data
       const today = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + 14);
-      const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
+      const twoMonthsAgo = new Date();
+      twoMonthsAgo.setMonth(today.getMonth() - 2);
+      const createdAt = new Date(twoMonthsAgo.getTime() + Math.random() * (today.getTime() - twoMonthsAgo.getTime()));
+
+      // Set deadline to be between createdAt and createdAt + 14 days
+      const deadline = new Date(createdAt.getTime() + Math.random() * (14 * 24 * 60 * 60 * 1000));
+
+      // Set finishBy to be between createdAt and deadline, but not more than 1 week before deadline
+      const oneWeekBeforeDeadline = new Date(deadline.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const finishBy = new Date(
+        Math.max(createdAt.getTime(), oneWeekBeforeDeadline.getTime()) +
+        Math.random() * (deadline.getTime() - Math.max(createdAt.getTime(), oneWeekBeforeDeadline.getTime()))
+      );
 
       const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
       const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
@@ -442,12 +467,12 @@ class DatabaseClient {
 
       await this.client.query(
         `INSERT INTO "${this.tableName}" (
-          "id", "title", "description", "deadline", "status", "priority", "urgency", 
+          "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
           "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
         [
-          todoId, title, description, deadline.toISOString(), status, priority, urgency,
-          JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, now
+          todoId, title, description, deadline.toISOString(), finishBy.toISOString(), status, priority, urgency,
+          JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, createdAt.toISOString(), now
         ]
       );
 
@@ -500,9 +525,19 @@ class DatabaseClient {
 
           // Generate random data
           const today = new Date();
-          const futureDate = new Date();
-          futureDate.setDate(today.getDate() + 14);
-          const deadline = new Date(today.getTime() + Math.random() * (futureDate.getTime() - today.getTime()));
+          const twoMonthsAgo = new Date();
+          twoMonthsAgo.setMonth(today.getMonth() - 2);
+          const createdAt = new Date(twoMonthsAgo.getTime() + Math.random() * (today.getTime() - twoMonthsAgo.getTime()));
+
+          // Set deadline to be between createdAt and createdAt + 14 days
+          const deadline = new Date(createdAt.getTime() + Math.random() * (14 * 24 * 60 * 60 * 1000));
+
+          // Set finishBy to be between createdAt and deadline, but not more than 1 week before deadline
+          const oneWeekBeforeDeadline = new Date(deadline.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const finishBy = new Date(
+            Math.max(createdAt.getTime(), oneWeekBeforeDeadline.getTime()) +
+            Math.random() * (deadline.getTime() - Math.max(createdAt.getTime(), oneWeekBeforeDeadline.getTime()))
+          );
 
           const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
           const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
@@ -526,18 +561,17 @@ class DatabaseClient {
           }));
 
           const paramIndex = params.length;
-          const now = new Date().toISOString();
-          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 13})`);
+          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15})`);
           params.push(
-            todoId, title, description, deadline.toISOString(), status, priority, urgency,
-            JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, now
+            todoId, title, description, deadline.toISOString(), finishBy.toISOString(), status, priority, urgency,
+            JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, createdAt.toISOString(), today.toISOString()
           );
         }
 
         if (placeholders.length > 0) {
           const query = `
             INSERT INTO "${this.tableName}" (
-              "id", "title", "description", "deadline", "status", "priority", "urgency", 
+              "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
               "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
             ) VALUES ${placeholders.join(', ')}
           `;

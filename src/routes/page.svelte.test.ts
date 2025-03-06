@@ -10,14 +10,16 @@ vi.mock('$env/dynamic/public', () => ({
 	}
 }));
 
-// Mock the database functions
-vi.mock('../lib/client/db', () => ({
+// Mock the Dexie functions
+vi.mock('$lib/client/dexie', () => ({
 	initializeDB: vi.fn().mockResolvedValue(undefined),
-	loadTodos: vi.fn().mockResolvedValue([]),
-	resetDatabase: vi.fn().mockResolvedValue({ success: true, message: 'Database reset successfully' }),
-	addNewTodo: vi.fn().mockResolvedValue({ success: true, message: 'Todo added successfully' }),
-	addMultipleTodos: vi.fn().mockResolvedValue({ success: true, message: 'Todos added successfully' }),
-	loadWeekEvents: vi.fn().mockResolvedValue([])
+	getAllTodos: vi.fn().mockResolvedValue([]),
+	clearAllTodos: vi.fn().mockResolvedValue({ success: true, message: 'Database reset successfully' }),
+	createRandomTodo: vi.fn().mockResolvedValue({ id: '1', title: 'Test Todo', status: 'pending' }),
+	createMultipleRandomTodos: vi.fn().mockResolvedValue([
+		{ id: '1', title: 'Test Todo 1', status: 'pending' },
+		{ id: '2', title: 'Test Todo 2', status: 'pending' }
+	])
 }));
 
 describe('/+page.svelte', () => {

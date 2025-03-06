@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import { createTodo } from '$lib/client/dexie';
+	import { createRandomTodo } from '$lib/client/dexie';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
@@ -17,21 +17,7 @@
 
 	async function handleAddTodo() {
 		try {
-			const newTodo = await createTodo({
-				title: 'New Todo',
-				description: null,
-				emoji: null,
-				deadline: null,
-				finishBy: null,
-				status: 'pending',
-				priority: 'P3',
-				urgency: 'medium',
-				tags: [],
-				attachments: [],
-				path: 'root',
-				level: 0,
-				parentId: null
-			});
+			const newTodo = await createRandomTodo();
 			showNotification(`New todo "${newTodo.title}" added successfully`);
 		} catch (error) {
 			console.error('Failed to add todo:', error);

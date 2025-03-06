@@ -12,8 +12,10 @@
 		"lint": "prettier --check .",
 		"prepare": "husky",
 		"preview": "vite preview",
-		"test": "npm run test:unit -- --run",
-		"test:unit": "vitest"
+		"test": "vitest",
+		"test:db": "vitest src/lib/client/dexie.test.ts",
+		"test:db:all": "vitest src/lib/client/dexie.test.ts src/lib/client/db.integration.test.ts",
+		"test:db:integration": "vitest src/lib/client/db.integration.test.ts"
 	},
 	"dependencies": {
 		"@node-rs/argon2": "^2.0.2",

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { initializeDB, resetDatabase } from './db';
+import { initializeDB, clearAllTodos } from './dexie';
 
 // Mock the browser environment for integration tests
 vi.mock('$app/environment', () => ({
@@ -14,24 +14,24 @@ describe.skip('Database Initialization Integration', () => {
   beforeAll(async () => {
     // Clean up any existing database before tests
     try {
-      await resetDatabase();
+      await clearAllTodos();
     } catch (error) {
-      console.warn('Failed to reset database before tests:', error);
+      console.warn('Failed to clear database before tests:', error);
     }
   });
 
   afterAll(async () => {
     // Clean up after tests
     try {
-      await resetDatabase();
+      await clearAllTodos();
     } catch (error) {
-      console.warn('Failed to reset database after tests:', error);
+      console.warn('Failed to clear database after tests:', error);
     }
   });
 
   it('should initialize the database without errors', async () => {
     // This test will actually run the database initialization
-    // It will fail if there are any SQL syntax errors or other issues
+    // It will fail if there are any database initialization issues
     await expect(initializeDB()).resolves.not.toThrow();
   });
 
@@ -46,15 +46,15 @@ describe.skip('Database Initialization Integration', () => {
   it('should handle database reset', async () => {
     // First, make sure the database is initialized
     await initializeDB();
-    
+
     // Then reset it
-    const result = await resetDatabase();
-    
+    const result = await clearAllTodos();
+
     // In the integration test, we'll just check that it doesn't throw
     // rather than checking the success property which might be environment-dependent
     expect(result).toBeDefined();
     expect(typeof result.message).toBe('string');
-    
+
     // Should be able to initialize again after reset
     await expect(initializeDB()).resolves.not.toThrow();
   });

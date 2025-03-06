@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getAllTodos, createTodo, clearAllTodos, type Todo } from '$lib/client/dexie';
+	import {
+		getAllTodos,
+		createRandomTodo,
+		createMultipleRandomTodos,
+		clearAllTodos,
+		type Todo
+	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
@@ -58,21 +64,7 @@
 
 	async function handleAddNewTodo() {
 		try {
-			const newTodo = await createTodo({
-				title: 'New Todo',
-				description: null,
-				emoji: null,
-				deadline: null,
-				finishBy: null,
-				status: 'pending',
-				priority: 'P3',
-				urgency: 'medium',
-				tags: [],
-				attachments: [],
-				path: 'root',
-				level: 0,
-				parentId: null
-			});
+			const newTodo = await createRandomTodo();
 			await loadTodosWithTiming();
 			notification = {
 				message: `New todo "${newTodo.title}" added successfully`,
@@ -102,23 +94,7 @@
 			};
 
 			const startTime = performance.now();
-			for (let i = 0; i < count; i++) {
-				await createTodo({
-					title: `Todo ${i + 1}`,
-					description: null,
-					emoji: null,
-					deadline: null,
-					finishBy: null,
-					status: 'pending',
-					priority: 'P3',
-					urgency: 'medium',
-					tags: [],
-					attachments: [],
-					path: 'root',
-					level: 0,
-					parentId: null
-				});
-			}
+			await createMultipleRandomTodos(count);
 			const endTime = performance.now();
 			const timeInSeconds = (endTime - startTime) / 1000;
 

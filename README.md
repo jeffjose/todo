@@ -39,7 +39,7 @@ You can preview the production build with `npm run preview`.
 
 ## Testing
 
-This project includes comprehensive testing for the database initialization process to prevent SQL syntax errors and other issues.
+This project includes comprehensive testing for the database initialization process.
 
 ### Database Tests
 
@@ -51,19 +51,13 @@ We have several types of tests for the database:
    pnpm test:db
    ```
 
-2. **Schema Validation**: Validate SQL syntax for table creation
-
-   ```bash
-   pnpm test:db
-   ```
-
-3. **Integration Tests**: Test the actual database initialization in a browser environment
+2. **Integration Tests**: Test the actual database initialization in a browser environment
 
    ```bash
    pnpm test:db:integration
    ```
 
-4. **All Database Tests**: Run all database tests
+3. **All Database Tests**: Run all database tests
    ```bash
    pnpm test:db:all
    ```
@@ -72,11 +66,7 @@ We have several types of tests for the database:
 
 We use Husky to run tests automatically:
 
-- **Pre-commit Hook**: Runs database unit tests and schema validation before each commit
+- **Pre-commit Hook**: Runs database unit tests before each commit
 - **Pre-push Hook**: Runs all tests before pushing to the remote repository
 
-This ensures that SQL syntax errors and other database issues are caught early in the development process.
-
-### SQL Validation Utilities
-
-The project includes SQL validation utilities in `src/lib/utils/sql-validator.ts` that can be used to validate SQL syntax, particularly for default values in CREATE TABLE statements. These utilities help prevent common SQL syntax errors like unquoted string values.
+This ensures that database issues are caught early in the development process.

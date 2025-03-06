@@ -54,7 +54,7 @@ export class TodoDatabase extends Dexie {
   constructor() {
     super(env.PUBLIC_TODO_TABLE_NAME || 'todos');
     this.version(1).stores({
-      todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt',
+      todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt, deadline, finishBy, tags',
       knownEvents: '++id, startDate, endDate, description, createdAt, updatedAt',
       users: '++id, username',
       sessions: '++id, userId, expiresAt'
@@ -80,6 +80,147 @@ export async function getDB(): Promise<TodoDatabase> {
   return db!;
 }
 
+// Random data options
+const RANDOM_DATA = {
+  titles: [
+    'Complete project proposal',
+    'Review documentation',
+    'Prepare presentation',
+    'Schedule meeting',
+    'Research new technologies',
+    'Fix bugs in application',
+    'Update dependencies',
+    'Create user documentation',
+    'Design new feature',
+    'Implement feedback changes',
+    'Optimize database queries',
+    'Set up CI/CD pipeline',
+    'Conduct code review',
+    'Write unit tests',
+    'Deploy to staging',
+    'Monitor system performance',
+    'Backup database',
+    'Update security patches',
+    'Configure load balancer',
+    'Set up monitoring alerts',
+    'Review pull requests',
+    'Update API documentation',
+    'Implement error logging',
+    'Optimize frontend assets',
+    'Set up automated testing',
+    'Configure development environment',
+    'Review system architecture',
+    'Update user interface',
+    'Implement caching strategy',
+    'Set up data backup',
+    'Configure firewall rules',
+    'Review access controls',
+    'Update SSL certificates',
+    'Optimize database indexes',
+    'Set up logging system',
+    'Configure CDN settings',
+    'Review security policies',
+    'Update system dependencies',
+    'Implement rate limiting',
+    'Set up analytics tracking',
+    'Configure email notifications',
+    'Review data retention policies',
+    'Update content management system',
+    'Implement search functionality',
+    'Set up user authentication',
+    'Configure API endpoints',
+    'Review performance metrics',
+    'Update system configurations',
+    'Implement data validation',
+    'Set up automated backups'
+  ],
+  emojis: ['📝', '📋', '📅', '📊', '💡', '🔍', '⚡', '🎯', '📌', '✅', '📎', '📁', '📄', '📑', '📚', '📖', '📗', '📘', '📙', '📕'],
+  statuses: ['pending', 'in-progress', 'completed', 'blocked'],
+  priorities: ['P0', 'P1', 'P2', 'P3'],
+  urgencies: ['high', 'medium', 'low'],
+  tags: ['work', 'personal', 'urgent', 'low-priority', 'bug', 'feature', 'documentation', 'meeting', 'research', 'design']
+};
+
+// Helper function to get next business day (Monday-Friday)
+function getNextBusinessDay(date: Date): Date {
+  const nextDay = new Date(date);
+  nextDay.setDate(date.getDate() + 1);
+  while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
+    nextDay.setDate(nextDay.getDate() + 1);
+  }
+  return nextDay;
+}
+
+// Helper function to get random time between 9 AM and 5 PM
+function getRandomBusinessTime(date: Date): Date {
+  const time = new Date(date);
+  const hours = 9 + Math.floor(Math.random() * 8); // Random hour between 9 and 16
+  const minutes = Math.floor(Math.random() * 60);
+  time.setHours(hours, minutes, 0, 0);
+  return time;
+}
+
+// Helper function to generate random todo data
+function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> {
+  const now = new Date();
+  const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
+  const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
+
+  // Set deadline to be between now and now + 14 business days
+  let deadline = new Date(now);
+  const numBusinessDays = Math.floor(Math.random() * 14) + 1;
+  for (let i = 0; i < numBusinessDays; i++) {
+    deadline = getNextBusinessDay(deadline);
+  }
+  deadline = getRandomBusinessTime(deadline);
+
+  // Set finishBy to be between now and deadline, but not more than 1 week before deadline
+  let finishBy = new Date(now);
+  const maxBusinessDaysBeforeDeadline = Math.min(5, numBusinessDays - 1); // At least 1 business day before deadline
+  const numBusinessDaysBeforeDeadline = Math.floor(Math.random() * maxBusinessDaysBeforeDeadline) + 1;
+  for (let i = 0; i < numBusinessDaysBeforeDeadline; i++) {
+    finishBy = getNextBusinessDay(finishBy);
+  }
+  finishBy = getRandomBusinessTime(finishBy);
+
+  const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
+  const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
+  const urgency = RANDOM_DATA.urgencies[Math.floor(Math.random() * RANDOM_DATA.urgencies.length)];
+
+  // Generate random tags
+  const numTags = Math.floor(Math.random() * 3) + 1;
+  const tags: string[] = [];
+  for (let i = 0; i < numTags; i++) {
+    const randomTag = RANDOM_DATA.tags[Math.floor(Math.random() * RANDOM_DATA.tags.length)];
+    if (!tags.includes(randomTag)) {
+      tags.push(randomTag);
+    }
+  }
+
+  // Generate random attachments
+  const numAttachments = Math.floor(Math.random() * 3);
+  const attachments = Array.from({ length: numAttachments }, (_, i) => ({
+    name: `attachment-${i + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
+    url: `https://example.com/attachments/${generateId()}/${i + 1}`
+  }));
+
+  return {
+    title,
+    description,
+    emoji: RANDOM_DATA.emojis[Math.floor(Math.random() * RANDOM_DATA.emojis.length)],
+    deadline,
+    finishBy,
+    status,
+    priority,
+    urgency,
+    tags,
+    attachments,
+    path: 'root',
+    level: 0,
+    parentId: null
+  };
+}
+
 // CRUD operations
 export async function createTodo(todo: Omit<Todo, 'id' | 'createdAt' | 'updatedAt'>): Promise<Todo> {
   const db = await getDB();
@@ -92,6 +233,22 @@ export async function createTodo(todo: Omit<Todo, 'id' | 'createdAt' | 'updatedA
   };
   await db.todos.add(newTodo);
   return newTodo;
+}
+
+export async function createRandomTodo(): Promise<Todo> {
+  return createTodo(generateRandomTodoData());
+}
+
+export async function createMultipleRandomTodos(count: number): Promise<Todo[]> {
+  const db = await getDB();
+  const todos: Todo[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const todo = await createRandomTodo();
+    todos.push(todo);
+  }
+
+  return todos;
 }
 
 export async function getTodo(id: string): Promise<Todo | undefined> {

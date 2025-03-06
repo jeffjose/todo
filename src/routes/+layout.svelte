@@ -17,8 +17,22 @@
 
 	async function handleAddTodo() {
 		try {
-			const result = await createTodo();
-			showNotification(result.message, result.success ? 'success' : 'error');
+			const newTodo = await createTodo({
+				title: 'New Todo',
+				description: null,
+				emoji: null,
+				deadline: null,
+				finishBy: null,
+				status: 'pending',
+				priority: 'P3',
+				urgency: 'medium',
+				tags: [],
+				attachments: [],
+				path: 'root',
+				level: 0,
+				parentId: null
+			});
+			showNotification(`New todo "${newTodo.title}" added successfully`);
 		} catch (error) {
 			console.error('Failed to add todo:', error);
 			showNotification(error instanceof Error ? error.message : 'Failed to add todo', 'error');

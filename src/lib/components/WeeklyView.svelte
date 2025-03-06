@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getAllTodos, createTodo, clearAllTodos, type Todo } from '$lib/client/dexie';
+	import {
+		getAllTodos,
+		createRandomTodo,
+		createMultipleRandomTodos,
+		clearAllTodos,
+		type Todo
+	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
 
 	export interface WeekEvent {
@@ -16,6 +22,7 @@
 		todos: Todo[];
 		onTodosChange: () => Promise<void>;
 	}>();
+
 	let weekEvents = $state<WeekEvent[]>([]);
 	let showClearConfirm = $state<boolean>(false);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -40,21 +47,7 @@
 
 	async function handleAddNewTodo() {
 		try {
-			const newTodo = await createTodo({
-				title: 'New Todo',
-				description: null,
-				emoji: null,
-				deadline: null,
-				finishBy: null,
-				status: 'pending',
-				priority: 'P3',
-				urgency: 'medium',
-				tags: [],
-				attachments: [],
-				path: 'root',
-				level: 0,
-				parentId: null
-			});
+			const newTodo = await createRandomTodo();
 			await onTodosChange();
 			await loadData();
 			notification = {
@@ -76,23 +69,7 @@
 	async function handleAddMultipleTodos(count: number) {
 		try {
 			const startTime = performance.now();
-			for (let i = 0; i < count; i++) {
-				await createTodo({
-					title: `Todo ${i + 1}`,
-					description: null,
-					emoji: null,
-					deadline: null,
-					finishBy: null,
-					status: 'pending',
-					priority: 'P3',
-					urgency: 'medium',
-					tags: [],
-					attachments: [],
-					path: 'root',
-					level: 0,
-					parentId: null
-				});
-			}
+			await createMultipleRandomTodos(count);
 			const endTime = performance.now();
 			const timeInSeconds = (endTime - startTime) / 1000;
 			await onTodosChange();
@@ -180,15 +157,44 @@
 			const endDate = new Date(today);
 			endDate.setMonth(today.getMonth() + 1);
 
+			// Get all todos
 			const todos = await getAllTodos();
-			weekEvents = todos.map((todo) => ({
-				id: todo.id,
-				startDate: todo.deadline || new Date(),
-				endDate: todo.finishBy || new Date(),
-				description: todo.title,
-				createdAt: todo.createdAt,
-				updatedAt: todo.updatedAt
-			}));
+
+			// Create week rows
+			const tempWeekEvents: WeekEvent[] = [];
+			let currentDate = new Date(startDate);
+			currentDate.setHours(0, 0, 0, 0);
+
+			while (currentDate <= endDate) {
+				// Find the start of the week (Monday)
+				const weekStart = new Date(currentDate);
+				while (weekStart.getDay() !== 1) {
+					// 1 is Monday
+					weekStart.setDate(weekStart.getDate() - 1);
+				}
+
+				// Find the end of the week (Sunday)
+				const weekEnd = new Date(weekStart);
+				weekEnd.setDate(weekEnd.getDate() + 6);
+				weekEnd.setHours(23, 59, 59, 999);
+
+				// Create a week event
+				tempWeekEvents.push({
+					id: `week-${weekStart.getTime()}`,
+					startDate: weekStart,
+					endDate: weekEnd,
+					description: null,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				});
+
+				// Move to next week
+				currentDate.setDate(currentDate.getDate() + 7);
+			}
+
+			// Sort week events by start date
+			tempWeekEvents.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+			weekEvents = tempWeekEvents;
 		} catch (error) {
 			console.error('Error loading data:', error);
 		}
@@ -247,42 +253,32 @@
 				onclick={() => handleAddMultipleTodos(10)}
 				variant="outline"
 				size="sm"
-				class="min-w-16"
+				class="min-w-16">10</Button
 			>
-				10
-			</Button>
 			<Button
 				onclick={() => handleAddMultipleTodos(50)}
 				variant="outline"
 				size="sm"
-				class="min-w-16"
+				class="min-w-16">50</Button
 			>
-				50
-			</Button>
 			<Button
 				onclick={() => handleAddMultipleTodos(100)}
 				variant="outline"
 				size="sm"
-				class="min-w-16"
+				class="min-w-16">100</Button
 			>
-				100
-			</Button>
 			<Button
 				onclick={() => handleAddMultipleTodos(500)}
 				variant="outline"
 				size="sm"
-				class="min-w-16"
+				class="min-w-16">500</Button
 			>
-				500
-			</Button>
 			<Button
 				onclick={() => handleAddMultipleTodos(1000)}
 				variant="outline"
 				size="sm"
-				class="min-w-16"
+				class="min-w-16">1000</Button
 			>
-				1000
-			</Button>
 		</div>
 
 		{#if todos.length > 0}
@@ -290,12 +286,12 @@
 				{#if showClearConfirm}
 					<div class="flex items-center gap-2">
 						<span class="text-sm text-red-600">Are you sure?</span>
-						<Button onclick={handleClearAllTodos} variant="destructive" size="sm">
-							Yes, clear all
-						</Button>
-						<Button onclick={() => (showClearConfirm = false)} variant="outline" size="sm">
-							Cancel
-						</Button>
+						<Button onclick={handleClearAllTodos} variant="destructive" size="sm"
+							>Yes, clear all</Button
+						>
+						<Button onclick={() => (showClearConfirm = false)} variant="outline" size="sm"
+							>Cancel</Button
+						>
 					</div>
 				{:else}
 					<Button
@@ -373,9 +369,8 @@
 												{todo.title}
 											</span>
 											{#if todo.tags && todo.tags.length > 0}
-												<span class="text-xs text-gray-500">
-													{todo.tags.slice(0, 1).join(', ')}
-												</span>
+												<span class="text-xs text-gray-500">{todo.tags.slice(0, 1).join(', ')}</span
+												>
 											{/if}
 										</div>
 										<span class="text-xs text-gray-500">
@@ -401,9 +396,8 @@
 												{todo.title}
 											</span>
 											{#if todo.tags && todo.tags.length > 0}
-												<span class="text-xs text-gray-500">
-													{todo.tags.slice(0, 1).join(', ')}
-												</span>
+												<span class="text-xs text-gray-500">{todo.tags.slice(0, 1).join(', ')}</span
+												>
 											{/if}
 										</div>
 										<span class="text-xs text-gray-500">
@@ -421,3 +415,7 @@
 		</table>
 	</div>
 </div>
+
+<style>
+	/* Add any additional styles here */
+</style>

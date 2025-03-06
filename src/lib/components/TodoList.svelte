@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import type { Todo } from '$lib/client/dexie';
-	import { createTodo, clearAllTodos } from '$lib/client/dexie';
+	import {
+		createTodo,
+		clearAllTodos,
+		getAllTodos,
+		createRandomTodo,
+		createMultipleRandomTodos
+	} from '$lib/client/dexie';
 
 	// Core props from parent
 	export let todos: Todo[] = [];
@@ -50,21 +56,7 @@
 
 	async function handleAddNewTodo() {
 		try {
-			const newTodo = await createTodo({
-				title: 'New Todo',
-				description: null,
-				emoji: null,
-				deadline: null,
-				finishBy: null,
-				status: 'pending',
-				priority: 'P3',
-				urgency: 'medium',
-				tags: [],
-				attachments: [],
-				path: 'root',
-				level: 0,
-				parentId: null
-			});
+			const newTodo = await createRandomTodo();
 			await onTodosChange();
 			notification = {
 				message: `New todo "${newTodo.title}" added successfully`,
@@ -85,23 +77,7 @@
 	async function handleAddMultipleTodos(count: number) {
 		try {
 			const startTime = performance.now();
-			for (let i = 0; i < count; i++) {
-				await createTodo({
-					title: `Todo ${i + 1}`,
-					description: null,
-					emoji: null,
-					deadline: null,
-					finishBy: null,
-					status: 'pending',
-					priority: 'P3',
-					urgency: 'medium',
-					tags: [],
-					attachments: [],
-					path: 'root',
-					level: 0,
-					parentId: null
-				});
-			}
+			await createMultipleRandomTodos(count);
 			const endTime = performance.now();
 			const timeInSeconds = (endTime - startTime) / 1000;
 			await onTodosChange();
@@ -155,6 +131,35 @@
 			setTimeout(() => {
 				notification = null;
 			}, 5000);
+		}
+	}
+
+	async function handleResetDatabase() {
+		if (confirm('Are you sure you want to reset the database? This will delete all data.')) {
+			isResetting = true;
+			try {
+				const result = await clearAllTodos();
+				if (result.success) {
+					await onTodosChange();
+					notification = {
+						message: result.message,
+						type: 'success'
+					};
+				} else {
+					throw new Error(result.message);
+				}
+			} catch (error) {
+				console.error('Failed to reset database:', error);
+				notification = {
+					message: error instanceof Error ? error.message : 'Failed to reset database',
+					type: 'error'
+				};
+			} finally {
+				isResetting = false;
+				setTimeout(() => {
+					notification = null;
+				}, 5000);
+			}
 		}
 	}
 </script>
@@ -285,12 +290,12 @@
 					<div class="flex items-center gap-2">
 						<span class="text-sm text-red-600">Are you sure?</span>
 						<Button
-							onclick={handleClearAllTodos}
+							onclick={handleResetDatabase}
 							variant="destructive"
 							size="sm"
 							disabled={isLoading}
 						>
-							Yes, clear all
+							Yes, reset database
 						</Button>
 						<Button
 							onclick={() => (showClearConfirm = false)}
@@ -309,7 +314,7 @@
 						disabled={isLoading}
 						class="text-red-600 hover:bg-red-50 hover:text-red-700"
 					>
-						Clear All
+						Reset Database
 					</Button>
 				{/if}
 			</div>

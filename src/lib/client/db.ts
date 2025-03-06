@@ -14,6 +14,7 @@ export interface Todo {
   id: string;
   title: string;
   description: string | null;
+  emoji: string | null;
   deadline: Date | null;
   finishBy: Date | null;
   status: string;
@@ -59,6 +60,7 @@ type TodoRow = {
   id: string;
   title: string;
   description: string | null;
+  emoji: string | null;
   deadline: string | null;
   finish_by: string | null;
   status: string;
@@ -87,6 +89,7 @@ const DESIRED_SCHEMA: SchemaDefinition = {
   id: { type: 'text', primaryKey: true, nullable: false },
   title: { type: 'text', nullable: false },
   description: { type: 'text', nullable: true },
+  emoji: { type: 'text', nullable: true },
   deadline: { type: 'timestamptz', nullable: true },
   finish_by: { type: 'timestamptz', nullable: true },
   status: { type: 'text', nullable: false, defaultValue: 'pending' },
@@ -204,6 +207,7 @@ const RANDOM_DATA = {
     'Design new feature',
     'Implement feedback changes'
   ],
+  emojis: ['📝', '📋', '📅', '📊', '💡', '🔍', '⚡', '🎯', '📌', '✅', '📎', '📁', '📄', '📑', '📚', '📖', '📗', '📘', '📙', '📕'],
   statuses: ['pending', 'in-progress', 'completed', 'blocked'],
   priorities: ['P0', 'P1', 'P2', 'P3'],
   urgencies: ['high', 'medium', 'low'],
@@ -525,6 +529,7 @@ class DatabaseClient {
         id: row.id,
         title: row.title,
         description: row.description,
+        emoji: row.emoji,
         deadline: row.deadline ? new Date(row.deadline) : null,
         finishBy: row.finish_by ? new Date(row.finish_by) : null,
         status: row.status,
@@ -629,15 +634,16 @@ class DatabaseClient {
 
       const insertQuery = `
         INSERT INTO "${this.tableName}" (
-          "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
+          "id", "title", "description", "emoji", "deadline", "finish_by", "status", "priority", "urgency", 
           "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       `;
 
       const params = [
         todoId,
         title,
         description,
+        RANDOM_DATA.emojis[Math.floor(Math.random() * RANDOM_DATA.emojis.length)],
         deadline.toISOString(),
         finishBy.toISOString(),
         status,
@@ -739,17 +745,31 @@ class DatabaseClient {
           }));
 
           const paramIndex = params.length;
-          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15})`);
+          placeholders.push(`($${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16})`);
           params.push(
-            todoId, title, description, deadline.toISOString(), finishBy.toISOString(), status, priority, urgency,
-            JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, createdAt.toISOString(), today.toISOString()
+            todoId,
+            title,
+            description,
+            RANDOM_DATA.emojis[Math.floor(Math.random() * RANDOM_DATA.emojis.length)],
+            deadline.toISOString(),
+            finishBy.toISOString(),
+            status,
+            priority,
+            urgency,
+            JSON.stringify(tags),
+            JSON.stringify(attachments),
+            path,
+            level,
+            parentId,
+            createdAt.toISOString(),
+            today.toISOString()
           );
         }
 
         if (placeholders.length > 0) {
           const query = `
             INSERT INTO "${this.tableName}" (
-              "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
+              "id", "title", "description", "emoji", "deadline", "finish_by", "status", "priority", "urgency", 
               "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
             ) VALUES ${placeholders.join(', ')}
           `;

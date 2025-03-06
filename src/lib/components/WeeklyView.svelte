@@ -332,9 +332,12 @@
 									{#each getTodosForWeek(weekEvent, 'deadline') as todo}
 										<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
 											<div class="flex items-center gap-2">
-												<span class="text-sm" style="color: {getColorForId(todo.id)}"
-													>{todo.title}</span
-												>
+												<span class="text-sm" style="color: {getColorForId(todo.id)}">
+													{#if todo.emoji}
+														<span class="mr-1">{todo.emoji}</span>
+													{/if}
+													{todo.title}
+												</span>
 												{#if todo.tags && todo.tags.length > 0}
 													<span class="text-xs text-gray-500">
 														{todo.tags.slice(0, 1).join(', ')}
@@ -357,9 +360,12 @@
 									{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
 										<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
 											<div class="flex items-center gap-2">
-												<span class="text-sm" style="color: {getColorForId(todo.id)}"
-													>{todo.title}</span
-												>
+												<span class="text-sm" style="color: {getColorForId(todo.id)}">
+													{#if todo.emoji}
+														<span class="mr-1">{todo.emoji}</span>
+													{/if}
+													{todo.title}
+												</span>
 												{#if todo.tags && todo.tags.length > 0}
 													<span class="text-xs text-gray-500">
 														{todo.tags.slice(0, 1).join(', ')}

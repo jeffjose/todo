@@ -8,6 +8,7 @@ export const todos = pgTable(todoTableName, {
 	id: text('id').primaryKey(),
 	title: text('title').notNull(),
 	description: text('description'),
+	emoji: text('emoji'),
 	deadline: timestamp('deadline', { withTimezone: true }),
 	finish_by: timestamp('finish_by', { withTimezone: true }),
 	status: text('status').notNull().default('pending'),

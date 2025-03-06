@@ -217,45 +217,20 @@
 			return date >= startDate && date <= endDate;
 		});
 
-		// Create a map of parent IDs to their children
-		const childrenMap = new Map<string | null, Todo[]>();
-		weekTodos.forEach((todo: Todo) => {
-			const parentId = todo.parentId;
-			if (!childrenMap.has(parentId)) {
-				childrenMap.set(parentId, []);
-			}
-			childrenMap.get(parentId)!.push(todo);
+		// Sort todos by completion status first, then by date
+		weekTodos.sort((a: Todo, b: Todo) => {
+			// First sort by completion status
+			if (a.status === 'completed' && b.status !== 'completed') return -1;
+			if (a.status !== 'completed' && b.status === 'completed') return 1;
+
+			// Then sort by date
+			const dateA = type === 'deadline' ? a.deadline : a.finishBy;
+			const dateB = type === 'deadline' ? b.deadline : b.finishBy;
+			if (!dateA || !dateB) return 0;
+			return dateA.getTime() - dateB.getTime();
 		});
 
-		// Helper function to recursively build the sorted list
-		function buildSortedList(parentId: string | null): Todo[] {
-			const children = childrenMap.get(parentId) || [];
-			const result: Todo[] = [];
-
-			// Sort children by completion status first, then by date
-			children.sort((a, b) => {
-				// First sort by completion status
-				if (a.status === 'completed' && b.status !== 'completed') return -1;
-				if (a.status !== 'completed' && b.status === 'completed') return 1;
-
-				// Then sort by date
-				const dateA = type === 'deadline' ? a.deadline : a.finishBy;
-				const dateB = type === 'deadline' ? b.deadline : b.finishBy;
-				if (!dateA || !dateB) return 0;
-				return dateA.getTime() - dateB.getTime();
-			});
-
-			// Add root level items and their children recursively
-			for (const todo of children) {
-				result.push(todo);
-				result.push(...buildSortedList(todo.id));
-			}
-
-			return result;
-		}
-
-		// Start with root level items (parentId is null)
-		return buildSortedList(null);
+		return weekTodos;
 	}
 
 	function formatDate(date: Date): string {

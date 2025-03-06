@@ -54,9 +54,29 @@
 		return `${(ms / 1000).toFixed(2)}s`;
 	}
 
+	// Add date range calculation function
+	function getDateRange(): { startDate: Date; endDate: Date } {
+		// Get the start of the current week (Monday)
+		const today = new Date();
+		const currentWeekStart = new Date(today);
+		currentWeekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+		currentWeekStart.setHours(0, 0, 0, 0);
+
+		// Set start date to 2 weeks before current week
+		const startDate = new Date(currentWeekStart);
+		startDate.setDate(currentWeekStart.getDate() - 14);
+
+		// Set end date to 3 weeks after current week
+		const endDate = new Date(currentWeekStart);
+		endDate.setDate(currentWeekStart.getDate() + 21);
+
+		return { startDate, endDate };
+	}
+
 	async function handleAddNewTodo() {
 		try {
-			const newTodo = await createRandomTodo();
+			const { startDate, endDate } = getDateRange();
+			const newTodo = await createRandomTodo(startDate, endDate);
 			await onTodosChange();
 			notification = {
 				message: `New todo "${newTodo.title}" added successfully`,
@@ -76,8 +96,9 @@
 
 	async function handleAddMultipleTodos(count: number) {
 		try {
+			const { startDate, endDate } = getDateRange();
 			const startTime = performance.now();
-			await createMultipleRandomTodos(count);
+			await createMultipleRandomTodos(count, startDate, endDate);
 			const endTime = performance.now();
 			const timeInSeconds = (endTime - startTime) / 1000;
 			await onTodosChange();

@@ -188,31 +188,48 @@ export function getRandomBusinessTime(date: Date): Date {
 }
 
 // Helper function to generate random todo data
-export function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> {
+export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> {
   const now = new Date();
   const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
   const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
-  // Set deadline to be between now and now + 14 business days
-  let deadline = new Date(now);
-  const numBusinessDays = Math.floor(Math.random() * 14) + 1;
-  for (let i = 0; i < numBusinessDays; i++) {
-    deadline = getNextBusinessDay(deadline);
+  // Set deadline to be between startDate and endDate if provided, otherwise between now and now + 14 business days
+  let deadline = new Date(startDate || now);
+  if (startDate && endDate) {
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const randomDays = Math.floor(Math.random() * (timeDiff / (1000 * 60 * 60 * 24)));
+    deadline = new Date(startDate.getTime() + randomDays * (1000 * 60 * 60 * 24));
+    while (deadline.getDay() === 0 || deadline.getDay() === 6) {
+      deadline = getNextBusinessDay(deadline);
+    }
+  } else {
+    const numBusinessDays = Math.floor(Math.random() * 14) + 1;
+    for (let i = 0; i < numBusinessDays; i++) {
+      deadline = getNextBusinessDay(deadline);
+    }
   }
   deadline = getRandomBusinessTime(deadline);
 
-  // Set finishBy to be between now and deadline, but not more than 1 week before deadline
-  let finishBy = new Date(now);
-  const maxBusinessDaysBeforeDeadline = Math.min(5, numBusinessDays - 1); // At least 1 business day before deadline
-  const numBusinessDaysBeforeDeadline = Math.floor(Math.random() * maxBusinessDaysBeforeDeadline) + 1;
-  for (let i = 0; i < numBusinessDaysBeforeDeadline; i++) {
-    finishBy = getNextBusinessDay(finishBy);
+  // Set finishBy to be between startDate and deadline
+  let finishBy = new Date(startDate || now);
+  if (startDate) {
+    const timeDiff = deadline.getTime() - startDate.getTime();
+    const randomDays = Math.floor(Math.random() * (timeDiff / (1000 * 60 * 60 * 24)));
+    finishBy = new Date(startDate.getTime() + randomDays * (1000 * 60 * 60 * 24));
+    while (finishBy.getDay() === 0 || finishBy.getDay() === 6) {
+      finishBy = getNextBusinessDay(finishBy);
+    }
+  } else {
+    const maxBusinessDaysBeforeDeadline = Math.min(5, numBusinessDays - 1);
+    const numBusinessDaysBeforeDeadline = Math.floor(Math.random() * maxBusinessDaysBeforeDeadline) + 1;
+    for (let i = 0; i < numBusinessDaysBeforeDeadline; i++) {
+      finishBy = getNextBusinessDay(finishBy);
+    }
   }
   finishBy = getRandomBusinessTime(finishBy);
 
   // Ensure finishBy is before deadline
   if (finishBy.getTime() >= deadline.getTime()) {
-    // If finishBy is after or equal to deadline, set it to 1 business day before deadline
     finishBy = new Date(deadline);
     finishBy.setDate(deadline.getDate() - 1);
     while (finishBy.getDay() === 0 || finishBy.getDay() === 6) {
@@ -344,9 +361,9 @@ export async function getAllTodos(): Promise<Todo[]> {
   return db.todos.toArray();
 }
 
-export async function createRandomTodo(): Promise<Todo> {
+export async function createRandomTodo(startDate?: Date, endDate?: Date): Promise<Todo> {
   const db = await getDB();
-  const todoData = generateRandomTodoData();
+  const todoData = generateRandomTodoData(startDate, endDate);
 
   // 85% chance to create a subtask if there are existing todos
   const existingTodos = await getAllTodos();
@@ -360,10 +377,10 @@ export async function createRandomTodo(): Promise<Todo> {
   return createTodo(todoData);
 }
 
-export async function createMultipleRandomTodos(count: number): Promise<Todo[]> {
+export async function createMultipleRandomTodos(count: number, startDate?: Date, endDate?: Date): Promise<Todo[]> {
   const todos: Todo[] = [];
   for (let i = 0; i < count; i++) {
-    todos.push(await createRandomTodo());
+    todos.push(await createRandomTodo(startDate, endDate));
   }
   return todos;
 }

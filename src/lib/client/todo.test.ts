@@ -71,7 +71,7 @@ describe('Todo Utilities', () => {
       const level1 = buildPath(ROOT_PATH, 'task1');
       const level2 = buildPath(level1, 'task2');
       const level3 = buildPath(level2, 'task3');
-      
+
       expect(level1).toBe('root.task1');
       expect(level2).toBe('root.task1.task2');
       expect(level3).toBe('root.task1.task2.task3');

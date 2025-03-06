@@ -24,12 +24,14 @@
 	}>();
 
 	let weekEvents = $state<WeekEvent[]>([]);
+	let viewStartDate = $state<Date | null>(null);
+	let viewEndDate = $state<Date | null>(null);
 	let showClearConfirm = $state<boolean>(false);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let isResetting = $state<boolean>(false);
 
 	onMount(async () => {
-		await loadData();
+		weekEvents = await loadData();
 	});
 
 	// Function to generate a consistent color based on an ID
@@ -46,8 +48,9 @@
 	}
 
 	async function handleAddNewTodo() {
+		if (!viewStartDate || !viewEndDate) return;
 		try {
-			const newTodo = await createRandomTodo();
+			const newTodo = await createRandomTodo(viewStartDate, viewEndDate);
 			await onTodosChange();
 			await loadData();
 			notification = {
@@ -67,9 +70,10 @@
 	}
 
 	async function handleAddMultipleTodos(count: number) {
+		if (!viewStartDate || !viewEndDate) return;
 		try {
 			const startTime = performance.now();
-			await createMultipleRandomTodos(count);
+			await createMultipleRandomTodos(count, viewStartDate, viewEndDate);
 			const endTime = performance.now();
 			const timeInSeconds = (endTime - startTime) / 1000;
 			await onTodosChange();
@@ -149,61 +153,42 @@
 	}
 
 	async function loadData() {
-		try {
-			// Get today's date
-			const today = new Date();
+		// Get the start of the current week (Monday)
+		const today = new Date();
+		const currentWeekStart = new Date(today);
+		currentWeekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+		currentWeekStart.setHours(0, 0, 0, 0);
 
-			// Find start of current week (Monday)
-			const currentWeekStart = new Date(today);
-			while (currentWeekStart.getDay() !== 1) {
-				currentWeekStart.setDate(currentWeekStart.getDate() - 1);
-			}
+		// Set view start date to 2 weeks before current week
+		viewStartDate = new Date(currentWeekStart);
+		viewStartDate.setDate(currentWeekStart.getDate() - 14);
 
-			// Set start date to 2 weeks before current week
-			const startDate = new Date(currentWeekStart);
-			startDate.setDate(startDate.getDate() - 14); // 2 weeks back
+		// Set view end date to 3 weeks after current week
+		viewEndDate = new Date(currentWeekStart);
+		viewEndDate.setDate(currentWeekStart.getDate() + 21);
 
-			// Set end date to 3 weeks after current week
-			const endDate = new Date(currentWeekStart);
-			endDate.setDate(endDate.getDate() + 21); // current week + 3 weeks forward
+		// Create week events for the date range
+		const weekEvents: WeekEvent[] = [];
+		let currentDate = new Date(viewStartDate);
 
-			// Create week rows
-			const tempWeekEvents: WeekEvent[] = [];
-			let currentDate = new Date(startDate);
-			currentDate.setHours(0, 0, 0, 0);
+		while (currentDate < viewEndDate) {
+			const weekStart = new Date(currentDate);
+			const weekEnd = new Date(currentDate);
+			weekEnd.setDate(weekStart.getDate() + 6);
 
-			while (currentDate <= endDate) {
-				// Find the start of the week (Monday)
-				const weekStart = new Date(currentDate);
-				while (weekStart.getDay() !== 1) {
-					weekStart.setDate(weekStart.getDate() - 1);
-				}
+			weekEvents.push({
+				id: `week-${weekStart.toISOString()}`,
+				startDate: weekStart,
+				endDate: weekEnd,
+				description: null,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			});
 
-				// Find the end of the week (Sunday)
-				const weekEnd = new Date(weekStart);
-				weekEnd.setDate(weekEnd.getDate() + 6);
-				weekEnd.setHours(23, 59, 59, 999);
-
-				// Create a week event
-				tempWeekEvents.push({
-					id: `week-${weekStart.getTime()}`,
-					startDate: weekStart,
-					endDate: weekEnd,
-					description: null,
-					createdAt: new Date(),
-					updatedAt: new Date()
-				});
-
-				// Move to next week
-				currentDate.setDate(currentDate.getDate() + 7);
-			}
-
-			// Sort week events by start date
-			tempWeekEvents.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-			weekEvents = tempWeekEvents;
-		} catch (error) {
-			console.error('Error loading data:', error);
+			currentDate.setDate(currentDate.getDate() + 7);
 		}
+
+		return weekEvents;
 	}
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {

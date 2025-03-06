@@ -108,59 +108,258 @@ export async function getDB(): Promise<TodoDatabase> {
 
 // Random data options
 const RANDOM_DATA = {
-  titles: [
-    'Complete project proposal',
-    'Review documentation',
-    'Prepare presentation',
-    'Schedule meeting',
-    'Research new technologies',
-    'Fix bugs in application',
-    'Update dependencies',
-    'Create user documentation',
-    'Design new feature',
-    'Implement feedback changes',
-    'Optimize database queries',
-    'Set up CI/CD pipeline',
-    'Conduct code review',
-    'Write unit tests',
-    'Deploy to staging',
-    'Monitor system performance',
-    'Backup database',
-    'Update security patches',
-    'Configure load balancer',
-    'Set up monitoring alerts',
-    'Review pull requests',
-    'Update API documentation',
-    'Implement error logging',
-    'Optimize frontend assets',
-    'Set up automated testing',
-    'Configure development environment',
-    'Review system architecture',
-    'Update user interface',
-    'Implement caching strategy',
-    'Set up data backup',
-    'Configure firewall rules',
-    'Review access controls',
-    'Update SSL certificates',
-    'Optimize database indexes',
-    'Set up logging system',
-    'Configure CDN settings',
-    'Review security policies',
-    'Update system dependencies',
-    'Implement rate limiting',
-    'Set up analytics tracking',
-    'Configure email notifications',
-    'Review data retention policies',
-    'Update content management system',
-    'Implement search functionality',
-    'Set up user authentication',
-    'Configure API endpoints',
-    'Review performance metrics',
-    'Update system configurations',
-    'Implement data validation',
-    'Set up automated backups'
-  ],
-  emojis: ['📝', '📋', '📅', '📊', '💡', '🔍', '⚡', '🎯', '📌', '✅', '📎', '📁', '📄', '📑', '📚', '📖', '📗', '📘', '📙', '📕'],
+  themes: {
+    space: {
+      emoji: ['🚀', '🛸', '🌠', '🌍', '🌌', '👨‍🚀', '🛰️', '🌑', '☄️', '🌟'],
+      titles: [
+        'Launch rocket to Mars',
+        'Study black hole data',
+        'Calibrate space telescope',
+        'Monitor satellite signals',
+        'Plan space station repairs',
+        'Analyze asteroid samples',
+        'Update mission control',
+        'Test space suit systems',
+        'Map new galaxy cluster',
+        'Prepare lunar landing site',
+        'Design Mars habitat',
+        'Calculate orbital trajectory',
+        'Research quantum propulsion',
+        'Maintain life support systems',
+        'Document alien signals',
+        'Train astronaut team',
+        'Simulate zero gravity',
+        'Study solar flares',
+        'Deploy space telescope',
+        'Plan interstellar mission'
+      ]
+    },
+    tech: {
+      emoji: ['💻', '🖥️', '📱', '⌨️', '🔌', '🤖', '🎮', '📡', '🔋', '💾'],
+      titles: [
+        'Debug production issue',
+        'Optimize database queries',
+        'Deploy new features',
+        'Update API documentation',
+        'Configure cloud servers',
+        'Test AI model',
+        'Improve app performance',
+        'Setup development environment',
+        'Review security protocols',
+        'Implement authentication',
+        'Fix memory leaks',
+        'Update dependencies',
+        'Write unit tests',
+        'Design system architecture',
+        'Configure load balancer',
+        'Monitor server health',
+        'Backup critical data',
+        'Research new framework',
+        'Automate deployment',
+        'Analyze system logs'
+      ]
+    },
+    creative: {
+      emoji: ['🎨', '🎭', '🎬', '📸', '🎼', '✏️', '🎪', '🎯', '🎹', '🖌️'],
+      titles: [
+        'Design website mockup',
+        'Edit promotional video',
+        'Write blog post',
+        'Create social media content',
+        'Sketch character concept',
+        'Compose new melody',
+        'Plan photo shoot',
+        'Record podcast episode',
+        'Paint landscape scene',
+        'Animate short clip',
+        'Design logo variations',
+        'Write story outline',
+        'Mix audio tracks',
+        'Create digital artwork',
+        'Plan art exhibition',
+        'Design marketing materials',
+        'Develop brand identity',
+        'Edit photography portfolio',
+        'Create motion graphics',
+        'Write script draft'
+      ]
+    },
+    health: {
+      emoji: ['🏃‍♂️', '🧘‍♀️', '🥗', '💪', '🌱', '🧠', '❤️', '🥑', '💊', '🌿'],
+      titles: [
+        'Morning yoga session',
+        'Prepare healthy meal',
+        'Track daily water intake',
+        'Schedule medical checkup',
+        'Plan weekly workouts',
+        'Meditate for 20 minutes',
+        'Research nutrition facts',
+        'Take vitamins',
+        'Go for evening walk',
+        'Practice mindfulness',
+        'Try new healthy recipe',
+        'Schedule dental cleaning',
+        'Track sleep patterns',
+        'Join fitness class',
+        'Plan meal prep',
+        'Book therapy session',
+        'Try new workout routine',
+        'Research stress management',
+        'Schedule eye exam',
+        'Track fitness progress'
+      ]
+    },
+    adventure: {
+      emoji: ['🏔️', '🏕️', '🗺️', '🧗‍♀️', '🏄‍♂️', '🚵‍♂️', '⛺️', '🛶', '🏹', '🪂'],
+      titles: [
+        'Plan hiking expedition',
+        'Research camping spots',
+        'Book skydiving lesson',
+        'Prepare climbing gear',
+        'Scout kayaking route',
+        'Plan wilderness survival',
+        'Research mountain trails',
+        'Book surfing lessons',
+        'Plan rock climbing trip',
+        'Research rafting spots',
+        'Pack camping supplies',
+        'Plan desert expedition',
+        'Research cave exploring',
+        'Book paragliding session',
+        'Plan mountain biking',
+        'Research diving spots',
+        'Prepare emergency kit',
+        'Plan wildlife photography',
+        'Research zip-lining',
+        'Book wilderness guide'
+      ]
+    },
+    learning: {
+      emoji: ['📚', '🎓', '✏️', '🔬', '🗣️', '🧮', '📝', '🎯', '🔍', '📖'],
+      titles: [
+        'Study new language',
+        'Take online course',
+        'Read research paper',
+        'Practice coding skills',
+        'Learn musical instrument',
+        'Study history period',
+        'Practice public speaking',
+        'Learn data analysis',
+        'Study art history',
+        'Practice writing skills',
+        'Learn photography basics',
+        'Study quantum physics',
+        'Practice chess strategy',
+        'Learn cooking techniques',
+        'Study philosophy concepts',
+        'Learn digital marketing',
+        'Practice meditation',
+        'Study psychology',
+        'Learn graphic design',
+        'Practice debate skills'
+      ]
+    },
+    home: {
+      emoji: ['🏠', '🧹', '🪴', '🛋️', '🧺', '🔨', '🏡', '🪑', '🧰', '🗑️'],
+      titles: [
+        'Deep clean kitchen',
+        'Organize garage',
+        'Plant herb garden',
+        'Fix leaky faucet',
+        'Declutter closet',
+        'Paint living room',
+        'Clean air filters',
+        'Organize documents',
+        'Repair fence',
+        'Update home decor',
+        'Clean gutters',
+        'Organize basement',
+        'Service HVAC system',
+        'Clean windows',
+        'Organize pantry',
+        'Fix door handle',
+        'Clean carpets',
+        'Update lighting',
+        'Organize tools',
+        'Plan home renovation'
+      ]
+    },
+    social: {
+      emoji: ['👥', '🎉', '🎊', '🎈', '🎂', '🤝', '💝', '🎁', '📧', '💌'],
+      titles: [
+        'Plan birthday party',
+        'Organize team building',
+        'Schedule family dinner',
+        'Plan wedding shower',
+        'Organize charity event',
+        'Plan holiday gathering',
+        'Schedule coffee meetup',
+        'Organize book club',
+        'Plan game night',
+        'Schedule video call',
+        'Plan surprise party',
+        'Organize reunion',
+        'Schedule group lunch',
+        'Plan movie night',
+        'Organize fundraiser',
+        'Plan beach day',
+        'Schedule group hike',
+        'Plan dinner party',
+        'Organize workshop',
+        'Plan networking event'
+      ]
+    },
+    business: {
+      emoji: ['💼', '📊', '📈', '🤝', '💰', '📱', '📑', '🗂️', '📅', '✍️'],
+      titles: [
+        'Review quarterly report',
+        'Prepare presentation',
+        'Schedule client meeting',
+        'Update business plan',
+        'Analyze market trends',
+        'Review budget proposal',
+        'Plan marketing campaign',
+        'Update sales forecast',
+        'Research competitors',
+        'Prepare tax documents',
+        'Review legal contracts',
+        'Plan product launch',
+        'Update pricing strategy',
+        'Schedule team review',
+        'Analyze customer feedback',
+        'Plan business expansion',
+        'Review HR policies',
+        'Update inventory system',
+        'Plan staff training',
+        'Review financial goals'
+      ]
+    },
+    travel: {
+      emoji: ['✈️', '🗺️', '🎒', '🏰', '🗽', '🏖️', '🚂', '🏔️', '🚗', '🛳️'],
+      titles: [
+        'Book flight tickets',
+        'Research hotels',
+        'Plan road trip route',
+        'Get travel insurance',
+        'Book train tickets',
+        'Research local cuisine',
+        'Plan city tours',
+        'Book car rental',
+        'Research attractions',
+        'Plan hiking trails',
+        'Book accommodations',
+        'Research local transport',
+        'Plan museum visits',
+        'Get travel vaccines',
+        'Research local customs',
+        'Plan beach activities',
+        'Book guided tours',
+        'Research restaurants',
+        'Plan shopping trips',
+        'Get travel visa'
+      ]
+    }
+  },
   statuses: ['pending', 'in-progress', 'completed', 'blocked'],
   priorities: ['P0', 'P1', 'P2', 'P3'],
   urgencies: ['high', 'medium', 'low'],
@@ -190,7 +389,16 @@ export function getRandomBusinessTime(date: Date): Date {
 // Helper function to generate random todo data
 export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> {
   const now = new Date();
-  const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
+
+  // Pick a random theme
+  const themes = Object.keys(RANDOM_DATA.themes);
+  const theme = RANDOM_DATA.themes[themes[Math.floor(Math.random() * themes.length)]];
+
+  // Get random title and emoji from the theme
+  const titleIndex = Math.floor(Math.random() * theme.titles.length);
+  const title = theme.titles[titleIndex];
+  const emoji = theme.emoji[Math.floor(Math.random() * theme.emoji.length)];
+
   const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
   // Set deadline to be between startDate and endDate if provided, otherwise between now and now + 14 business days
@@ -309,9 +517,6 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
       updatedAt: new Date()
     });
   }
-
-  // Generate random emoji
-  const emoji = RANDOM_DATA.emojis[Math.floor(Math.random() * RANDOM_DATA.emojis.length)];
 
   return {
     title,

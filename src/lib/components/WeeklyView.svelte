@@ -323,61 +323,67 @@
 	}
 </script>
 
-<div class="container mx-auto p-4">
-	<div class="mb-6 flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Weekly View ({todos.length})</h1>
+<div class="container mx-auto p-2">
+	<div class="mb-3 flex items-center justify-between">
+		<h1 class="text-xl font-bold">Weekly View ({todos.length})</h1>
 		<Button onclick={handleResetDatabase} variant="destructive" size="sm" disabled={isResetting}>
 			{isResetting ? 'Resetting...' : 'Reset Database'}
 		</Button>
 	</div>
 
-	<div class="mb-6 flex flex-wrap items-center gap-2">
-		<Button onclick={handleAddNewTodo}>Add New Item</Button>
+	<div class="mb-3 flex flex-wrap items-center gap-1">
+		<Button onclick={handleAddNewTodo} size="sm">Add New Item</Button>
 
-		<div class="ml-4 flex items-center gap-2">
-			<span class="text-sm font-medium text-gray-700">Bulk add:</span>
+		<div class="ml-2 flex items-center gap-1">
+			<span class="text-xs font-medium text-gray-700">Bulk add:</span>
 			<Button
 				onclick={() => handleAddMultipleTodos(10)}
 				variant="outline"
 				size="sm"
-				class="min-w-16">10</Button
+				class="min-w-12 px-2 py-0.5">10</Button
 			>
 			<Button
 				onclick={() => handleAddMultipleTodos(20)}
 				variant="outline"
 				size="sm"
-				class="min-w-16">20</Button
+				class="min-w-12 px-2 py-0.5">20</Button
 			>
 			<Button
 				onclick={() => handleAddMultipleTodos(100)}
 				variant="outline"
 				size="sm"
-				class="min-w-16">100</Button
+				class="min-w-12 px-2 py-0.5">100</Button
 			>
 			<Button
 				onclick={() => handleAddMultipleTodos(500)}
 				variant="outline"
 				size="sm"
-				class="min-w-16">500</Button
+				class="min-w-12 px-2 py-0.5">500</Button
 			>
 			<Button
 				onclick={() => handleAddMultipleTodos(1000)}
 				variant="outline"
 				size="sm"
-				class="min-w-16">1000</Button
+				class="min-w-12 px-2 py-0.5">1000</Button
 			>
 		</div>
 
 		{#if todos.length > 0}
 			<div class="ml-auto">
 				{#if showClearConfirm}
-					<div class="flex items-center gap-2">
-						<span class="text-sm text-red-600">Are you sure?</span>
-						<Button onclick={handleClearAllTodos} variant="destructive" size="sm"
-							>Yes, clear all</Button
+					<div class="flex items-center gap-1">
+						<span class="text-xs text-red-600">Are you sure?</span>
+						<Button
+							onclick={handleClearAllTodos}
+							variant="destructive"
+							size="sm"
+							class="px-2 py-0.5">Yes, clear all</Button
 						>
-						<Button onclick={() => (showClearConfirm = false)} variant="outline" size="sm"
-							>Cancel</Button
+						<Button
+							onclick={() => (showClearConfirm = false)}
+							variant="outline"
+							size="sm"
+							class="px-2 py-0.5">Cancel</Button
 						>
 					</div>
 				{:else}
@@ -396,7 +402,7 @@
 
 	{#if notification}
 		<div
-			class="fixed right-4 top-4 rounded p-4 shadow-lg transition-opacity duration-300"
+			class="fixed right-4 top-4 rounded p-2 text-sm shadow-lg transition-opacity duration-300"
 			class:bg-green-500={notification.type === 'success'}
 			class:bg-red-500={notification.type === 'error'}
 			class:text-white={true}
@@ -409,33 +415,36 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Week</th>
-					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Event</th>
-					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500"
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Week</th>
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Event</th>
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
 						>Deadline Tasks</th
 					>
-					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500"
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
 						>Finish By Tasks</th
 					>
-					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Todo</th>
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Todo</th>
 				</tr>
 			</thead>
-			<tbody class="divide-y divide-gray-200 bg-white">
+			<tbody class="divide-y divide-gray-200 bg-white text-sm">
 				{#each weekEvents as weekEvent, index}
 					{#if shouldShowMonthHeader(weekEvent, index)}
 						<tr class="bg-gray-100">
-							<td colspan="5" class="px-4 py-2">
-								<div class="text-lg font-semibold text-gray-700">
+							<td colspan="5" class="px-2 py-1">
+								<div class="text-base font-semibold text-gray-700">
 									{getMonthYear(weekEvent.startDate, weekEvent)}
 								</div>
 							</td>
 						</tr>
 					{/if}
-					<tr class="hover:bg-gray-50" class:bg-amber-50={isCurrentWeek(weekEvent)}>
+					<tr
+						class:bg-amber-100={isCurrentWeek(weekEvent)}
+						class:font-medium={isCurrentWeek(weekEvent)}
+					>
 						<!-- Week -->
-						<td class="whitespace-nowrap px-4 py-2">
+						<td class="whitespace-nowrap px-2 py-1">
 							<div
-								class="text-sm font-medium"
+								class="text-xs"
 								class:text-amber-900={isCurrentWeek(weekEvent)}
 								class:text-gray-900={!isCurrentWeek(weekEvent)}
 							>
@@ -444,10 +453,10 @@
 						</td>
 
 						<!-- Event -->
-						<td class="whitespace-nowrap px-4 py-2">
+						<td class="whitespace-nowrap px-2 py-1">
 							{#if weekEvent.description}
 								<span
-									class="rounded-full px-2 py-0.5 text-xs text-white"
+									class="rounded px-1.5 py-0.5 text-xs text-white"
 									style="background-color: {getColorForId(weekEvent.id)}"
 								>
 									{weekEvent.description}
@@ -457,30 +466,28 @@
 							{/if}
 						</td>
 
-						<!-- Deadline Tasks -->
-						<td class="px-4 py-2">
-							<div class="space-y-1">
+						<!-- Tasks columns with balanced styling -->
+						<td class="px-2 py-1">
+							<div class="space-y-0.5">
 								{#each getTodosForWeek(weekEvent, 'deadline') as todo}
-									<div class="flex items-center rounded bg-gray-50 px-2 py-1">
+									<div class="flex items-center rounded bg-gray-50/50 px-1.5 py-0.5">
 										<div
-											class="flex items-center gap-2"
+											class="flex items-center gap-1"
 											class:text-gray-400={todo.status === 'completed'}
 										>
 											<span
-												class="text-sm"
-												style="padding-left: {todo.level * 1.5}rem"
+												class="text-xs leading-snug"
+												style="padding-left: {todo.level * 0.75}rem"
 												class:line-through={todo.status === 'completed'}
 												style:color={todo.status === 'completed'
 													? '#9CA3AF'
 													: getColorForId(todo.id)}
 											>
-												{#if todo.emoji}
-													<span class="mr-1" style="color: inherit">{todo.emoji}</span>
-												{/if}
+												{#if todo.emoji}<span class="mr-0.5">{todo.emoji}</span>{/if}
 												{todo.title}
 											</span>
 											<span
-												class="rounded px-1.5 py-0.5 text-xs font-medium"
+												class="rounded px-1 py-0.5 text-xs"
 												class:text-gray-400={todo.status === 'completed'}
 												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -498,35 +505,33 @@
 										</div>
 									</div>
 								{:else}
-									<span class="text-xs text-gray-400">No deadline tasks</span>
+									<span class="text-xs text-gray-400">-</span>
 								{/each}
 							</div>
 						</td>
 
 						<!-- Finish By Tasks -->
-						<td class="px-4 py-2">
-							<div class="space-y-1">
+						<td class="px-2 py-1">
+							<div class="space-y-0.5">
 								{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
-									<div class="flex items-center rounded bg-gray-50 px-2 py-1">
+									<div class="flex items-center rounded bg-gray-50/50 px-1.5 py-0.5">
 										<div
-											class="flex items-center gap-2"
+											class="flex items-center gap-1"
 											class:text-gray-400={todo.status === 'completed'}
 										>
 											<span
-												class="text-sm"
-												style="padding-left: {todo.level * 1.5}rem"
+												class="text-xs leading-snug"
+												style="padding-left: {todo.level * 0.75}rem"
 												class:line-through={todo.status === 'completed'}
 												style:color={todo.status === 'completed'
 													? '#9CA3AF'
 													: getColorForId(todo.id)}
 											>
-												{#if todo.emoji}
-													<span class="mr-1" style="color: inherit">{todo.emoji}</span>
-												{/if}
+												{#if todo.emoji}<span class="mr-0.5">{todo.emoji}</span>{/if}
 												{todo.title}
 											</span>
 											<span
-												class="rounded px-1.5 py-0.5 text-xs font-medium"
+												class="rounded px-1 py-0.5 text-xs"
 												class:text-gray-400={todo.status === 'completed'}
 												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -544,36 +549,34 @@
 										</div>
 									</div>
 								{:else}
-									<span class="text-xs text-gray-400">No finish by tasks</span>
+									<span class="text-xs text-gray-400">-</span>
 								{/each}
 							</div>
 						</td>
 
 						<!-- Open Todos -->
-						<td class="px-4 py-2">
+						<td class="px-2 py-1">
 							{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
-								<div class="space-y-1">
+								<div class="space-y-0.5">
 									{#each getOpenTodosUpToCurrentWeek(weekEvent) as todo}
-										<div class="flex items-center rounded bg-gray-50 px-2 py-1">
+										<div class="flex items-center rounded bg-gray-50/50 px-1.5 py-0.5">
 											<div
-												class="flex items-center gap-2"
+												class="flex items-center gap-1"
 												class:text-gray-400={todo.status === 'completed'}
 											>
 												<span
-													class="text-sm"
-													style="padding-left: {todo.level * 1.5}rem"
+													class="text-xs leading-snug"
+													style="padding-left: {todo.level * 0.75}rem"
 													class:line-through={todo.status === 'completed'}
 													style:color={todo.status === 'completed'
 														? '#9CA3AF'
 														: getColorForId(todo.id)}
 												>
-													{#if todo.emoji}
-														<span class="mr-1" style="color: inherit">{todo.emoji}</span>
-													{/if}
+													{#if todo.emoji}<span class="mr-0.5">{todo.emoji}</span>{/if}
 													{todo.title}
 												</span>
 												<span
-													class="rounded px-1.5 py-0.5 text-xs font-medium"
+													class="rounded px-1 py-0.5 text-xs"
 													class:text-gray-400={todo.status === 'completed'}
 													class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 													class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}

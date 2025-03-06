@@ -150,15 +150,22 @@
 
 	async function loadData() {
 		try {
-			// Load data for 2 months (1 month past to 1 month future)
+			// Get today's date
 			const today = new Date();
-			const startDate = new Date(today);
-			startDate.setMonth(today.getMonth() - 1);
-			const endDate = new Date(today);
-			endDate.setMonth(today.getMonth() + 1);
 
-			// Get all todos
-			const todos = await getAllTodos();
+			// Find start of current week (Monday)
+			const currentWeekStart = new Date(today);
+			while (currentWeekStart.getDay() !== 1) {
+				currentWeekStart.setDate(currentWeekStart.getDate() - 1);
+			}
+
+			// Set start date to 2 weeks before current week
+			const startDate = new Date(currentWeekStart);
+			startDate.setDate(startDate.getDate() - 14); // 2 weeks back
+
+			// Set end date to 3 weeks after current week
+			const endDate = new Date(currentWeekStart);
+			endDate.setDate(endDate.getDate() + 21); // current week + 3 weeks forward
 
 			// Create week rows
 			const tempWeekEvents: WeekEvent[] = [];
@@ -169,7 +176,6 @@
 				// Find the start of the week (Monday)
 				const weekStart = new Date(currentDate);
 				while (weekStart.getDay() !== 1) {
-					// 1 is Monday
 					weekStart.setDate(weekStart.getDate() - 1);
 				}
 
@@ -253,6 +259,37 @@
 	function isCurrentWeek(weekEvent: WeekEvent): boolean {
 		const today = new Date();
 		return today >= weekEvent.startDate && today <= weekEvent.endDate;
+	}
+
+	function isStartOfMonth(weekEvent: WeekEvent): boolean {
+		const prevDay = new Date(weekEvent.startDate);
+		prevDay.setDate(prevDay.getDate() - 1);
+		return prevDay.getMonth() !== weekEvent.startDate.getMonth();
+	}
+
+	function getMonthYear(date: Date, weekEvent: WeekEvent): string {
+		// If this week contains the 1st of a month, use that date for the header
+		for (let i = 0; i < 7; i++) {
+			const checkDate = new Date(weekEvent.startDate);
+			checkDate.setDate(checkDate.getDate() + i);
+			if (checkDate.getDate() === 1) {
+				return checkDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+			}
+		}
+		// Otherwise use the provided date
+		return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+	}
+
+	function shouldShowMonthHeader(weekEvent: WeekEvent, index: number): boolean {
+		// Check each day in the week for the 1st of a month
+		for (let i = 0; i < 7; i++) {
+			const date = new Date(weekEvent.startDate);
+			date.setDate(date.getDate() + i);
+			if (date.getDate() === 1) {
+				return true;
+			}
+		}
+		return index === 0; // Show header for first week anyway
 	}
 </script>
 
@@ -353,7 +390,16 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
-				{#each weekEvents as weekEvent}
+				{#each weekEvents as weekEvent, index}
+					{#if shouldShowMonthHeader(weekEvent, index)}
+						<tr class="bg-gray-100">
+							<td colspan="4" class="px-4 py-2">
+								<div class="text-lg font-semibold text-gray-700">
+									{getMonthYear(weekEvent.startDate, weekEvent)}
+								</div>
+							</td>
+						</tr>
+					{/if}
 					<tr class="hover:bg-gray-50" class:bg-amber-50={isCurrentWeek(weekEvent)}>
 						<!-- Week -->
 						<td class="whitespace-nowrap px-4 py-2">

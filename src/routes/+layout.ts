@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { initializeDB } from '$lib/client/db';
+import { initializeDB } from '$lib/client/dexie';
 
 export const ssr = false;
 

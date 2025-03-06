@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import type { Todo } from '$lib/client/db';
-	import { addNewTodo, addMultipleTodos, clearAllTodos, resetDatabase } from '$lib/client/db';
+	import type { Todo } from '$lib/client/dexie';
+	import { createTodo, clearAllTodos } from '$lib/client/dexie';
 
 	// Core props from parent
 	export let todos: Todo[] = [];
@@ -50,19 +50,29 @@
 
 	async function handleAddNewTodo() {
 		try {
-			const result = await addNewTodo();
-			if (result.success) {
-				await onTodosChange();
-				notification = {
-					message: result.message,
-					type: 'success'
-				};
-				setTimeout(() => {
-					notification = null;
-				}, 3000);
-			} else {
-				throw new Error(result.message);
-			}
+			const newTodo = await createTodo({
+				title: 'New Todo',
+				description: null,
+				emoji: null,
+				deadline: null,
+				finishBy: null,
+				status: 'pending',
+				priority: 'P3',
+				urgency: 'medium',
+				tags: [],
+				attachments: [],
+				path: 'root',
+				level: 0,
+				parentId: null
+			});
+			await onTodosChange();
+			notification = {
+				message: `New todo "${newTodo.title}" added successfully`,
+				type: 'success'
+			};
+			setTimeout(() => {
+				notification = null;
+			}, 3000);
 		} catch (error) {
 			console.error('Failed to add todo:', error);
 			notification = {
@@ -74,30 +84,41 @@
 
 	async function handleAddMultipleTodos(count: number) {
 		try {
-			const result = await addMultipleTodos(count);
-			if (result.success) {
-				const timeMatch = result.message.match(/in (\d+\.\d+) seconds/);
-				if (timeMatch && timeMatch[1]) {
-					const operationTime = parseFloat(timeMatch[1]) * 1000;
-					performanceHistory = [
-						{
-							operation: 'add',
-							count,
-							time: operationTime,
-							timestamp: new Date(),
-							details: {}
-						},
-						...performanceHistory.slice(0, 9)
-					];
-				}
-				await onTodosChange();
-				notification = {
-					message: result.message,
-					type: 'success'
-				};
-			} else {
-				throw new Error(result.message);
+			const startTime = performance.now();
+			for (let i = 0; i < count; i++) {
+				await createTodo({
+					title: `Todo ${i + 1}`,
+					description: null,
+					emoji: null,
+					deadline: null,
+					finishBy: null,
+					status: 'pending',
+					priority: 'P3',
+					urgency: 'medium',
+					tags: [],
+					attachments: [],
+					path: 'root',
+					level: 0,
+					parentId: null
+				});
 			}
+			const endTime = performance.now();
+			const timeInSeconds = (endTime - startTime) / 1000;
+			await onTodosChange();
+			performanceHistory = [
+				{
+					operation: 'add',
+					count,
+					time: timeInSeconds * 1000,
+					timestamp: new Date(),
+					details: {}
+				},
+				...performanceHistory.slice(0, 9)
+			];
+			notification = {
+				message: `Added ${count} todo items in ${timeInSeconds.toFixed(2)} seconds`,
+				type: 'success'
+			};
 		} catch (error) {
 			console.error(`Failed to add ${count} todos:`, error);
 			notification = {
@@ -116,23 +137,6 @@
 			showClearConfirm = false;
 			const result = await clearAllTodos();
 			if (result.success) {
-				const countMatch = result.message.match(/Cleared (\d+) todo/);
-				const timeMatch = result.message.match(/in (\d+\.\d+) seconds/);
-
-				if (countMatch && countMatch[1] && timeMatch && timeMatch[1]) {
-					const count = parseInt(countMatch[1]);
-					const operationTime = parseFloat(timeMatch[1]) * 1000;
-					performanceHistory = [
-						{
-							operation: 'clear',
-							count,
-							time: operationTime,
-							timestamp: new Date(),
-							details: {}
-						},
-						...performanceHistory.slice(0, 9)
-					];
-				}
 				await onTodosChange();
 				notification = {
 					message: result.message,
@@ -151,35 +155,6 @@
 			setTimeout(() => {
 				notification = null;
 			}, 5000);
-		}
-	}
-
-	async function handleResetDatabase() {
-		if (confirm('Are you sure you want to reset the database? This will delete all data.')) {
-			isResetting = true;
-			try {
-				const result = await resetDatabase();
-				if (result.success) {
-					await onTodosChange();
-					notification = {
-						message: result.message,
-						type: 'success'
-					};
-				} else {
-					throw new Error(result.message);
-				}
-			} catch (error) {
-				console.error('Failed to reset database:', error);
-				notification = {
-					message: error instanceof Error ? error.message : 'Failed to reset database',
-					type: 'error'
-				};
-			} finally {
-				isResetting = false;
-				setTimeout(() => {
-					notification = null;
-				}, 5000);
-			}
 		}
 	}
 </script>
@@ -214,15 +189,6 @@
 				</svg>
 			</button>
 		</h1>
-		<Button
-			onclick={handleResetDatabase}
-			variant="destructive"
-			size="sm"
-			disabled={isResetting}
-			class="ml-auto"
-		>
-			{isResetting ? 'Resetting...' : 'Reset Database'}
-		</Button>
 	</div>
 
 	{#if showPerformanceStats}

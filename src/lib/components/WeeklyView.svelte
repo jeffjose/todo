@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		loadWeekEvents,
-		type WeekEvent,
-		type Todo,
-		addNewTodo,
-		addMultipleTodos,
-		clearAllTodos,
-		resetDatabase
-	} from '$lib/client/db';
+	import { getAllTodos, createTodo, clearAllTodos, type Todo } from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
+
+	export interface WeekEvent {
+		id: string;
+		startDate: Date;
+		endDate: Date;
+		description: string | null;
+		createdAt: Date;
+		updatedAt: Date;
+	}
 
 	const { todos = [], onTodosChange } = $props<{
 		todos: Todo[];
@@ -39,20 +40,30 @@
 
 	async function handleAddNewTodo() {
 		try {
-			const result = await addNewTodo();
-			if (result.success) {
-				await onTodosChange();
-				await loadData();
-				notification = {
-					message: result.message,
-					type: 'success'
-				};
-				setTimeout(() => {
-					notification = null;
-				}, 3000);
-			} else {
-				throw new Error(result.message);
-			}
+			const newTodo = await createTodo({
+				title: 'New Todo',
+				description: null,
+				emoji: null,
+				deadline: null,
+				finishBy: null,
+				status: 'pending',
+				priority: 'P3',
+				urgency: 'medium',
+				tags: [],
+				attachments: [],
+				path: 'root',
+				level: 0,
+				parentId: null
+			});
+			await onTodosChange();
+			await loadData();
+			notification = {
+				message: `New todo "${newTodo.title}" added successfully`,
+				type: 'success'
+			};
+			setTimeout(() => {
+				notification = null;
+			}, 3000);
 		} catch (error) {
 			console.error('Failed to add todo:', error);
 			notification = {
@@ -64,17 +75,32 @@
 
 	async function handleAddMultipleTodos(count: number) {
 		try {
-			const result = await addMultipleTodos(count);
-			if (result.success) {
-				await onTodosChange();
-				await loadData();
-				notification = {
-					message: result.message,
-					type: 'success'
-				};
-			} else {
-				throw new Error(result.message);
+			const startTime = performance.now();
+			for (let i = 0; i < count; i++) {
+				await createTodo({
+					title: `Todo ${i + 1}`,
+					description: null,
+					emoji: null,
+					deadline: null,
+					finishBy: null,
+					status: 'pending',
+					priority: 'P3',
+					urgency: 'medium',
+					tags: [],
+					attachments: [],
+					path: 'root',
+					level: 0,
+					parentId: null
+				});
 			}
+			const endTime = performance.now();
+			const timeInSeconds = (endTime - startTime) / 1000;
+			await onTodosChange();
+			await loadData();
+			notification = {
+				message: `Added ${count} todo items in ${timeInSeconds.toFixed(2)} seconds`,
+				type: 'success'
+			};
 		} catch (error) {
 			console.error(`Failed to add ${count} todos:`, error);
 			notification = {
@@ -119,7 +145,7 @@
 		if (confirm('Are you sure you want to reset the database? This will delete all data.')) {
 			isResetting = true;
 			try {
-				const result = await resetDatabase();
+				const result = await clearAllTodos();
 				if (result.success) {
 					await onTodosChange();
 					await loadData();
@@ -154,8 +180,15 @@
 			const endDate = new Date(today);
 			endDate.setMonth(today.getMonth() + 1);
 
-			const events = await loadWeekEvents(startDate, endDate);
-			weekEvents = events;
+			const todos = await getAllTodos();
+			weekEvents = todos.map((todo) => ({
+				id: todo.id,
+				startDate: todo.deadline || new Date(),
+				endDate: todo.finishBy || new Date(),
+				description: todo.title,
+				createdAt: todo.createdAt,
+				updatedAt: todo.updatedAt
+			}));
 		} catch (error) {
 			console.error('Error loading data:', error);
 		}

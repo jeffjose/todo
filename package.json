@@ -7,28 +7,20 @@
 		"build": "vite build",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"db:migrate": "drizzle-kit migrate",
-		"db:push": "drizzle-kit push",
-		"db:studio": "drizzle-kit studio",
 		"dev": "vite dev",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
 		"prepare": "husky",
 		"preview": "vite preview",
 		"test": "npm run test:unit -- --run",
-		"test:db": "vitest src/lib/client/db.test.ts src/lib/client/schema.test.ts",
-		"test:db:all": "npm run test:db && npm run test:db:integration",
-		"test:db:integration": "vitest src/lib/client/db.integration.test.ts --browser",
 		"test:unit": "vitest"
 	},
 	"dependencies": {
-		"@electric-sql/pglite": "^0.2.17",
 		"@node-rs/argon2": "^2.0.2",
 		"@oslojs/crypto": "^1.0.1",
 		"@oslojs/encoding": "^1.1.0",
-		"drizzle-orm": "^0.40.0",
-		"nanoid": "^5.1.2",
-		"postgres": "^3.4.5"
+		"dexie": "^4.0.11",
+		"nanoid": "^5.1.2"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^4.0.0",
@@ -43,7 +35,6 @@
 		"autoprefixer": "^10.4.20",
 		"bits-ui": "^1.3.5",
 		"clsx": "^2.1.1",
-		"drizzle-kit": "^0.30.2",
 		"husky": "^9.1.7",
 		"jsdom": "^26.0.0",
 		"prettier": "^3.4.2",

@@ -202,6 +202,8 @@
 	}
 </script>
 
+<WeeklyView {todos} />
+
 <TodoList
 	{todos}
 	{lastLoadTime}
@@ -211,4 +213,3 @@
 	onTodosChange={loadTodosWithTiming}
 	onTogglePerformanceStats={togglePerformanceStats}
 />
-<WeeklyView {todos} />

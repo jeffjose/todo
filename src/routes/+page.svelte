@@ -11,7 +11,7 @@
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import TodoList from '$lib/components/TodoList.svelte';
 
-	let todos = $state<Todo[]>([]);
+	let todos: Todo[] = $state([]);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let expandedTodoId = $state<string | null>(null);
 	let isLoading = $state<boolean>(false);
@@ -211,4 +211,4 @@
 	onTodosChange={loadTodosWithTiming}
 	onTogglePerformanceStats={togglePerformanceStats}
 />
-<WeeklyView />
+<WeeklyView {todos} />

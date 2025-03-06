@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { loadWeekEvents, loadTodos, type WeekEvent, type Todo } from '$lib/client/db';
+	import { loadWeekEvents, type WeekEvent, type Todo } from '$lib/client/db';
 
+	const { todos = [] } = $props<{ todos: Todo[] }>();
 	let weekEvents = $state<WeekEvent[]>([]);
-	let todos = $state<Todo[]>([]);
 	let isLoading = $state<boolean>(false);
 
 	onMount(async () => {
@@ -13,20 +13,15 @@
 	async function loadData() {
 		isLoading = true;
 		try {
-			// Load data for 6 months (3 months past to 3 months future)
+			// Load data for 2 years (1 year past to 1 year future)
 			const today = new Date();
 			const startDate = new Date(today);
-			startDate.setMonth(today.getMonth() - 3);
+			startDate.setFullYear(today.getFullYear() - 1);
 			const endDate = new Date(today);
-			endDate.setMonth(today.getMonth() + 3);
+			endDate.setFullYear(today.getFullYear() + 1);
 
-			const [events, todoItems] = await Promise.all([
-				loadWeekEvents(startDate, endDate),
-				loadTodos()
-			]);
-
+			const events = await loadWeekEvents(startDate, endDate);
 			weekEvents = events;
-			todos = todoItems;
 		} catch (error) {
 			console.error('Error loading data:', error);
 		} finally {
@@ -35,9 +30,20 @@
 	}
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {
-		return todos.filter((todo) => {
+		return todos.filter((todo: Todo) => {
 			const date = type === 'deadline' ? todo.deadline : todo.finishBy;
+			console.log('Todo:', todo.title, date);
 			if (!date) return false;
+
+			// Debug logging
+			console.log('Todo:', {
+				title: todo.title,
+				date: date.toISOString(),
+				weekStart: weekEvent.startDate.toISOString(),
+				weekEnd: weekEvent.endDate.toISOString(),
+				isInRange: date >= weekEvent.startDate && date <= weekEvent.endDate
+			});
+
 			return date >= weekEvent.startDate && date <= weekEvent.endDate;
 		});
 	}
@@ -62,7 +68,7 @@
 </script>
 
 <div class="container mx-auto p-4">
-	<h1 class="mb-6 text-2xl font-bold">Weekly View</h1>
+	<h1 class="mb-6 text-2xl font-bold">Weekly View ({todos.length})</h1>
 
 	{#if isLoading}
 		<div class="flex items-center justify-center py-8">

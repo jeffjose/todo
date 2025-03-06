@@ -277,13 +277,13 @@
 				10
 			</Button>
 			<Button
-				onclick={() => handleAddMultipleTodos(50)}
+				onclick={() => handleAddMultipleTodos(20)}
 				variant="outline"
 				size="sm"
 				disabled={isLoading}
 				class="min-w-16"
 			>
-				50
+				20
 			</Button>
 			<Button
 				onclick={() => handleAddMultipleTodos(100)}

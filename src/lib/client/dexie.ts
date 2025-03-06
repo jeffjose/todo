@@ -238,7 +238,26 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
     finishBy = getRandomBusinessTime(finishBy);
   }
 
-  const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
+  const status = (() => {
+    const now = new Date();
+    const isTaskInPast = deadline.getTime() < now.getTime();
+
+    if (isTaskInPast) {
+      // For past tasks: 60% completed, 5% in-progress, 2% blocked, 33% pending
+      const rand = Math.random();
+      if (rand < 0.60) return 'completed';      // 60% chance
+      if (rand < 0.65) return 'in-progress';    // 5% chance
+      if (rand < 0.67) return 'blocked';        // 2% chance
+      return 'pending';                         // 33% chance (remaining)
+    } else {
+      // For future tasks: equal 25% probability for each status
+      const rand = Math.random();
+      if (rand < 0.25) return 'completed';      // 25% chance
+      if (rand < 0.50) return 'in-progress';    // 25% chance
+      if (rand < 0.75) return 'blocked';        // 25% chance
+      return 'pending';                         // 25% chance
+    }
+  })();
   const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
   const urgency = RANDOM_DATA.urgencies[Math.floor(Math.random() * RANDOM_DATA.urgencies.length)];
 

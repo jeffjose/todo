@@ -224,6 +224,51 @@
 		return weekTodos;
 	}
 
+	function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent): Todo[] {
+		const today = new Date();
+		const isPastWeek = weekEvent.endDate < today;
+		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+
+		// For past weeks, only show completed tasks from that week
+		if (isPastWeek) {
+			return todos
+				.filter((todo: Todo) => {
+					if (todo.status !== 'completed') return false;
+					const date = todo.deadline || todo.finishBy;
+					if (!date) return false;
+
+					return date >= weekEvent.startDate && date <= weekEvent.endDate;
+				})
+				.sort((a: Todo, b: Todo) => {
+					const dateA = a.deadline || a.finishBy;
+					const dateB = b.deadline || b.finishBy;
+					if (!dateA || !dateB) return 0;
+					return dateA.getTime() - dateB.getTime();
+				});
+		}
+
+		// For current week, show all open tasks from past and current week
+		if (isCurrentWeek) {
+			return todos
+				.filter((todo: Todo) => {
+					if (todo.status === 'completed') return false;
+					const date = todo.deadline || todo.finishBy;
+					if (!date) return false;
+
+					return date <= weekEvent.endDate;
+				})
+				.sort((a: Todo, b: Todo) => {
+					const dateA = a.deadline || a.finishBy;
+					const dateB = b.deadline || b.finishBy;
+					if (!dateA || !dateB) return 0;
+					return dateA.getTime() - dateB.getTime();
+				});
+		}
+
+		// For future weeks, show nothing
+		return [];
+	}
+
 	function formatDate(date: Date): string {
 		return date.toLocaleDateString('en-US', {
 			month: 'short',
@@ -298,10 +343,10 @@
 				class="min-w-16">10</Button
 			>
 			<Button
-				onclick={() => handleAddMultipleTodos(50)}
+				onclick={() => handleAddMultipleTodos(20)}
 				variant="outline"
 				size="sm"
-				class="min-w-16">50</Button
+				class="min-w-16">20</Button
 			>
 			<Button
 				onclick={() => handleAddMultipleTodos(100)}
@@ -372,13 +417,14 @@
 					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500"
 						>Finish By Tasks</th
 					>
+					<th class="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Todo</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
 				{#each weekEvents as weekEvent, index}
 					{#if shouldShowMonthHeader(weekEvent, index)}
 						<tr class="bg-gray-100">
-							<td colspan="4" class="px-4 py-2">
+							<td colspan="5" class="px-4 py-2">
 								<div class="text-lg font-semibold text-gray-700">
 									{getMonthYear(weekEvent.startDate, weekEvent)}
 								</div>
@@ -501,6 +547,65 @@
 									<span class="text-xs text-gray-400">No finish by tasks</span>
 								{/each}
 							</div>
+						</td>
+
+						<!-- Open Todos -->
+						<td class="px-4 py-2">
+							{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
+								<div class="space-y-1">
+									{#each getOpenTodosUpToCurrentWeek(weekEvent) as todo}
+										<div class="flex items-center rounded bg-gray-50 px-2 py-1">
+											<div
+												class="flex items-center gap-2"
+												class:text-gray-400={todo.status === 'completed'}
+											>
+												<span
+													class="text-sm"
+													style="padding-left: {todo.level * 1.5}rem"
+													class:line-through={todo.status === 'completed'}
+													style:color={todo.status === 'completed'
+														? '#9CA3AF'
+														: getColorForId(todo.id)}
+												>
+													{#if todo.emoji}
+														<span class="mr-1" style="color: inherit">{todo.emoji}</span>
+													{/if}
+													{todo.title}
+												</span>
+												<span
+													class="rounded px-1.5 py-0.5 text-xs font-medium"
+													class:text-gray-400={todo.status === 'completed'}
+													class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
+													class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
+													class:bg-orange-100={todo.priority === 'P1' &&
+														todo.status !== 'completed'}
+													class:text-orange-800={todo.priority === 'P1' &&
+														todo.status !== 'completed'}
+													class:bg-yellow-100={todo.priority === 'P2' &&
+														todo.status !== 'completed'}
+													class:text-yellow-800={todo.priority === 'P2' &&
+														todo.status !== 'completed'}
+													class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
+													class:text-gray-800={todo.priority === 'P3' &&
+														todo.status !== 'completed'}
+												>
+													{todo.priority}
+												</span>
+											</div>
+										</div>
+									{:else}
+										<span class="text-xs text-gray-400">
+											{#if isCurrentWeek(weekEvent)}
+												No open tasks
+											{:else}
+												No completed tasks
+											{/if}
+										</span>
+									{/each}
+								</div>
+							{:else}
+								<span class="text-xs text-gray-400">-</span>
+							{/if}
 						</td>
 					</tr>
 				{/each}

@@ -483,7 +483,7 @@
 
 							<!-- Title -->
 							<td class="whitespace-nowrap px-2 py-2">
-								<div class="flex items-center" style="padding-left: {todo.level * 1.5}rem">
+								<div class="flex items-center">
 									<div
 										class="max-w-[200px] truncate font-medium"
 										style="color: {getColorForId(todo.id)}"

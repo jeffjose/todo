@@ -232,8 +232,13 @@
 			const children = childrenMap.get(parentId) || [];
 			const result: Todo[] = [];
 
-			// Sort children by date
+			// Sort children by completion status first, then by date
 			children.sort((a, b) => {
+				// First sort by completion status
+				if (a.status === 'completed' && b.status !== 'completed') return -1;
+				if (a.status !== 'completed' && b.status === 'completed') return 1;
+
+				// Then sort by date
 				const dateA = type === 'deadline' ? a.deadline : a.finishBy;
 				const dateB = type === 'deadline' ? b.deadline : b.finishBy;
 				if (!dateA || !dateB) return 0;
@@ -256,8 +261,7 @@
 	function formatDate(date: Date): string {
 		return date.toLocaleDateString('en-US', {
 			month: 'short',
-			day: 'numeric',
-			weekday: 'short'
+			day: 'numeric'
 		});
 	}
 
@@ -269,6 +273,11 @@
 			hour: '2-digit',
 			minute: '2-digit'
 		});
+	}
+
+	function isCurrentWeek(weekEvent: WeekEvent): boolean {
+		const today = new Date();
+		return today >= weekEvent.startDate && today <= weekEvent.endDate;
 	}
 </script>
 
@@ -370,10 +379,14 @@
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
 				{#each weekEvents as weekEvent}
-					<tr class="hover:bg-gray-50">
+					<tr class="hover:bg-gray-50" class:bg-amber-50={isCurrentWeek(weekEvent)}>
 						<!-- Week -->
 						<td class="whitespace-nowrap px-4 py-2">
-							<div class="text-sm font-medium text-gray-900">
+							<div
+								class="text-sm font-medium"
+								class:text-amber-900={isCurrentWeek(weekEvent)}
+								class:text-gray-900={!isCurrentWeek(weekEvent)}
+							>
 								{formatDate(weekEvent.startDate)} - {formatDate(weekEvent.endDate)}
 							</div>
 						</td>
@@ -396,25 +409,41 @@
 						<td class="px-4 py-2">
 							<div class="space-y-1">
 								{#each getTodosForWeek(weekEvent, 'deadline') as todo}
-									<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
-										<div class="flex items-center gap-2">
+									<div class="flex items-center rounded bg-gray-50 px-2 py-1">
+										<div
+											class="flex items-center gap-2"
+											class:text-gray-400={todo.status === 'completed'}
+										>
 											<span
 												class="text-sm"
-												style="color: {getColorForId(todo.id)}; padding-left: {todo.level * 1.5}rem"
+												style="padding-left: {todo.level * 1.5}rem"
+												class:line-through={todo.status === 'completed'}
+												style:color={todo.status === 'completed'
+													? '#9CA3AF'
+													: getColorForId(todo.id)}
 											>
 												{#if todo.emoji}
-													<span class="mr-1">{todo.emoji}</span>
+													<span class="mr-1" style="color: inherit">{todo.emoji}</span>
 												{/if}
 												{todo.title}
 											</span>
-											{#if todo.tags && todo.tags.length > 0}
-												<span class="text-xs text-gray-500">{todo.tags.slice(0, 1).join(', ')}</span
-												>
-											{/if}
+											<span
+												class="rounded px-1.5 py-0.5 text-xs font-medium"
+												class:text-gray-400={todo.status === 'completed'}
+												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
+												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
+												class:bg-orange-100={todo.priority === 'P1' && todo.status !== 'completed'}
+												class:text-orange-800={todo.priority === 'P1' &&
+													todo.status !== 'completed'}
+												class:bg-yellow-100={todo.priority === 'P2' && todo.status !== 'completed'}
+												class:text-yellow-800={todo.priority === 'P2' &&
+													todo.status !== 'completed'}
+												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
+												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
+											>
+												{todo.priority}
+											</span>
 										</div>
-										<span class="text-xs text-gray-500">
-											{new Date(todo.deadline!).toLocaleTimeString()}
-										</span>
 									</div>
 								{:else}
 									<span class="text-xs text-gray-400">No deadline tasks</span>
@@ -426,25 +455,41 @@
 						<td class="px-4 py-2">
 							<div class="space-y-1">
 								{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
-									<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
-										<div class="flex items-center gap-2">
+									<div class="flex items-center rounded bg-gray-50 px-2 py-1">
+										<div
+											class="flex items-center gap-2"
+											class:text-gray-400={todo.status === 'completed'}
+										>
 											<span
 												class="text-sm"
-												style="color: {getColorForId(todo.id)}; padding-left: {todo.level * 1.5}rem"
+												style="padding-left: {todo.level * 1.5}rem"
+												class:line-through={todo.status === 'completed'}
+												style:color={todo.status === 'completed'
+													? '#9CA3AF'
+													: getColorForId(todo.id)}
 											>
 												{#if todo.emoji}
-													<span class="mr-1">{todo.emoji}</span>
+													<span class="mr-1" style="color: inherit">{todo.emoji}</span>
 												{/if}
 												{todo.title}
 											</span>
-											{#if todo.tags && todo.tags.length > 0}
-												<span class="text-xs text-gray-500">{todo.tags.slice(0, 1).join(', ')}</span
-												>
-											{/if}
+											<span
+												class="rounded px-1.5 py-0.5 text-xs font-medium"
+												class:text-gray-400={todo.status === 'completed'}
+												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
+												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
+												class:bg-orange-100={todo.priority === 'P1' && todo.status !== 'completed'}
+												class:text-orange-800={todo.priority === 'P1' &&
+													todo.status !== 'completed'}
+												class:bg-yellow-100={todo.priority === 'P2' && todo.status !== 'completed'}
+												class:text-yellow-800={todo.priority === 'P2' &&
+													todo.status !== 'completed'}
+												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
+												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
+											>
+												{todo.priority}
+											</span>
 										</div>
-										<span class="text-xs text-gray-500">
-											{new Date(todo.finishBy!).toLocaleTimeString()}
-										</span>
 									</div>
 								{:else}
 									<span class="text-xs text-gray-400">No finish by tasks</span>

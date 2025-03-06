@@ -295,3 +295,45 @@ export function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updat
     emoji
   };
 }
+
+// CRUD operations for todos
+export async function createTodo(todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt'>): Promise<Todo> {
+  const db = await getDB();
+  const now = new Date();
+  const todo: Todo = {
+    id: generateId(),
+    ...todoData,
+    createdAt: now,
+    updatedAt: now
+  };
+  await db.todos.add(todo);
+  return todo;
+}
+
+export async function getTodoById(id: string): Promise<Todo | undefined> {
+  const db = await getDB();
+  return db.todos.get(id);
+}
+
+export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<Todo> {
+  const db = await getDB();
+  const todo = await getTodoById(id);
+  if (!todo) {
+    throw new Error(`Todo with id ${id} not found`);
+  }
+
+  const updatedTodo: Todo = {
+    ...todo,
+    ...todoData,
+    id, // Ensure ID doesn't change
+    updatedAt: new Date()
+  };
+
+  await db.todos.put(updatedTodo);
+  return updatedTodo;
+}
+
+export async function deleteTodo(id: string): Promise<void> {
+  const db = await getDB();
+  await db.todos.delete(id);
+}

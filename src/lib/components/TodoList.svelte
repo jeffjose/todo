@@ -23,6 +23,19 @@
 	let expandedTodoId: string | null = null;
 	let showClearConfirm = false;
 
+	// Function to generate a consistent color based on an ID
+	function getColorForId(id: string): string {
+		// Use the ID to generate a hash
+		let hash = 0;
+		for (let i = 0; i < id.length; i++) {
+			hash = id.charCodeAt(i) + ((hash << 5) - hash);
+		}
+
+		// Generate HSL color with fixed saturation and lightness for readability
+		const hue = Math.abs(hash % 360);
+		return `hsl(${hue}, 70%, 40%)`;
+	}
+
 	// Local functions
 	function toggleExpand(todoId: string) {
 		expandedTodoId = expandedTodoId === todoId ? null : todoId;
@@ -449,7 +462,12 @@
 
 							<!-- Title -->
 							<td class="whitespace-nowrap px-2 py-2">
-								<div class="max-w-[200px] truncate font-medium">{todo.title}</div>
+								<div
+									class="max-w-[200px] truncate font-medium"
+									style="color: {getColorForId(todo.id)}"
+								>
+									{todo.title}
+								</div>
 							</td>
 
 							<!-- Tags -->

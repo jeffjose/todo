@@ -265,13 +265,64 @@ class DatabaseClient {
   private async updateColumn(column: string, def: ColumnDefinition): Promise<void> {
     if (!this.client) throw new Error('Database not initialized');
 
-    // Drop and recreate column
+    // First, get the current data
+    const currentData = await this.client.query(
+      `SELECT "${column}" FROM "${this.tableName}" WHERE "${column}" IS NOT NULL`
+    );
+
+    // Create a temporary column with the new type
+    const tempColumn = `${column}_temp`;
+    await this.client.query(`
+      ALTER TABLE "${this.tableName}"
+      ADD COLUMN "${tempColumn}" ${def.type}
+    `);
+
+    // Copy data to the temporary column
+    if (currentData.rows.length > 0) {
+      if (def.type === 'timestamptz') {
+        // For timestamps, ensure we preserve the timezone information
+        await this.client.query(`
+          UPDATE "${this.tableName}"
+          SET "${tempColumn}" = "${column}"::timestamptz
+        `);
+      } else {
+        // For other types, do a direct copy
+        await this.client.query(`
+          UPDATE "${this.tableName}"
+          SET "${tempColumn}" = "${column}"
+        `);
+      }
+    }
+
+    // Drop the old column
     await this.client.query(`
       ALTER TABLE "${this.tableName}"
       DROP COLUMN "${column}"
     `);
 
-    await this.addColumn(column, def);
+    // Rename the temporary column to the original name
+    await this.client.query(`
+      ALTER TABLE "${this.tableName}"
+      RENAME COLUMN "${tempColumn}" TO "${column}"
+    `);
+
+    // Set default value if specified
+    if (def.defaultValue) {
+      const defaultValue = def.type === 'json' ? `'${def.defaultValue}'` : `'${def.defaultValue}'`;
+      await this.client.query(`
+        UPDATE "${this.tableName}"
+        SET "${column}" = ${defaultValue}
+        WHERE "${column}" IS NULL
+      `);
+    }
+
+    // Make column non-nullable if specified
+    if (!def.nullable && column !== 'created_at' && column !== 'updated_at') {
+      await this.client.query(`
+        ALTER TABLE "${this.tableName}"
+        ALTER COLUMN "${column}" SET NOT NULL
+      `);
+    }
   }
 
   private async handleTimestampColumns(): Promise<void> {
@@ -348,24 +399,19 @@ class DatabaseClient {
   async initialize(): Promise<void> {
     if (this.initPromise) return this.initPromise;
     if (!browser) {
-      console.log('Not in browser environment, skipping initialization');
       return;
     }
     if (this.initialized) {
-      console.log('Database already initialized');
       return;
     }
 
     this.initPromise = (async () => {
       try {
-        console.log('Starting IndexedDB initialization...');
         this.client = new PGlite('idb://todo-app-db');
         this.db = drizzle({ client: this.client, schema });
-        console.log('Database client created');
 
         // Initialize todos table
         const todosTableExists = await this.tableExists();
-        console.log('Todos table exists:', todosTableExists);
 
         if (!todosTableExists) {
           // Create new todos table
@@ -382,7 +428,6 @@ class DatabaseClient {
             )
           `;
           await this.client.query(createTodosTableSQL);
-          console.log('Todos table created');
         }
 
         // Initialize known_events table
@@ -393,7 +438,6 @@ class DatabaseClient {
             AND table_name = 'known_events'
           )`
         );
-        console.log('Known events table exists:', (eventsTableExists.rows[0] as { exists: boolean })?.exists ?? false);
 
         if (!(eventsTableExists.rows[0] as { exists: boolean })?.exists) {
           // Create new known_events table
@@ -410,7 +454,6 @@ class DatabaseClient {
             )
           `;
           await this.client.query(createEventsTableSQL);
-          console.log('Known events table created');
         }
 
         // Update existing tables if needed
@@ -454,7 +497,6 @@ class DatabaseClient {
         }
 
         this.initialized = true;
-        console.log('Database initialized successfully');
 
       } catch (error) {
         console.error('Failed to initialize database:', error);
@@ -466,54 +508,40 @@ class DatabaseClient {
   }
 
   async loadTodos(): Promise<Todo[]> {
-    if (!this.initialized || !this.client) return [];
+    if (!this.initialized || !this.client) {
+      throw new Error('Database not initialized');
+    }
 
-    const result = await this.client.query<TodoRow>(`
-      SELECT 
-        "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
-        "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
-      FROM "${this.tableName}" 
-      ORDER BY "created_at" DESC
-    `);
+    try {
+      const result = await this.client.query<TodoRow>(
+        `SELECT * FROM "${this.tableName}" ORDER BY "created_at" DESC`
+      );
 
-    const todos = result.rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      deadline: row.deadline ? new Date(row.deadline + 'Z') : null,
-      finishBy: row.finish_by ? new Date(row.finish_by + 'Z') : (row.deadline ? new Date(row.deadline + 'Z') : null),
-      status: row.status,
-      priority: row.priority,
-      urgency: row.urgency,
-      tags: row.tags,
-      attachments: row.attachments,
-      path: row.path,
-      level: row.level,
-      parentId: row.parent_id,
-      createdAt: new Date(row.created_at + 'Z'),
-      updatedAt: new Date(row.updated_at + 'Z')
-    }));
+      if (!result.rows || result.rows.length === 0) {
+        return [];
+      }
 
-    // Debug logging
-    console.log('Todos loaded from DB:', todos.map(t => ({
-      id: t.id,
-      title: t.title,
-      description: t.description,
-      deadline: t.deadline ? new Date(t.deadline).toISOString() : null,
-      finishBy: t.finishBy ? new Date(t.finishBy).toISOString() : null,
-      status: t.status,
-      priority: t.priority,
-      urgency: t.urgency,
-      tags: t.tags,
-      attachments: t.attachments,
-      path: t.path,
-      level: t.level,
-      parentId: t.parentId,
-      createdAt: new Date(t.createdAt).toISOString(),
-      updatedAt: new Date(t.updatedAt).toISOString()
-    })));
-
-    return todos;
+      return result.rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        deadline: row.deadline ? new Date(row.deadline) : null,
+        finishBy: row.finish_by ? new Date(row.finish_by) : null,
+        status: row.status,
+        priority: row.priority,
+        urgency: row.urgency,
+        tags: row.tags,
+        attachments: row.attachments,
+        path: row.path,
+        level: row.level,
+        parentId: row.parent_id,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at)
+      }));
+    } catch (error) {
+      console.error('Error loading todos:', error);
+      return [];
+    }
   }
 
   async addNewTodo(parentId: string | null = null): Promise<{ success: boolean; message: string }> {
@@ -568,7 +596,6 @@ class DatabaseClient {
         deadline = getNextBusinessDay(deadline);
       }
       deadline = getRandomBusinessTime(deadline);
-      const deadlineISO = deadline.toISOString();
 
       // Set finishBy to be between now and deadline, but not more than 1 week before deadline
       let finishBy = new Date(now);
@@ -578,7 +605,6 @@ class DatabaseClient {
         finishBy = getNextBusinessDay(finishBy);
       }
       finishBy = getRandomBusinessTime(finishBy);
-      const finishByISO = finishBy.toISOString();
 
       const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
       const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
@@ -601,16 +627,32 @@ class DatabaseClient {
         url: `https://example.com/attachments/${todoId}/${i + 1}`
       }));
 
-      await this.client.query(
-        `INSERT INTO "${this.tableName}" (
+      const insertQuery = `
+        INSERT INTO "${this.tableName}" (
           "id", "title", "description", "deadline", "finish_by", "status", "priority", "urgency", 
           "tags", "attachments", "path", "level", "parent_id", "created_at", "updated_at"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-        [
-          todoId, title, description, deadlineISO, finishByISO, status, priority, urgency,
-          JSON.stringify(tags), JSON.stringify(attachments), path, level, parentId, now.toISOString(), now.toISOString()
-        ]
-      );
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      `;
+
+      const params = [
+        todoId,
+        title,
+        description,
+        deadline.toISOString(),
+        finishBy.toISOString(),
+        status,
+        priority,
+        urgency,
+        JSON.stringify(tags),
+        JSON.stringify(attachments),
+        path,
+        level,
+        parentId,
+        now.toISOString(),
+        now.toISOString()
+      ];
+
+      await this.client.query(insertQuery, params);
 
       return {
         success: true,
@@ -840,20 +882,14 @@ class DatabaseClient {
         await this.client.query(`
           DROP TABLE IF EXISTS "${this.tableName}";
           CREATE TABLE "${this.tableName}" (
-            "id" TEXT PRIMARY KEY,
-            "title" TEXT NOT NULL,
-            "description" TEXT,
-            "deadline" TEXT,
-            "status" TEXT NOT NULL,
-            "priority" TEXT NOT NULL,
-            "urgency" TEXT NOT NULL,
-            "tags" JSONB NOT NULL,
-            "attachments" JSONB NOT NULL,
-            "path" TEXT NOT NULL,
-            "level" INTEGER NOT NULL,
-            "parent_id" TEXT,
-            "created_at" TIMESTAMP NOT NULL,
-            "updated_at" TIMESTAMP NOT NULL
+            ${Object.entries(DESIRED_SCHEMA)
+            .map(([column, def]) => {
+              const nullable = def.nullable ? '' : ' NOT NULL';
+              const defaultValue = def.defaultValue ? ` DEFAULT ${def.defaultValue}` : '';
+              const primaryKey = def.primaryKey ? ' PRIMARY KEY' : '';
+              return `"${column}" ${def.type}${nullable}${defaultValue}${primaryKey}`;
+            })
+            .join(',\n            ')}
           );
         `);
       } else {

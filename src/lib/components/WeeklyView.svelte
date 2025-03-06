@@ -10,6 +10,19 @@
 		await loadData();
 	});
 
+	// Function to generate a consistent color based on an ID
+	function getColorForId(id: string): string {
+		// Use the ID to generate a hash
+		let hash = 0;
+		for (let i = 0; i < id.length; i++) {
+			hash = id.charCodeAt(i) + ((hash << 5) - hash);
+		}
+
+		// Generate HSL color with fixed saturation and lightness for readability
+		const hue = Math.abs(hash % 360);
+		return `hsl(${hue}, 70%, 40%)`;
+	}
+
 	async function loadData() {
 		isLoading = true;
 		try {
@@ -94,7 +107,10 @@
 							<!-- Event -->
 							<td class="whitespace-nowrap px-4 py-2">
 								{#if weekEvent.description}
-									<span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
+									<span
+										class="rounded-full px-2 py-0.5 text-xs text-white"
+										style="background-color: {getColorForId(weekEvent.id)}"
+									>
 										{weekEvent.description}
 									</span>
 								{:else}
@@ -108,7 +124,9 @@
 									{#each getTodosForWeek(weekEvent, 'deadline') as todo}
 										<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
 											<div class="flex items-center gap-2">
-												<span class="text-sm">{todo.title}</span>
+												<span class="text-sm" style="color: {getColorForId(todo.id)}"
+													>{todo.title}</span
+												>
 												{#if todo.tags && todo.tags.length > 0}
 													<span class="text-xs text-gray-500">
 														{todo.tags.slice(0, 1).join(', ')}
@@ -131,7 +149,9 @@
 									{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
 										<div class="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
 											<div class="flex items-center gap-2">
-												<span class="text-sm">{todo.title}</span>
+												<span class="text-sm" style="color: {getColorForId(todo.id)}"
+													>{todo.title}</span
+												>
 												{#if todo.tags && todo.tags.length > 0}
 													<span class="text-xs text-gray-500">
 														{todo.tags.slice(0, 1).join(', ')}

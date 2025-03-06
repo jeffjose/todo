@@ -9,6 +9,30 @@ const CUSTOM_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 export const generateId = customAlphabet(CUSTOM_ALPHABET);
 
 // Types
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  createdAt: Date;
+}
+
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Todo {
   id: string;
   title: string;
@@ -20,7 +44,9 @@ export interface Todo {
   priority: string;
   urgency: string;
   tags: string[];
-  attachments: { name: string; url: string }[];
+  attachments: Attachment[];
+  comments: Comment[];
+  subtasks: SubTask[];
   path: string;
   level: number;
   parentId: string | null;
@@ -142,17 +168,18 @@ const RANDOM_DATA = {
 };
 
 // Helper function to get next business day (Monday-Friday)
-function getNextBusinessDay(date: Date): Date {
+export function getNextBusinessDay(date: Date): Date {
   const nextDay = new Date(date);
-  nextDay.setDate(date.getDate() + 1);
-  while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
-    nextDay.setDate(nextDay.getDate() + 1);
+  // Convert to UTC to avoid timezone issues
+  const utcNextDay = new Date(Date.UTC(nextDay.getUTCFullYear(), nextDay.getUTCMonth(), nextDay.getUTCDate() + 1));
+  while (utcNextDay.getUTCDay() === 0 || utcNextDay.getUTCDay() === 6) {
+    utcNextDay.setUTCDate(utcNextDay.getUTCDate() + 1);
   }
-  return nextDay;
+  return utcNextDay;
 }
 
 // Helper function to get random time between 9 AM and 5 PM
-function getRandomBusinessTime(date: Date): Date {
+export function getRandomBusinessTime(date: Date): Date {
   const time = new Date(date);
   const hours = 9 + Math.floor(Math.random() * 8); // Random hour between 9 and 16
   const minutes = Math.floor(Math.random() * 60);
@@ -161,7 +188,7 @@ function getRandomBusinessTime(date: Date): Date {
 }
 
 // Helper function to generate random todo data
-function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> {
+export function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> {
   const now = new Date();
   const title = RANDOM_DATA.titles[Math.floor(Math.random() * RANDOM_DATA.titles.length)];
   const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
@@ -183,6 +210,17 @@ function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> 
   }
   finishBy = getRandomBusinessTime(finishBy);
 
+  // Ensure finishBy is before deadline
+  if (finishBy.getTime() >= deadline.getTime()) {
+    // If finishBy is after or equal to deadline, set it to 1 business day before deadline
+    finishBy = new Date(deadline);
+    finishBy.setDate(deadline.getDate() - 1);
+    while (finishBy.getDay() === 0 || finishBy.getDay() === 6) {
+      finishBy.setDate(finishBy.getDate() - 1);
+    }
+    finishBy = getRandomBusinessTime(finishBy);
+  }
+
   const status = RANDOM_DATA.statuses[Math.floor(Math.random() * RANDOM_DATA.statuses.length)];
   const priority = RANDOM_DATA.priorities[Math.floor(Math.random() * RANDOM_DATA.priorities.length)];
   const urgency = RANDOM_DATA.urgencies[Math.floor(Math.random() * RANDOM_DATA.urgencies.length)];
@@ -199,197 +237,61 @@ function generateRandomTodoData(): Omit<Todo, 'id' | 'createdAt' | 'updatedAt'> 
 
   // Generate random attachments
   const numAttachments = Math.floor(Math.random() * 3);
-  const attachments = Array.from({ length: numAttachments }, (_, i) => ({
-    name: `attachment-${i + 1}.${['pdf', 'doc', 'jpg'][Math.floor(Math.random() * 3)]}`,
-    url: `https://example.com/attachments/${generateId()}/${i + 1}`
-  }));
+  const attachments: Attachment[] = [];
+  for (let i = 0; i < numAttachments; i++) {
+    attachments.push({
+      id: generateId(),
+      name: `attachment-${i + 1}.txt`,
+      type: 'text/plain',
+      size: Math.floor(Math.random() * 1000),
+      url: `https://example.com/attachment-${i + 1}.txt`,
+      createdAt: new Date()
+    });
+  }
+
+  // Generate random comments
+  const numComments = Math.floor(Math.random() * 3);
+  const comments: Comment[] = [];
+  for (let i = 0; i < numComments; i++) {
+    comments.push({
+      id: generateId(),
+      content: `This is a random comment ${i + 1}`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+
+  // Generate random subtasks
+  const numSubtasks = Math.floor(Math.random() * 3);
+  const subtasks: SubTask[] = [];
+  for (let i = 0; i < numSubtasks; i++) {
+    subtasks.push({
+      id: generateId(),
+      title: `Subtask ${i + 1}`,
+      completed: Math.random() > 0.5,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+
+  // Generate random emoji
+  const emoji = RANDOM_DATA.emojis[Math.floor(Math.random() * RANDOM_DATA.emojis.length)];
 
   return {
     title,
     description,
-    emoji: RANDOM_DATA.emojis[Math.floor(Math.random() * RANDOM_DATA.emojis.length)],
-    deadline,
-    finishBy,
     status,
     priority,
     urgency,
-    tags,
-    attachments,
     path: 'root',
     level: 0,
-    parentId: null
+    parentId: null,
+    deadline,
+    finishBy,
+    tags,
+    attachments,
+    comments,
+    subtasks,
+    emoji
   };
 }
-
-// CRUD operations
-export async function createTodo(todo: Omit<Todo, 'id' | 'createdAt' | 'updatedAt'>): Promise<Todo> {
-  const db = await getDB();
-  const now = new Date();
-  const newTodo: Todo = {
-    ...todo,
-    id: generateId(),
-    createdAt: now,
-    updatedAt: now
-  };
-  await db.todos.add(newTodo);
-  return newTodo;
-}
-
-export async function createRandomTodo(): Promise<Todo> {
-  return createTodo(generateRandomTodoData());
-}
-
-export async function createMultipleRandomTodos(count: number): Promise<Todo[]> {
-  const db = await getDB();
-  const todos: Todo[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const todo = await createRandomTodo();
-    todos.push(todo);
-  }
-
-  return todos;
-}
-
-export async function getTodo(id: string): Promise<Todo | undefined> {
-  const db = await getDB();
-  return db.todos.get(id);
-}
-
-export async function updateTodo(id: string, updates: Partial<Todo>): Promise<Todo | undefined> {
-  const db = await getDB();
-  const todo = await db.todos.get(id);
-  if (!todo) return undefined;
-
-  const updatedTodo = {
-    ...todo,
-    ...updates,
-    updatedAt: new Date()
-  };
-  await db.todos.put(updatedTodo);
-  return updatedTodo;
-}
-
-export async function deleteTodo(id: string): Promise<void> {
-  const db = await getDB();
-  await db.todos.delete(id);
-}
-
-export async function getAllTodos(): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.toArray();
-}
-
-export async function getTodosByPath(path: string): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.where('path').equals(path).toArray();
-}
-
-export async function getTodosByParentId(parentId: string): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.where('parentId').equals(parentId).toArray();
-}
-
-export async function getTodosByStatus(status: string): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.where('status').equals(status).toArray();
-}
-
-export async function getTodosByPriority(priority: string): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.where('priority').equals(priority).toArray();
-}
-
-export async function getTodosByUrgency(urgency: string): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.where('urgency').equals(urgency).toArray();
-}
-
-export async function getTodosByTag(tag: string): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos.filter(todo => todo.tags.includes(tag)).toArray();
-}
-
-export async function getTodosByDateRange(startDate: Date, endDate: Date): Promise<Todo[]> {
-  const db = await getDB();
-  return db.todos
-    .filter(todo => {
-      if (!todo.deadline) return false;
-      return todo.deadline >= startDate && todo.deadline <= endDate;
-    })
-    .toArray();
-}
-
-export async function clearAllTodos(): Promise<{ success: boolean; message: string }> {
-  const db = await getDB();
-  try {
-    const count = await db.todos.count();
-    if (count === 0) {
-      return {
-        success: true,
-        message: 'No todo items to clear'
-      };
-    }
-    await db.todos.clear();
-    return {
-      success: true,
-      message: `Cleared ${count} todo items`
-    };
-  } catch (error) {
-    console.error('Error clearing todos:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-// Known events operations
-export async function createKnownEvent(event: Omit<KnownEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<KnownEvent> {
-  const db = await getDB();
-  const now = new Date();
-  const newEvent: KnownEvent = {
-    ...event,
-    id: generateId(),
-    createdAt: now,
-    updatedAt: now
-  };
-  await db.knownEvents.add(newEvent);
-  return newEvent;
-}
-
-export async function getKnownEvent(id: string): Promise<KnownEvent | undefined> {
-  const db = await getDB();
-  return db.knownEvents.get(id);
-}
-
-export async function updateKnownEvent(id: string, updates: Partial<KnownEvent>): Promise<KnownEvent | undefined> {
-  const db = await getDB();
-  const event = await db.knownEvents.get(id);
-  if (!event) return undefined;
-
-  const updatedEvent = {
-    ...event,
-    ...updates,
-    updatedAt: new Date()
-  };
-  await db.knownEvents.put(updatedEvent);
-  return updatedEvent;
-}
-
-export async function deleteKnownEvent(id: string): Promise<void> {
-  const db = await getDB();
-  await db.knownEvents.delete(id);
-}
-
-export async function getAllKnownEvents(): Promise<KnownEvent[]> {
-  const db = await getDB();
-  return db.knownEvents.toArray();
-}
-
-export async function getKnownEventsByDateRange(startDate: Date, endDate: Date): Promise<KnownEvent[]> {
-  const db = await getDB();
-  return db.knownEvents
-    .filter(event => event.startDate >= startDate && event.endDate <= endDate)
-    .toArray();
-} 

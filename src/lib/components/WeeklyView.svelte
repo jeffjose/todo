@@ -31,6 +31,7 @@
 	let showClearConfirm = $state<boolean>(false);
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let isResetting = $state<boolean>(false);
+	let hoveredTaskId = $state<string | null>(null);
 
 	onMount(async () => {
 		weekEvents = await loadData();
@@ -459,6 +460,10 @@
 		}
 		return index === 0; // Show header for first week anyway
 	}
+
+	function handleTaskHover(taskId: string | null) {
+		hoveredTaskId = taskId;
+	}
 </script>
 
 <div class="container mx-auto p-2">
@@ -632,7 +637,12 @@
 						<td class="px-2 py-1">
 							<div class="space-y-0.5">
 								{#each getTodosForWeek(weekEvent, 'deadline') as todo}
-									<div class="flex items-center rounded bg-gray-50/50 px-1.5 py-0.5">
+									<div
+										class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
+										class:task-highlight={hoveredTaskId === todo.id}
+										on:mouseenter={() => handleTaskHover(todo.id)}
+										on:mouseleave={() => handleTaskHover(null)}
+									>
 										<div
 											class="flex items-center gap-1"
 											class:text-gray-400={todo.status === 'completed'}
@@ -675,7 +685,12 @@
 						<td class="px-2 py-1">
 							<div class="space-y-0.5">
 								{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
-									<div class="flex items-center rounded bg-gray-50/50 px-1.5 py-0.5">
+									<div
+										class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
+										class:task-highlight={hoveredTaskId === todo.id}
+										on:mouseenter={() => handleTaskHover(todo.id)}
+										on:mouseleave={() => handleTaskHover(null)}
+									>
 										<div
 											class="flex items-center gap-1"
 											class:text-gray-400={todo.status === 'completed'}
@@ -724,7 +739,12 @@
 							{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 								<div class="space-y-0.5">
 									{#each getOpenTodosUpToCurrentWeek(weekEvent) as todo}
-										<div class="flex items-center rounded bg-gray-50/50 px-1.5 py-0.5">
+										<div
+											class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
+											class:task-highlight={hoveredTaskId === todo.id}
+											on:mouseenter={() => handleTaskHover(todo.id)}
+											on:mouseleave={() => handleTaskHover(null)}
+										>
 											<div
 												class="flex items-center gap-1"
 												class:text-gray-400={todo.status === 'completed'}
@@ -795,5 +815,22 @@
 </div>
 
 <style>
-	/* Add any additional styles here */
+	.task-hover-target:hover {
+		@apply bg-blue-50;
+		@apply ring-2;
+		@apply ring-blue-200;
+		@apply ring-offset-1;
+	}
+
+	.task-hover-highlight {
+		@apply transition-all;
+		@apply duration-100;
+	}
+
+	:global(.task-highlight) {
+		@apply bg-blue-50 !important;
+		@apply ring-2 !important;
+		@apply ring-blue-200 !important;
+		@apply ring-offset-1 !important;
+	}
 </style>

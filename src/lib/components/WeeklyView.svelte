@@ -192,13 +192,14 @@
 		return weekEvents;
 	}
 
-	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {
+	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | 'todo'): Todo[] {
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
 		// First, filter todos for the week
 		const weekTodos = todos.filter((todo: Todo) => {
-			const date = type === 'deadline' ? todo.deadline : todo.finishBy;
+			const date =
+				type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
 			if (!date) return false;
 
 			// Set start date to beginning of day (midnight)
@@ -215,6 +216,7 @@
 			//   * Completed tasks stay in their original week
 			//   * Open tasks from past weeks are promoted to current week
 			//   * Promoted tasks show "slipped" badge
+			// - Todo tasks: Always show in their specified week
 			if (type === 'finishBy') {
 				const today = new Date();
 				const isPastWeek = weekEvent.endDate < today;
@@ -266,8 +268,8 @@
 			if (a.status !== 'completed' && b.status === 'completed') return 1;
 
 			// Finally sort by date if both tasks have dates
-			const dateA = type === 'deadline' ? a.deadline : a.finishBy;
-			const dateB = type === 'deadline' ? b.deadline : b.finishBy;
+			const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
+			const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
 			if (!dateA || !dateB) return 0;
 			return dateA.getTime() - dateB.getTime();
 		});
@@ -307,7 +309,7 @@
 		if (isPastWeek) {
 			todos.forEach((todo: Todo) => {
 				if (todo.status === 'completed') {
-					const date = todo.deadline || todo.finishBy;
+					const date = todo.deadline || todo.finishBy || todo.todo;
 					if (date && date >= weekEvent.startDate && date <= weekEvent.endDate) {
 						getTaskWithParents(todo, tasksWithParents);
 					}
@@ -315,10 +317,15 @@
 			});
 		}
 
-		// For current week, show all open tasks from past and current week and their parents
+		// For current week, show:
+		// 1. All open tasks from past and current week
+		// 2. Tasks with todo date in this week
 		if (isCurrentWeek) {
 			todos.forEach((todo: Todo) => {
-				if (todo.status !== 'completed') {
+				if (
+					todo.status !== 'completed' ||
+					(todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate)
+				) {
 					getTaskWithParents(todo, tasksWithParents);
 				}
 			});
@@ -336,8 +343,8 @@
 			if (a.status !== 'completed' && b.status === 'completed') return 1;
 
 			// Finally sort by date
-			const dateA = a.deadline || a.finishBy;
-			const dateB = b.deadline || b.finishBy;
+			const dateA = a.todo || a.deadline || a.finishBy;
+			const dateB = b.todo || b.deadline || b.finishBy;
 			if (!dateA || !dateB) return 0;
 			return dateA.getTime() - dateB.getTime();
 		});

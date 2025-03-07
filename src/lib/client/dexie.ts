@@ -40,6 +40,7 @@ export interface Todo {
   emoji: string | null;
   deadline: Date | null;
   finishBy: Date | null;
+  todo: Date | null;  // Explicit todo date for task
   status: string;
   priority: string;
   urgency: string;
@@ -79,8 +80,8 @@ export class TodoDatabase extends Dexie {
 
   constructor() {
     super(env.PUBLIC_TODO_TABLE_NAME || 'todos');
-    this.version(1).stores({
-      todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt, deadline, finishBy, tags',
+    this.version(2).stores({
+      todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt, deadline, finishBy, todo, tags',
       knownEvents: '++id, startDate, endDate, description, createdAt, updatedAt',
       users: '++id, username',
       sessions: '++id, userId, expiresAt'
@@ -447,6 +448,19 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
     finishBy = getRandomBusinessTime(finishBy);
   }
 
+  // 10% chance to set a todo date between now and finishBy
+  let todo: Date | null = null;
+  if (Math.random() < 0.1) {
+    todo = new Date(now);
+    const timeDiff = finishBy.getTime() - now.getTime();
+    const randomDays = Math.floor(Math.random() * (timeDiff / (1000 * 60 * 60 * 24)));
+    todo = new Date(now.getTime() + randomDays * (1000 * 60 * 60 * 24));
+    while (todo.getDay() === 0 || todo.getDay() === 6) {
+      todo = getNextBusinessDay(todo);
+    }
+    todo = getRandomBusinessTime(todo);
+  }
+
   const status = (() => {
     const now = new Date();
     const isTaskInPast = deadline.getTime() < now.getTime();
@@ -530,6 +544,7 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
     parentId: null,
     deadline,
     finishBy,
+    todo,
     tags,
     attachments,
     comments,

@@ -439,6 +439,7 @@
 						<th class="px-2 py-1 text-left">Tags</th>
 						<th class="px-2 py-1 text-left">Deadline</th>
 						<th class="px-2 py-1 text-left">Finish By</th>
+						<th class="px-2 py-1 text-left">Todo Date</th>
 						<th class="px-2 py-1 text-left">Created At</th>
 						<th class="px-2 py-1 text-center">Actions</th>
 					</tr>
@@ -571,6 +572,15 @@
 											new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
 										).toLocaleString()}</span
 									>
+								{/if}
+							</td>
+
+							<!-- Todo Date -->
+							<td class="whitespace-nowrap px-2 py-2">
+								{#if todo.todo}
+									<span class="text-xs text-gray-500">{new Date(todo.todo).toLocaleString()}</span>
+								{:else}
+									<span class="text-xs text-gray-400">-</span>
 								{/if}
 							</td>
 

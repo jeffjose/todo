@@ -13,6 +13,7 @@
 		"prepare": "husky",
 		"preview": "vite preview",
 		"test": "vitest --run",
+		"test:watch": "vitest --watch",
 		"test:db": "vitest src/lib/client/dexie.test.ts",
 		"test:db:all": "vitest src/lib/client/dexie.test.ts src/lib/client/db.integration.test.ts",
 		"test:db:integration": "vitest src/lib/client/db.integration.test.ts"

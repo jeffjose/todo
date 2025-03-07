@@ -398,8 +398,7 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   // Get random title and emoji from the theme
   const titleIndex = Math.floor(Math.random() * theme.titles.length);
   const title = theme.titles[titleIndex];
-  // 50% chance to have an emoji
-  const emoji = Math.random() < 0.5 ? theme.emoji[Math.floor(Math.random() * theme.emoji.length)] : null;
+  const emoji = theme.emoji[Math.floor(Math.random() * theme.emoji.length)];
 
   const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 
@@ -430,6 +429,15 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
       finishBy = getNextBusinessDay(finishBy);
     }
   } else {
+    // Calculate number of business days between today and deadline
+    let numBusinessDays = 0;
+    let currentDate = new Date();
+    while (currentDate <= deadline) {
+      if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+        numBusinessDays++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
     const maxBusinessDaysBeforeDeadline = Math.min(5, numBusinessDays - 1);
     const numBusinessDaysBeforeDeadline = Math.floor(Math.random() * maxBusinessDaysBeforeDeadline) + 1;
     for (let i = 0; i < numBusinessDaysBeforeDeadline; i++) {

@@ -206,6 +206,7 @@
 			const weekStart = new Date(currentDate);
 			const weekEnd = new Date(currentDate);
 			weekEnd.setDate(weekStart.getDate() + 6);
+			weekEnd.setHours(23, 59, 59, 999);
 
 			weekEvents.push({
 				id: `week-${weekStart.toISOString()}`,

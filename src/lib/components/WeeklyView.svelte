@@ -8,6 +8,7 @@
 		type Todo
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
+	import { getTaskStatus, type TaskStatus } from '$lib/utils';
 
 	export interface WeekEvent {
 		id: string;
@@ -207,6 +208,29 @@
 			// Set end date to end of day (23:59:59)
 			const endDate = new Date(weekEvent.endDate);
 			endDate.setHours(23, 59, 59, 999);
+
+			// Task promotion logic:
+			// - Deadline tasks: Stay in their original week, show as overdue in Todo column if past deadline
+			// - Finish By tasks:
+			//   * Completed tasks stay in their original week
+			//   * Open tasks from past weeks are promoted to current week
+			//   * Promoted tasks show "slipped" badge
+			if (type === 'finishBy') {
+				const today = new Date();
+				const isPastWeek = weekEvent.endDate < today;
+				const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+
+				if (isPastWeek) {
+					return date >= startDate && date <= endDate && todo.status === 'completed';
+				}
+
+				if (isCurrentWeek) {
+					return (
+						(date >= startDate && date <= endDate) ||
+						(date < startDate && todo.status !== 'completed')
+					);
+				}
+			}
 
 			return date >= startDate && date <= endDate;
 		});
@@ -602,6 +626,11 @@
 											>
 												{todo.priority}
 											</span>
+											{#if isCurrentWeek(weekEvent) && todo.finishBy && todo.finishBy < weekEvent.startDate && todo.status !== 'completed'}
+												<span class="rounded bg-yellow-500 px-1 py-0.5 text-xs text-white"
+													>slipped</span
+												>
+											{/if}
 										</div>
 									</div>
 								{:else}
@@ -649,10 +678,18 @@
 												>
 													{todo.priority}
 												</span>
-												{#if isCurrentWeek(weekEvent) && ((todo.deadline && todo.deadline < weekEvent.startDate) || (todo.finishBy && todo.finishBy < weekEvent.startDate)) && (todo.deadline || todo.finishBy) && todo.status !== 'completed'}
-													<span class="rounded bg-red-500 px-1 py-0.5 text-xs text-white"
-														>overdue</span
-													>
+												<!-- Visual indicators for task status -->
+												{#if isCurrentWeek(weekEvent)}
+													{@const status = getTaskStatus(todo, weekEvent.startDate)}
+													{#if status}
+														<span
+															class="rounded px-1 py-0.5 text-xs text-white"
+															class:bg-red-500={status === 'overdue'}
+															class:bg-yellow-500={status === 'slipped'}
+														>
+															{status}
+														</span>
+													{/if}
 												{/if}
 											</div>
 										</div>

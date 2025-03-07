@@ -33,7 +33,28 @@
 
 	onMount(async () => {
 		weekEvents = await loadData();
+		debugPrintAllTasks();
 	});
+
+	function debugPrintAllTasks() {
+		console.log('=== DEBUG: All Tasks ===');
+		todos.forEach((todo) => {
+			console.log({
+				id: todo.id,
+				title: todo.title,
+				status: todo.status,
+				deadline: todo.deadline ? new Date(todo.deadline).toLocaleString() : null,
+				finishBy: todo.finishBy ? new Date(todo.finishBy).toLocaleString() : null,
+				todo: todo.todo ? new Date(todo.todo).toLocaleString() : null,
+				path: todo.path,
+				level: todo.level,
+				parentId: todo.parentId,
+				priority: todo.priority,
+				emoji: todo.emoji
+			});
+		});
+		console.log('=== END DEBUG ===\n');
+	}
 
 	// Function to generate a consistent color based on an ID
 	function getColorForId(id: string): string {
@@ -282,11 +303,27 @@
 		const isPastWeek = weekEvent.endDate < today;
 		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
+		console.log('Week:', {
+			startDate: weekEvent.startDate,
+			endDate: weekEvent.endDate,
+			isPastWeek,
+			isCurrentWeek
+		});
+
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
 		// Helper function to get a task and all its parents
 		function getTaskWithParents(todo: Todo, tasksSet: Set<Todo>) {
+			console.log('Processing task:', {
+				id: todo.id,
+				title: todo.title,
+				status: todo.status,
+				deadline: todo.deadline,
+				finishBy: todo.finishBy,
+				todo: todo.todo
+			});
+
 			// Add the current todo
 			tasksSet.add(todo);
 
@@ -295,6 +332,11 @@
 			while (currentTodo.parentId) {
 				const parentTodo = todoMap.get(currentTodo.parentId);
 				if (parentTodo) {
+					console.log('Adding parent:', {
+						id: parentTodo.id,
+						title: parentTodo.title,
+						status: parentTodo.status
+					});
 					tasksSet.add(parentTodo);
 					currentTodo = parentTodo;
 				} else {
@@ -307,10 +349,16 @@
 
 		// For past weeks, show completed tasks from that week and their parents
 		if (isPastWeek) {
+			console.log('Processing past week tasks');
 			todos.forEach((todo: Todo) => {
 				if (todo.status === 'completed') {
 					const date = todo.deadline || todo.finishBy || todo.todo;
 					if (date && date >= weekEvent.startDate && date <= weekEvent.endDate) {
+						console.log('Adding completed task from past week:', {
+							id: todo.id,
+							title: todo.title,
+							date
+						});
 						getTaskWithParents(todo, tasksWithParents);
 					}
 				}
@@ -318,20 +366,48 @@
 		}
 
 		// For current week, show:
-		// 1. All open tasks from past and current week
+		// 1. All open tasks from past and current week (if they don't have a todo date)
 		// 2. Tasks with todo date in this week
 		if (isCurrentWeek) {
+			console.log('Processing current week tasks');
 			todos.forEach((todo: Todo) => {
-				if (
-					todo.status !== 'completed' ||
-					(todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate)
-				) {
+				const hasTodoInWeek =
+					todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate;
+				const hasPastTodo = todo.todo && todo.todo < weekEvent.startDate;
+
+				// If task has a todo date, only show it in that specific week
+				// If task has no todo date or has a past todo date, show it in current week if not completed
+				const shouldShow =
+					hasTodoInWeek ||
+					(!todo.todo && todo.status !== 'completed') ||
+					(hasPastTodo && todo.status !== 'completed');
+
+				console.log('Checking task for current week:', {
+					id: todo.id,
+					title: todo.title,
+					status: todo.status,
+					todo: todo.todo,
+					hasTodoInWeek,
+					hasPastTodo,
+					shouldShow
+				});
+
+				if (shouldShow) {
 					getTaskWithParents(todo, tasksWithParents);
 				}
 			});
 		}
 
 		const result = Array.from(tasksWithParents);
+		console.log(
+			'Final tasks for week:',
+			result.map((t) => ({
+				id: t.id,
+				title: t.title,
+				status: t.status,
+				todo: t.todo
+			}))
+		);
 
 		result.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy

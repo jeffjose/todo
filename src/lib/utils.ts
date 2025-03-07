@@ -5,14 +5,14 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export type TaskStatus = 'overdue' | 'slipped' | null;
+export type TaskStatus = { type: 'overdue'; daysOverdue: number } | { type: 'slipped' } | null;
 
 /**
  * Determines the status of a task based on its deadline and finishBy dates
  * @param todo The task to check
  * @param weekStartDate The start date of the week being displayed
- * @returns 'overdue' if task has past deadline
- *          'slipped' if task has past finishBy date but future/no deadline
+ * @returns { type: 'overdue', daysOverdue: number } if task has past deadline
+ *          { type: 'slipped' } if task has past finishBy date but future/no deadline
  *          null if task is completed or has no status indicators
  */
 export function getTaskStatus(todo: {
@@ -25,7 +25,9 @@ export function getTaskStatus(todo: {
 
 	// Task is overdue if it has a deadline in the past
 	if (todo.deadline && todo.deadline < weekStartDate) {
-		return 'overdue';
+		const today = new Date();
+		const daysOverdue = Math.ceil((today.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+		return { type: 'overdue', daysOverdue };
 	}
 
 	// Task is slipped if it has a finishBy date in the past but either:
@@ -34,7 +36,7 @@ export function getTaskStatus(todo: {
 	// AND the task is not completed
 	if (todo.finishBy && todo.finishBy < weekStartDate) {
 		if (!todo.deadline || todo.deadline >= weekStartDate) {
-			return 'slipped';
+			return { type: 'slipped' };
 		}
 	}
 

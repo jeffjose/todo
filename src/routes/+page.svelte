@@ -5,6 +5,7 @@
 		createRandomTodo,
 		createMultipleRandomTodos,
 		clearAllTodos,
+		loadTestData,
 		type Todo
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
@@ -121,19 +122,31 @@
 	}
 
 	async function handleClearAllTodos() {
-		if (isLoading) return;
+		if (!showClearConfirm) {
+			showClearConfirm = true;
+			return;
+		}
 
 		try {
-			isLoading = true;
-			showClearConfirm = false;
-
+			const result = await clearAllTodos();
+			await loadTodosWithTiming();
 			notification = {
-				message: 'Clearing all todo items...',
+				message: result.message,
 				type: 'success'
 			};
+			showClearConfirm = false;
+		} catch (error) {
+			console.error('Failed to clear todos:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to clear todos',
+				type: 'error'
+			};
+		}
+	}
 
-			const result = await clearAllTodos();
-
+	async function handleLoadTestData() {
+		try {
+			const result = await loadTestData();
 			if (result.success) {
 				await loadTodosWithTiming();
 				notification = {
@@ -141,20 +154,17 @@
 					type: 'success'
 				};
 			} else {
-				throw new Error(result.message);
+				notification = {
+					message: result.message,
+					type: 'error'
+				};
 			}
 		} catch (error) {
-			console.error('Failed to clear todos:', error);
+			console.error('Failed to load test data:', error);
 			notification = {
-				message: error instanceof Error ? error.message : 'Failed to clear todos',
+				message: error instanceof Error ? error.message : 'Failed to load test data',
 				type: 'error'
 			};
-		} finally {
-			isLoading = false;
-			// Clear notification after 5 seconds
-			setTimeout(() => {
-				notification = null;
-			}, 5000);
 		}
 	}
 

@@ -630,3 +630,43 @@ export async function clearAllTodos(): Promise<{ success: boolean; message: stri
   await db.todos.clear();
   return { success: true, message: 'All todos cleared successfully' };
 }
+
+export async function loadTestData(): Promise<{ success: boolean; message: string; todos: Todo[] }> {
+  try {
+    const db = await getDB();
+    
+    // Fetch the test data from the JSON file
+    const response = await fetch('/data/tasks.json');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch test data: ${response.statusText}`);
+    }
+    
+    const testData = await response.json();
+    
+    // Process dates in the test data
+    const processedData = testData.map((todo: any) => ({
+      ...todo,
+      deadline: todo.deadline ? new Date(todo.deadline) : null,
+      finishBy: todo.finishBy ? new Date(todo.finishBy) : null,
+      todo: todo.todo ? new Date(todo.todo) : null,
+      createdAt: new Date(todo.createdAt),
+      updatedAt: new Date(todo.updatedAt)
+    }));
+    
+    // Add the test data to the database
+    await db.todos.bulkPut(processedData);
+    
+    return { 
+      success: true, 
+      message: `Loaded ${processedData.length} test todos successfully`, 
+      todos: processedData 
+    };
+  } catch (error) {
+    console.error('Failed to load test data:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to load test data', 
+      todos: [] 
+    };
+  }
+}

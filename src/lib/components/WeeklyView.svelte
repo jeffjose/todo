@@ -5,6 +5,7 @@
 		createRandomTodo,
 		createMultipleRandomTodos,
 		clearAllTodos,
+		loadTestData,
 		type Todo
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
@@ -38,7 +39,7 @@
 
 	function debugPrintAllTasks() {
 		console.log('=== DEBUG: All Tasks ===');
-		todos.forEach((todo) => {
+		todos.forEach((todo: Todo) => {
 			console.log({
 				id: todo.id,
 				title: todo.title,
@@ -174,6 +175,35 @@
 		}
 	}
 
+	async function handleLoadTestData() {
+		try {
+			const result = await loadTestData();
+			if (result.success) {
+				await onTodosChange();
+				await loadData();
+				notification = {
+					message: result.message,
+					type: 'success'
+				};
+			} else {
+				notification = {
+					message: result.message,
+					type: 'error'
+				};
+			}
+		} catch (error) {
+			console.error('Failed to load test data:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to load test data',
+				type: 'error'
+			};
+		} finally {
+			setTimeout(() => {
+				notification = null;
+			}, 5000);
+		}
+	}
+
 	async function loadData() {
 		// Get the start of the current week (Monday)
 		const today = new Date();
@@ -269,8 +299,8 @@
 			while (currentTodo.parentId) {
 				const parentTodo = todoMap.get(currentTodo.parentId);
 				if (parentTodo) {
-					tasksWithParents.add(parentTodo);
-					currentTodo = parentTodo;
+					tasksWithParents.add(parentTodo as Todo);
+					currentTodo = parentTodo as Todo;
 				} else {
 					break;
 				}
@@ -328,17 +358,18 @@
 			tasksSet.add(todo);
 
 			// Add all parent todos up to root
-			let currentTodo = todo;
+			let currentTodo: Todo = todo;
 			while (currentTodo.parentId) {
 				const parentTodo = todoMap.get(currentTodo.parentId);
 				if (parentTodo) {
+					const typedParentTodo = parentTodo as Todo;
 					console.log('Adding parent:', {
-						id: parentTodo.id,
-						title: parentTodo.title,
-						status: parentTodo.status
+						id: typedParentTodo.id,
+						title: typedParentTodo.title,
+						status: typedParentTodo.status
 					});
-					tasksSet.add(parentTodo);
-					currentTodo = parentTodo;
+					tasksSet.add(typedParentTodo);
+					currentTodo = typedParentTodo;
 				} else {
 					break;
 				}
@@ -535,6 +566,15 @@
 
 		{#if todos.length > 0}
 			<div class="ml-auto">
+				<Button
+					onclick={handleLoadTestData}
+					variant="outline"
+					size="sm"
+					class="mr-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+				>
+					Load Test Data
+				</Button>
+
 				{#if showClearConfirm}
 					<div class="flex items-center gap-1">
 						<span class="text-xs text-red-600">Are you sure?</span>
@@ -562,6 +602,15 @@
 					</Button>
 				{/if}
 			</div>
+		{:else}
+			<Button
+				onclick={handleLoadTestData}
+				variant="outline"
+				size="sm"
+				class="ml-auto text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+			>
+				Load Test Data
+			</Button>
 		{/if}
 	</div>
 

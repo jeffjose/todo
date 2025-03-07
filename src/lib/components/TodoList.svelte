@@ -6,7 +6,8 @@
 		clearAllTodos,
 		getAllTodos,
 		createRandomTodo,
-		createMultipleRandomTodos
+		createMultipleRandomTodos,
+		loadTestData
 	} from '$lib/client/dexie';
 
 	// Core props from parent
@@ -146,6 +147,34 @@
 			console.error('Failed to clear todos:', error);
 			notification = {
 				message: error instanceof Error ? error.message : 'Failed to clear todos',
+				type: 'error'
+			};
+		} finally {
+			setTimeout(() => {
+				notification = null;
+			}, 5000);
+		}
+	}
+
+	async function handleLoadTestData() {
+		try {
+			const result = await loadTestData();
+			if (result.success) {
+				await onTodosChange();
+				notification = {
+					message: result.message,
+					type: 'success'
+				};
+			} else {
+				notification = {
+					message: result.message,
+					type: 'error'
+				};
+			}
+		} catch (error) {
+			console.error('Failed to load test data:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to load test data',
 				type: 'error'
 			};
 		} finally {
@@ -324,7 +353,17 @@
 		</div>
 
 		{#if todos.length > 0}
-			<div class="ml-auto">
+			<div class="ml-auto flex items-center gap-2">
+				<Button
+					onclick={handleLoadTestData}
+					variant="outline"
+					size="sm"
+					disabled={isLoading}
+					class="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+				>
+					Load Test Data
+				</Button>
+
 				{#if showClearConfirm}
 					<div class="flex items-center gap-2">
 						<span class="text-sm text-red-600">Are you sure?</span>
@@ -357,6 +396,16 @@
 					</Button>
 				{/if}
 			</div>
+		{:else}
+			<Button
+				onclick={handleLoadTestData}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="ml-auto text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+			>
+				Load Test Data
+			</Button>
 		{/if}
 
 		{#if isLoading}

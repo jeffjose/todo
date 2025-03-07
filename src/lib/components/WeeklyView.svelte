@@ -193,7 +193,7 @@
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {
 		// Create a map of all todos for quick lookup
-		const todoMap = new Map(todos.map((todo) => [todo.id, todo]));
+		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
 		// First, filter todos for the week
 		const weekTodos = todos.filter((todo: Todo) => {
@@ -213,12 +213,12 @@
 
 		// Get all parent tasks for the filtered todos
 		const tasksWithParents = new Set<Todo>();
-		weekTodos.forEach((todo) => {
+		weekTodos.forEach((todo: Todo) => {
 			// Add the current todo
 			tasksWithParents.add(todo);
 
 			// Add all parent todos up to root
-			let currentTodo = todo;
+			let currentTodo: Todo = todo;
 			while (currentTodo.parentId) {
 				const parentTodo = todoMap.get(currentTodo.parentId);
 				if (parentTodo) {
@@ -257,18 +257,20 @@
 		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
 		// Create a map of all todos for quick lookup
-		const todoMap = new Map<string, Todo>();
-		todos.forEach((todo: Todo) => todoMap.set(todo.id, todo));
+		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
-		// Helper function to get task with its parents
-		function getTaskWithParents(task: Todo, tasksSet: Set<Todo>) {
-			tasksSet.add(task);
-			let currentTask = task;
-			while (currentTask.parentId) {
-				const parentTask = todoMap.get(currentTask.parentId);
-				if (parentTask) {
-					tasksSet.add(parentTask);
-					currentTask = parentTask;
+		// Helper function to get a task and all its parents
+		function getTaskWithParents(todo: Todo, tasksSet: Set<Todo>) {
+			// Add the current todo
+			tasksSet.add(todo);
+
+			// Add all parent todos up to root
+			let currentTodo = todo;
+			while (currentTodo.parentId) {
+				const parentTodo = todoMap.get(currentTodo.parentId);
+				if (parentTodo) {
+					tasksSet.add(parentTodo);
+					currentTodo = parentTodo;
 				} else {
 					break;
 				}
@@ -293,16 +295,13 @@
 		if (isCurrentWeek) {
 			todos.forEach((todo: Todo) => {
 				if (todo.status !== 'completed') {
-					const date = todo.deadline || todo.finishBy;
-					if (date && date <= weekEvent.endDate) {
-						getTaskWithParents(todo, tasksWithParents);
-					}
+					getTaskWithParents(todo, tasksWithParents);
 				}
 			});
 		}
 
-		// Convert Set back to array and sort
 		const result = Array.from(tasksWithParents);
+
 		result.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
 			if (a.path < b.path) return -1;
@@ -389,6 +388,12 @@
 
 		<div class="ml-2 flex items-center gap-1">
 			<span class="text-xs font-medium text-gray-700">Bulk add:</span>
+			<Button
+				onclick={() => handleAddMultipleTodos(5)}
+				variant="outline"
+				size="sm"
+				class="min-w-12 px-2 py-0.5">5</Button
+			>
 			<Button
 				onclick={() => handleAddMultipleTodos(10)}
 				variant="outline"
@@ -644,6 +649,11 @@
 												>
 													{todo.priority}
 												</span>
+												{#if isCurrentWeek(weekEvent) && ((todo.deadline && todo.deadline < weekEvent.startDate) || (todo.finishBy && todo.finishBy < weekEvent.startDate)) && (todo.deadline || todo.finishBy) && todo.status !== 'completed'}
+													<span class="rounded bg-red-500 px-1 py-0.5 text-xs text-white"
+														>overdue</span
+													>
+												{/if}
 											</div>
 										</div>
 									{:else}

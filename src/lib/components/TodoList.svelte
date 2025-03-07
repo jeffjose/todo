@@ -268,6 +268,15 @@
 		<div class="ml-4 flex items-center gap-2">
 			<span class="text-sm font-medium text-gray-700">Bulk add:</span>
 			<Button
+				onclick={() => handleAddMultipleTodos(5)}
+				variant="outline"
+				size="sm"
+				disabled={isLoading}
+				class="min-w-16"
+			>
+				5
+			</Button>
+			<Button
 				onclick={() => handleAddMultipleTodos(10)}
 				variant="outline"
 				size="sm"

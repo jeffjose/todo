@@ -10,6 +10,7 @@
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
 	import { getTaskStatus, type TaskStatus } from '$lib/utils';
+	import { timelineSimulator } from '$lib/TimelineSimulator';
 
 	export interface WeekEvent {
 		id: string;
@@ -32,9 +33,19 @@
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let isResetting = $state<boolean>(false);
 	let hoveredTaskId = $state<string | null>(null);
+	let simulatedDate = $state<Date>(new Date());
+	let simulatedDateStr = $derived(
+		simulatedDate.toLocaleDateString('en-US', {
+			weekday: 'short',
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric'
+		})
+	);
 
 	onMount(async () => {
 		weekEvents = await loadData();
+		timelineSimulator.updateTodoStates(todos, simulatedDate);
 	});
 
 	// Function to generate a consistent color based on an ID
@@ -186,9 +197,10 @@
 
 	async function loadData() {
 		// Get the start of the current week (Monday)
-		const today = new Date();
-		const currentWeekStart = new Date(today);
-		currentWeekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+		const currentWeekStart = new Date(simulatedDate);
+		currentWeekStart.setDate(
+			simulatedDate.getDate() - simulatedDate.getDay() + (simulatedDate.getDay() === 0 ? -6 : 1)
+		);
 		currentWeekStart.setHours(0, 0, 0, 0);
 
 		// Set view start date to 2 weeks before current week
@@ -253,9 +265,9 @@
 			//   * Promoted tasks show "slipped" badge
 			// - Todo tasks: Always show in their specified week
 			if (type === 'finishBy') {
-				const today = new Date();
-				const isPastWeek = weekEvent.endDate < today;
-				const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+				const isPastWeek = weekEvent.endDate < simulatedDate;
+				const isCurrentWeek =
+					simulatedDate >= weekEvent.startDate && simulatedDate <= weekEvent.endDate;
 
 				if (isPastWeek) {
 					return date >= startDate && date <= endDate && todo.status === 'completed';
@@ -314,9 +326,9 @@
 	}
 
 	function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent): Todo[] {
-		const today = new Date();
-		const isPastWeek = weekEvent.endDate < today;
-		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+		const isPastWeek = weekEvent.endDate < simulatedDate;
+		const isCurrentWeek =
+			simulatedDate >= weekEvent.startDate && simulatedDate <= weekEvent.endDate;
 
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
@@ -426,8 +438,7 @@
 	}
 
 	function isCurrentWeek(weekEvent: WeekEvent): boolean {
-		const today = new Date();
-		return today >= weekEvent.startDate && today <= weekEvent.endDate;
+		return simulatedDate >= weekEvent.startDate && simulatedDate <= weekEvent.endDate;
 	}
 
 	function isStartOfMonth(weekEvent: WeekEvent): boolean {
@@ -464,11 +475,84 @@
 	function handleTaskHover(taskId: string | null) {
 		hoveredTaskId = taskId;
 	}
+
+	function moveDate(days: number) {
+		console.log(`\nMoving date by ${days} days`);
+		const newDate = new Date(simulatedDate);
+		newDate.setDate(simulatedDate.getDate() + days);
+		console.log(`Current date: ${simulatedDate.toISOString()}`);
+		console.log(`New date: ${newDate.toISOString()}`);
+		simulatedDate = newDate;
+		console.log('Updating todo states...');
+		timelineSimulator.updateTodoStates(todos, simulatedDate);
+		console.log('Loading new data...');
+		loadData();
+	}
+
+	function resetDate() {
+		console.log('\nResetting date to now');
+		simulatedDate = new Date();
+		console.log(`New date: ${simulatedDate.toISOString()}`);
+		console.log('Resetting todo states...');
+		timelineSimulator.reset(todos);
+		console.log('Loading new data...');
+		loadData();
+	}
 </script>
 
 <div class="container mx-auto p-2">
 	<div class="mb-3 flex items-center justify-between">
-		<h1 class="text-xl font-bold">Weekly View ({todos.length})</h1>
+		<div class="flex items-center gap-4">
+			<h1 class="text-xl font-bold">Weekly View ({todos.length})</h1>
+			<div class="flex items-center gap-2 rounded border border-gray-200 bg-white px-2 py-1">
+				<Button
+					onclick={() => moveDate(-7)}
+					variant="ghost"
+					size="sm"
+					class="h-7 w-7 p-0"
+					title="Previous week"
+				>
+					<span class="text-lg">«</span>
+				</Button>
+				<Button
+					onclick={() => moveDate(-1)}
+					variant="ghost"
+					size="sm"
+					class="h-7 w-7 p-0"
+					title="Previous day"
+				>
+					<span class="text-lg">‹</span>
+				</Button>
+				<div class="flex items-center gap-2">
+					<span class="min-w-40 text-sm">{simulatedDateStr}</span>
+					<Button
+						onclick={resetDate}
+						variant="outline"
+						size="sm"
+						class="h-6 px-2 py-0 text-xs"
+						title="Reset to today">now</Button
+					>
+				</div>
+				<Button
+					onclick={() => moveDate(1)}
+					variant="ghost"
+					size="sm"
+					class="h-7 w-7 p-0"
+					title="Next day"
+				>
+					<span class="text-lg">›</span>
+				</Button>
+				<Button
+					onclick={() => moveDate(7)}
+					variant="ghost"
+					size="sm"
+					class="h-7 w-7 p-0"
+					title="Next week"
+				>
+					<span class="text-lg">»</span>
+				</Button>
+			</div>
+		</div>
 		<Button onclick={handleResetDatabase} variant="destructive" size="sm" disabled={isResetting}>
 			{isResetting ? 'Resetting...' : 'Reset Database'}
 		</Button>
@@ -780,7 +864,7 @@
 												</span>
 												<!-- Visual indicators for task status -->
 												{#if isCurrentWeek(weekEvent)}
-													{@const status = getTaskStatus(todo, weekEvent.startDate)}
+													{@const status = getTaskStatus(todo, weekEvent.startDate, simulatedDate)}
 													{#if status}
 														<span
 															class="rounded px-1 py-0.5 text-xs text-white"

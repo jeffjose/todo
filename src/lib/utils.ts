@@ -11,6 +11,7 @@ export type TaskStatus = { type: 'overdue'; daysOverdue: number } | { type: 'sli
  * Determines the status of a task based on its deadline and finishBy dates
  * @param todo The task to check
  * @param weekStartDate The start date of the week being displayed
+ * @param simulatedDate The simulated current date (defaults to actual current date)
  * @returns { type: 'overdue', daysOverdue: number } if task has past deadline
  *          { type: 'slipped' } if task has past finishBy date but future/no deadline
  *          null if task is completed or has no status indicators
@@ -19,14 +20,13 @@ export function getTaskStatus(todo: {
 	status: string;
 	deadline: Date | null;
 	finishBy: Date | null;
-}, weekStartDate: Date): TaskStatus {
+}, weekStartDate: Date, simulatedDate: Date = new Date()): TaskStatus {
 	// Don't show any status for completed tasks
 	if (todo.status === 'completed') return null;
 
 	// Task is overdue if it has a deadline in the past
 	if (todo.deadline && todo.deadline < weekStartDate) {
-		const today = new Date();
-		const daysOverdue = Math.ceil((today.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+		const daysOverdue = Math.ceil((simulatedDate.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
 		return { type: 'overdue', daysOverdue };
 	}
 

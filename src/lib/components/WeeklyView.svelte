@@ -192,6 +192,9 @@
 	}
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy'): Todo[] {
+		// Create a map of all todos for quick lookup
+		const todoMap = new Map(todos.map((todo) => [todo.id, todo]));
+
 		// First, filter todos for the week
 		const weekTodos = todos.filter((todo: Todo) => {
 			const date = type === 'deadline' ? todo.deadline : todo.finishBy;
@@ -208,20 +211,44 @@
 			return date >= startDate && date <= endDate;
 		});
 
-		// Sort todos by completion status first, then by date
-		weekTodos.sort((a: Todo, b: Todo) => {
-			// First sort by completion status
+		// Get all parent tasks for the filtered todos
+		const tasksWithParents = new Set<Todo>();
+		weekTodos.forEach((todo) => {
+			// Add the current todo
+			tasksWithParents.add(todo);
+
+			// Add all parent todos up to root
+			let currentTodo = todo;
+			while (currentTodo.parentId) {
+				const parentTodo = todoMap.get(currentTodo.parentId);
+				if (parentTodo) {
+					tasksWithParents.add(parentTodo);
+					currentTodo = parentTodo;
+				} else {
+					break;
+				}
+			}
+		});
+
+		// Convert Set back to array and sort
+		const result = Array.from(tasksWithParents);
+		result.sort((a: Todo, b: Todo) => {
+			// First sort by path to maintain hierarchy
+			if (a.path < b.path) return -1;
+			if (a.path > b.path) return 1;
+
+			// Then sort by completion status
 			if (a.status === 'completed' && b.status !== 'completed') return -1;
 			if (a.status !== 'completed' && b.status === 'completed') return 1;
 
-			// Then sort by date
+			// Finally sort by date if both tasks have dates
 			const dateA = type === 'deadline' ? a.deadline : a.finishBy;
 			const dateB = type === 'deadline' ? b.deadline : b.finishBy;
 			if (!dateA || !dateB) return 0;
 			return dateA.getTime() - dateB.getTime();
 		});
 
-		return weekTodos;
+		return result;
 	}
 
 	function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent): Todo[] {
@@ -229,44 +256,70 @@
 		const isPastWeek = weekEvent.endDate < today;
 		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
-		// For past weeks, only show completed tasks from that week
+		// Create a map of all todos for quick lookup
+		const todoMap = new Map<string, Todo>();
+		todos.forEach((todo: Todo) => todoMap.set(todo.id, todo));
+
+		// Helper function to get task with its parents
+		function getTaskWithParents(task: Todo, tasksSet: Set<Todo>) {
+			tasksSet.add(task);
+			let currentTask = task;
+			while (currentTask.parentId) {
+				const parentTask = todoMap.get(currentTask.parentId);
+				if (parentTask) {
+					tasksSet.add(parentTask);
+					currentTask = parentTask;
+				} else {
+					break;
+				}
+			}
+		}
+
+		const tasksWithParents = new Set<Todo>();
+
+		// For past weeks, show completed tasks from that week and their parents
 		if (isPastWeek) {
-			return todos
-				.filter((todo: Todo) => {
-					if (todo.status !== 'completed') return false;
+			todos.forEach((todo: Todo) => {
+				if (todo.status === 'completed') {
 					const date = todo.deadline || todo.finishBy;
-					if (!date) return false;
-
-					return date >= weekEvent.startDate && date <= weekEvent.endDate;
-				})
-				.sort((a: Todo, b: Todo) => {
-					const dateA = a.deadline || a.finishBy;
-					const dateB = b.deadline || b.finishBy;
-					if (!dateA || !dateB) return 0;
-					return dateA.getTime() - dateB.getTime();
-				});
+					if (date && date >= weekEvent.startDate && date <= weekEvent.endDate) {
+						getTaskWithParents(todo, tasksWithParents);
+					}
+				}
+			});
 		}
 
-		// For current week, show all open tasks from past and current week
+		// For current week, show all open tasks from past and current week and their parents
 		if (isCurrentWeek) {
-			return todos
-				.filter((todo: Todo) => {
-					if (todo.status === 'completed') return false;
+			todos.forEach((todo: Todo) => {
+				if (todo.status !== 'completed') {
 					const date = todo.deadline || todo.finishBy;
-					if (!date) return false;
-
-					return date <= weekEvent.endDate;
-				})
-				.sort((a: Todo, b: Todo) => {
-					const dateA = a.deadline || a.finishBy;
-					const dateB = b.deadline || b.finishBy;
-					if (!dateA || !dateB) return 0;
-					return dateA.getTime() - dateB.getTime();
-				});
+					if (date && date <= weekEvent.endDate) {
+						getTaskWithParents(todo, tasksWithParents);
+					}
+				}
+			});
 		}
 
-		// For future weeks, show nothing
-		return [];
+		// Convert Set back to array and sort
+		const result = Array.from(tasksWithParents);
+		result.sort((a: Todo, b: Todo) => {
+			// First sort by path to maintain hierarchy
+			if (a.path < b.path) return -1;
+			if (a.path > b.path) return 1;
+
+			// Then sort by completion status
+			if (a.status === 'completed' && b.status !== 'completed') return -1;
+			if (a.status !== 'completed' && b.status === 'completed') return 1;
+
+			// Finally sort by date
+			const dateA = a.deadline || a.finishBy;
+			const dateB = b.deadline || b.finishBy;
+			if (!dateA || !dateB) return 0;
+			return dateA.getTime() - dateB.getTime();
+		});
+
+		return result;
 	}
 
 	function formatDate(date: Date): string {
@@ -483,8 +536,7 @@
 													? '#9CA3AF'
 													: getColorForId(todo.id)}
 											>
-												{#if todo.emoji}<span class="mr-0.5">{todo.emoji}</span>{/if}
-												{todo.title}
+												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
 												class="rounded px-1 py-0.5 text-xs"
@@ -527,8 +579,7 @@
 													? '#9CA3AF'
 													: getColorForId(todo.id)}
 											>
-												{#if todo.emoji}<span class="mr-0.5">{todo.emoji}</span>{/if}
-												{todo.title}
+												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
 												class="rounded px-1 py-0.5 text-xs"
@@ -572,8 +623,7 @@
 														? '#9CA3AF'
 														: getColorForId(todo.id)}
 												>
-													{#if todo.emoji}<span class="mr-0.5">{todo.emoji}</span>{/if}
-													{todo.title}
+													{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 												</span>
 												<span
 													class="rounded px-1 py-0.5 text-xs"

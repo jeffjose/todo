@@ -397,7 +397,8 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   // Get random title and emoji from the theme
   const titleIndex = Math.floor(Math.random() * theme.titles.length);
   const title = theme.titles[titleIndex];
-  const emoji = theme.emoji[Math.floor(Math.random() * theme.emoji.length)];
+  // 50% chance to have an emoji
+  const emoji = Math.random() < 0.5 ? theme.emoji[Math.floor(Math.random() * theme.emoji.length)] : null;
 
   const description = `This is a randomly generated todo item for ${title.toLowerCase()}.`;
 

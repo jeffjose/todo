@@ -69,9 +69,6 @@ describe('Utility Functions', () => {
       const friday = new Date('2024-03-22T00:00:00Z'); // Friday
       const nextMonday = new Date('2024-03-25T00:00:00Z'); // Monday
       const result = getNextBusinessDay(friday);
-      console.log('Input date:', friday.toISOString());
-      console.log('Expected date:', nextMonday.toISOString());
-      console.log('Actual date:', result.toISOString());
       expect(result.getTime()).toBe(nextMonday.getTime());
 
       // Test with a Saturday

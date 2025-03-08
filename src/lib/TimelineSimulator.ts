@@ -8,10 +8,16 @@ interface StateCache {
   };
 }
 
+interface CompletionDates {
+  [todoId: string]: string; // ISO date string when task was completed
+}
+
 export class TimelineSimulator {
   private stateCache: StateCache = {};
   private originalStates: { [todoId: string]: TodoStatus } = {};
+  private completionDates: CompletionDates = {};
   private initialized = false;
+  private lastDate: Date | null = null;
 
   constructor() { }
 
@@ -31,31 +37,42 @@ export class TimelineSimulator {
     return random;
   }
 
-  private determineNewState(todo: Todo, simulatedDate: Date): TodoStatus {
+  private determineNewState(todo: Todo, simulatedDate: Date, isBackwards: boolean): TodoStatus {
     const dateStr = simulatedDate.toISOString().split('T')[0];
     const random = this.getSeededRandom(todo.id, dateStr);
 
     const currentStatus = todo.status;
     let newStatus: TodoStatus;
 
-    switch (todo.status) {
-      case 'pending':
-        if (random < 0.30) newStatus = 'completed';  // 30% chance to complete directly
-        else if (random < 0.80) newStatus = 'in-progress';  // 50% chance to move to in-progress
-        else newStatus = 'pending';  // 20% chance to stay pending
-        break;
-
-      case 'in-progress':
-        if (random < 0.60) newStatus = 'completed';  // 60% chance to complete
-        else newStatus = 'in-progress';  // 40% chance to stay in-progress
-        break;
-
-      case 'completed':
-        newStatus = 'completed'; // Once completed, stays completed
-        break;
-
-      default:
+    // If moving backwards and task is completed, check if we should uncomplete it
+    if (isBackwards && currentStatus === 'completed') {
+      const completionDate = this.completionDates[todo.id];
+      if (completionDate && dateStr < completionDate) {
         newStatus = 'pending';
+        console.log(`Uncompleting task ${todo.title} as we moved before its completion date ${completionDate}`);
+      } else {
+        newStatus = 'completed';
+      }
+    } else {
+      // Normal forward progression
+      switch (currentStatus) {
+        case 'pending':
+        case 'in-progress':
+          // 70% chance to complete each day
+          newStatus = random < 0.70 ? 'completed' : 'pending';
+          // If task becomes completed, store the completion date
+          if (newStatus === 'completed') {
+            this.completionDates[todo.id] = dateStr;
+          }
+          break;
+
+        case 'completed':
+          newStatus = 'completed';
+          break;
+
+        default:
+          newStatus = 'pending';
+      }
     }
 
     console.log(`Task ${todo.title} (${todo.id}): ${currentStatus} -> ${newStatus} (random: ${random})`);
@@ -65,6 +82,10 @@ export class TimelineSimulator {
   public updateTodoStates(todos: Todo[], simulatedDate: Date): void {
     const dateStr = simulatedDate.toISOString().split('T')[0];
     console.log(`\nUpdating states for ${todos.length} todos on ${dateStr}`);
+
+    // Determine if we're moving backwards in time
+    const isBackwards = this.lastDate ? simulatedDate < this.lastDate : false;
+    console.log(`Time direction: ${isBackwards ? 'backwards' : 'forwards'}`);
 
     // Initialize original states if not done yet
     if (!this.initialized) {
@@ -83,21 +104,23 @@ export class TimelineSimulator {
         todo.status = this.stateCache[dateStr][todo.id];
         console.log(`Task ${todo.title} (${todo.id}): ${oldStatus} -> ${todo.status} (from cache)`);
       });
-      return;
+    } else {
+      // Calculate new states
+      console.log('Calculating new states');
+      const newStates: { [todoId: string]: TodoStatus } = {};
+      todos.forEach(todo => {
+        newStates[todo.id] = this.determineNewState(todo, simulatedDate, isBackwards);
+      });
+
+      // Cache and apply the new states
+      this.stateCache[dateStr] = newStates;
+      todos.forEach(todo => {
+        todo.status = newStates[todo.id];
+      });
     }
 
-    // Calculate new states
-    console.log('Calculating new states');
-    const newStates: { [todoId: string]: TodoStatus } = {};
-    todos.forEach(todo => {
-      newStates[todo.id] = this.determineNewState(todo, simulatedDate);
-    });
-
-    // Cache and apply the new states
-    this.stateCache[dateStr] = newStates;
-    todos.forEach(todo => {
-      todo.status = newStates[todo.id];
-    });
+    // Update last date
+    this.lastDate = simulatedDate;
   }
 
   public reset(todos: Todo[]): void {
@@ -109,7 +132,9 @@ export class TimelineSimulator {
       console.log(`Task ${todo.title} (${todo.id}): ${oldStatus} -> ${todo.status}`);
     });
     this.stateCache = {}; // Clear cache
+    this.completionDates = {}; // Clear completion dates
     this.initialized = false;
+    this.lastDate = null;
     console.log('Cache cleared and simulator reset');
   }
 }

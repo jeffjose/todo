@@ -498,6 +498,77 @@
 		console.log('Loading new data...');
 		loadData();
 	}
+
+	function explainTaskPlacement(todo: Todo, weekEvent: WeekEvent) {
+		let explanation = [`Task "${todo.title}" (${todo.id}):`];
+
+		// Explain which column it's in and why
+		if (
+			todo.deadline &&
+			todo.deadline >= weekEvent.startDate &&
+			todo.deadline <= weekEvent.endDate
+		) {
+			explanation.push('• Appears in Deadline column because its deadline falls within this week');
+		}
+		if (
+			todo.finishBy &&
+			todo.finishBy >= weekEvent.startDate &&
+			todo.finishBy <= weekEvent.endDate
+		) {
+			explanation.push(
+				'• Appears in Finish By column because its finish-by date falls within this week'
+			);
+		}
+		if (todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate) {
+			explanation.push('• Appears in Todo column because its todo date falls within this week');
+		}
+
+		// Explain status badges
+		const status = getTaskStatus(todo, weekEvent.startDate, simulatedDate);
+		if (status) {
+			if (status.type === 'overdue') {
+				explanation.push(
+					`• Shows "overdue" badge because it's ${status.daysOverdue} days past its deadline`
+				);
+			} else if (status.type === 'slipped') {
+				explanation.push(
+					'• Shows "slipped" badge because its finish-by date is in the past but task isn\'t completed'
+				);
+			}
+		}
+
+		// Explain priority and urgency
+		explanation.push(`• Priority ${todo.priority} (${getPriorityDescription(todo.priority)})`);
+		explanation.push(`• Urgency: ${todo.urgency}`);
+
+		// Explain task status
+		explanation.push(`• Current status: ${todo.status}`);
+
+		// Log the explanation
+		console.log(explanation.join('\n'));
+	}
+
+	function getPriorityDescription(priority: string): string {
+		switch (priority) {
+			case 'P0':
+				return 'Critical';
+			case 'P1':
+				return 'High';
+			case 'P2':
+				return 'Medium';
+			case 'P3':
+				return 'Low';
+			default:
+				return 'Unknown';
+		}
+	}
+
+	function handleTaskClick(todo: Todo, weekEvent: WeekEvent) {
+		console.log(`Task "${todo.title}" (${todo.id}):
+• Priority ${todo.priority} (${todo.priority === 'P0' ? 'Critical' : todo.priority === 'P1' ? 'High' : todo.priority === 'P2' ? 'Medium' : 'Low'})
+• Urgency: ${todo.urgency}
+• Current status: ${todo.status}`);
+	}
 </script>
 
 <div class="container mx-auto p-2">
@@ -726,6 +797,7 @@
 										class:task-highlight={hoveredTaskId === todo.id}
 										on:mouseenter={() => handleTaskHover(todo.id)}
 										on:mouseleave={() => handleTaskHover(null)}
+										on:click={() => handleTaskClick(todo, weekEvent)}
 									>
 										<div
 											class="flex items-center gap-1"
@@ -774,6 +846,7 @@
 										class:task-highlight={hoveredTaskId === todo.id}
 										on:mouseenter={() => handleTaskHover(todo.id)}
 										on:mouseleave={() => handleTaskHover(null)}
+										on:click={() => handleTaskClick(todo, weekEvent)}
 									>
 										<div
 											class="flex items-center gap-1"
@@ -828,6 +901,7 @@
 											class:task-highlight={hoveredTaskId === todo.id}
 											on:mouseenter={() => handleTaskHover(todo.id)}
 											on:mouseleave={() => handleTaskHover(null)}
+											on:click={() => handleTaskClick(todo, weekEvent)}
 										>
 											<div
 												class="flex items-center gap-1"

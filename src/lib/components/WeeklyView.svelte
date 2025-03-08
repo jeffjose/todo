@@ -871,10 +871,21 @@
 											>
 												{todo.priority}
 											</span>
-											{#if isCurrentWeek(weekEvent) && todo.finishBy && todo.finishBy < weekEvent.startDate && todo.status !== 'completed'}
-												<span class="rounded bg-yellow-500 px-1 py-0.5 text-xs text-white"
-													>slipped</span
-												>
+											{#if isCurrentWeek(weekEvent)}
+												{@const status = getTaskStatus(todo, weekEvent.startDate, simulatedDate)}
+												{#if status}
+													<span
+														class="rounded px-1 py-0.5 text-xs text-white"
+														class:bg-red-500={status.type === 'overdue'}
+														class:bg-yellow-500={status.type === 'slipped'}
+													>
+														{#if status.type === 'overdue'}
+															overdue ({status.daysOverdue}d)
+														{:else}
+															{status.type}
+														{/if}
+													</span>
+												{/if}
 											{/if}
 										</div>
 									</div>

@@ -645,12 +645,16 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
     const db = await getDB();
     const allTodos: Todo[] = [];
 
-    // Load from YAML file
+    // First try to load from YAML
     try {
       const yamlResponse = await fetch('/data/initial_tasks.yaml');
       if (yamlResponse.ok) {
         const yamlText = await yamlResponse.text();
-        const tasks = load(yamlText).tasks;
+        console.log('DEBUG - Raw YAML text:', yamlText);
+        const data = load(yamlText);
+        console.log('DEBUG - Parsed YAML data:', data);
+        const tasks = data.tasks;
+        console.log('DEBUG - Parsed YAML tasks:', tasks);
 
         // Process YAML tasks
         for (const task of tasks) {
@@ -670,34 +674,61 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             tags: task.tags || [],
             attachments: [],
             comments: [],
-            subtasks: task.subtasks?.map((subtask: any) => ({
-              id: generateId(),
-              title: subtask.title,
-              completed: subtask.completed || false,
-              createdAt: now,
-              updatedAt: now
-            })) || [],
+            subtasks: [],
             path: 'root',
             level: 0,
             parentId: null,
             createdAt: now,
             updatedAt: now
           };
+          console.log('DEBUG - Processed YAML task:', todo);
           allTodos.push(todo);
+
+          // Process subtasks if they exist
+          if (task.subtasks) {
+            for (const subtask of task.subtasks) {
+              const subtaskId = generateId();
+              const subtaskTodo: Todo = {
+                id: subtaskId,
+                title: subtask.title,
+                status: subtask.status || 'pending',
+                deadline: subtask.deadline ? new Date(subtask.deadline) : null,
+                finishBy: subtask.finish_by ? new Date(subtask.finish_by) : null,
+                todo: subtask.todo ? new Date(subtask.todo) : null,
+                priority: subtask.priority || 'P3',
+                emoji: subtask.emoji || null,
+                description: subtask.description || null,
+                urgency: subtask.urgency || 'medium',
+                tags: subtask.tags || [],
+                attachments: [],
+                comments: [],
+                subtasks: [],
+                path: `root.${id}`,
+                level: 1,
+                parentId: id,
+                createdAt: now,
+                updatedAt: now
+              };
+              console.log('DEBUG - Processed YAML subtask:', subtaskTodo);
+              allTodos.push(subtaskTodo);
+            }
+          }
         }
+      } else {
+        console.warn('Failed to load YAML file:', yamlResponse.statusText);
       }
-    } catch (yamlError) {
-      console.warn('Failed to load YAML tasks:', yamlError);
+    } catch (error) {
+      console.warn('Failed to load YAML tasks:', error);
     }
 
-    // Load from JSON file
+    // Then try to load from JSON
     try {
-      const jsonResponse = await fetch('/data/tasks.json');
-      if (jsonResponse.ok) {
-        const testData = await jsonResponse.json();
+      const response = await fetch('/data/tasks.json');
+      if (response.ok) {
+        const testData = await response.json();
         console.log('DEBUG - Raw test data from JSON:', testData);
 
-        // Process JSON tasks
+        // Process dates in the test data
         const processedData = testData.map((todo: any) => {
           const processed = {
             ...todo,
@@ -717,23 +748,24 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
           });
           return processed;
         });
+
         allTodos.push(...processedData);
+      } else {
+        console.warn('Failed to load JSON file:', response.statusText);
       }
-    } catch (jsonError) {
-      console.warn('Failed to load JSON tasks:', jsonError);
+    } catch (error) {
+      console.warn('Failed to load JSON tasks:', error);
     }
 
-    // Add all tasks to the database
-    if (allTodos.length > 0) {
-      await db.todos.bulkPut(allTodos);
-      return {
-        success: true,
-        message: `Loaded ${allTodos.length} test todos successfully (${allTodos.length} total)`,
-        todos: allTodos
-      };
-    } else {
-      throw new Error('No tasks were loaded from either file');
-    }
+    // Clear existing todos and add all loaded todos
+    await db.todos.clear();
+    await db.todos.bulkPut(allTodos);
+
+    return {
+      success: true,
+      message: `Loaded ${allTodos.length} todos successfully`,
+      todos: allTodos
+    };
   } catch (error) {
     console.error('Failed to load test data:', error);
     return {
@@ -782,78 +814,97 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
   try {
     const db = await getDB();
 
-    // Fetch the CSV file
-    const response = await fetch('/data/initial_tasks.csv');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch initial tasks: ${response.statusText}`);
-    }
+    // Clear existing todos first
+    await db.todos.clear();
 
-    const csvText = await response.text();
-    const tasks = parseCSV(csvText);
+    // Fetch the YAML file
+    const yamlResponse = await fetch('/data/initial_tasks.yaml');
+    if (yamlResponse.ok) {
+      const yamlText = await yamlResponse.text();
+      console.log('DEBUG - Raw YAML text:', yamlText);
+      const data = load(yamlText);
+      console.log('DEBUG - Parsed YAML data:', data);
+      const tasks = data.tasks;
+      console.log('DEBUG - Parsed YAML tasks:', tasks);
 
-    // Create a map of titles to IDs for parent relationships
-    const titleToId = new Map<string, string>();
-    const processedTodos: Todo[] = [];
+      // Process YAML tasks
+      const allTodos: Todo[] = [];
+      for (const task of tasks) {
+        const id = generateId();
+        const now = new Date();
+        const todo: Todo = {
+          id,
+          title: task.title,
+          status: task.status || 'pending',
+          deadline: task.deadline ? new Date(task.deadline) : null,
+          finishBy: task.finish_by ? new Date(task.finish_by) : null,
+          todo: task.todo ? new Date(task.todo) : null,
+          priority: task.priority || 'P3',
+          emoji: task.emoji || null,
+          description: task.description || null,
+          urgency: task.urgency || 'medium',
+          tags: task.tags || [],
+          attachments: [],
+          comments: [],
+          subtasks: [],
+          path: 'root',
+          level: 0,
+          parentId: null,
+          createdAt: now,
+          updatedAt: now
+        };
+        console.log('DEBUG - Processed YAML task:', todo);
+        allTodos.push(todo);
 
-    // First pass: create all todos with IDs
-    for (const task of tasks) {
-      const id = generateId();
-      titleToId.set(task.title, id);
-
-      const now = new Date();
-      const todo: Todo = {
-        id,
-        title: task.title,
-        status: task.status || 'pending',
-        deadline: task.deadline ? new Date(task.deadline) : null,
-        finishBy: task.finish_by ? new Date(task.finish_by) : null,
-        todo: task.todo ? new Date(task.todo) : null,
-        priority: task.priority || 'P3',
-        emoji: task.emoji || null,
-        description: task.description || null,
-        urgency: task.urgency || 'medium',
-        tags: task.tags || [],
-        attachments: [],
-        comments: [],
-        subtasks: [],
-        path: 'root',
-        level: 0,
-        parentId: null,
-        createdAt: now,
-        updatedAt: now
-      };
-
-      processedTodos.push(todo);
-    }
-
-    // Second pass: handle parent relationships
-    for (const task of tasks) {
-      if (task.parent_title) {
-        const parentId = titleToId.get(task.parent_title);
-        if (parentId) {
-          const todo = processedTodos.find(t => t.title === task.title);
-          if (todo) {
-            const parentTodo = processedTodos.find(t => t.id === parentId);
-            if (parentTodo) {
-              todo.parentId = parentId;
-              todo.path = buildPath(parentTodo.path, parentId);
-              todo.level = parentTodo.level + 1;
-            }
+        // Process subtasks if they exist
+        if (task.subtasks) {
+          for (const subtask of task.subtasks) {
+            const subtaskId = generateId();
+            const subtaskTodo: Todo = {
+              id: subtaskId,
+              title: subtask.title,
+              status: subtask.status || 'pending',
+              deadline: subtask.deadline ? new Date(subtask.deadline) : null,
+              finishBy: subtask.finish_by ? new Date(subtask.finish_by) : null,
+              todo: subtask.todo ? new Date(subtask.todo) : null,
+              priority: subtask.priority || 'P3',
+              emoji: subtask.emoji || null,
+              description: subtask.description || null,
+              urgency: subtask.urgency || 'medium',
+              tags: subtask.tags || [],
+              attachments: [],
+              comments: [],
+              subtasks: [],
+              path: `root.${id}`,
+              level: 1,
+              parentId: id,
+              createdAt: now,
+              updatedAt: now
+            };
+            console.log('DEBUG - Processed YAML subtask:', subtaskTodo);
+            allTodos.push(subtaskTodo);
           }
         }
       }
+
+      // Add the processed todos to the database
+      await db.todos.bulkPut(allTodos);
+
+      return {
+        success: true,
+        message: `Loaded ${allTodos.length} initial todos successfully`,
+        todos: allTodos
+      };
+    } else {
+      console.warn('Failed to load YAML file:', yamlResponse.statusText);
+      return {
+        success: false,
+        message: 'Failed to load YAML file',
+        todos: []
+      };
     }
-
-    // Add the processed todos to the database
-    await db.todos.bulkPut(processedTodos);
-
-    return {
-      success: true,
-      message: `Loaded ${processedTodos.length} initial todos successfully`,
-      todos: processedTodos
-    };
   } catch (error) {
-    console.error('Failed to load initial tasks:', error);
+    console.warn('Failed to load YAML tasks:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to load initial tasks',

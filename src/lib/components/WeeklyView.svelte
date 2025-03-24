@@ -227,6 +227,20 @@
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | 'todo'): Todo[] {
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
+		console.log(
+			'DEBUG - All todos with full details:',
+			todos.map((t: Todo) => ({
+				id: t.id,
+				title: t.title,
+				level: t.level,
+				path: t.path,
+				parentId: t.parentId,
+				status: t.status,
+				deadline: t.deadline,
+				finishBy: t.finishBy,
+				todo: t.todo
+			}))
+		);
 
 		// First, filter todos for the week
 		const weekTodos = todos.filter((todo: Todo) => {
@@ -271,6 +285,20 @@
 
 			return date >= startDate && date <= endDate;
 		});
+		console.log(
+			'DEBUG - Week todos before parent processing with full details:',
+			weekTodos.map((t: Todo) => ({
+				id: t.id,
+				title: t.title,
+				level: t.level,
+				path: t.path,
+				parentId: t.parentId,
+				status: t.status,
+				deadline: t.deadline,
+				finishBy: t.finishBy,
+				todo: t.todo
+			}))
+		);
 
 		// Get all parent tasks for the filtered todos
 		const tasksWithParents = new Set<Todo>();
@@ -291,13 +319,79 @@
 			}
 		});
 
+		// Also add any subtasks of the filtered todos
+		weekTodos.forEach((todo: Todo) => {
+			todos.forEach((potentialSubtask: Todo) => {
+				if (potentialSubtask.parentId === todo.id) {
+					tasksWithParents.add(potentialSubtask);
+				}
+			});
+		});
+
+		console.log(
+			'DEBUG - Tasks with parents with full details:',
+			Array.from(tasksWithParents).map((t: Todo) => ({
+				id: t.id,
+				title: t.title,
+				level: t.level,
+				path: t.path,
+				parentId: t.parentId,
+				status: t.status,
+				deadline: t.deadline,
+				finishBy: t.finishBy,
+				todo: t.todo
+			}))
+		);
+
 		// Convert Set back to array and sort
 		const result = Array.from(tasksWithParents);
 
 		result.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
-			if (a.path < b.path) return -1;
-			if (a.path > b.path) return 1;
+			const pathA = a.path || '';
+			const pathB = b.path || '';
+			if (pathA !== pathB) {
+				console.log('DEBUG - Sorting by path:', {
+					a: {
+						id: a.id,
+						title: a.title,
+						path: pathA,
+						level: a.level,
+						parentId: a.parentId
+					},
+					b: {
+						id: b.id,
+						title: b.title,
+						path: pathB,
+						level: b.level,
+						parentId: b.parentId
+					},
+					comparison: `${pathA} vs ${pathB}`
+				});
+				return pathA.localeCompare(pathB);
+			}
+
+			// Then sort by level (parent tasks before subtasks)
+			if (a.level !== b.level) {
+				console.log('DEBUG - Sorting by level:', {
+					a: {
+						id: a.id,
+						title: a.title,
+						level: a.level,
+						path: a.path,
+						parentId: a.parentId
+					},
+					b: {
+						id: b.id,
+						title: b.title,
+						level: b.level,
+						path: b.path,
+						parentId: b.parentId
+					},
+					result: a.level - b.level
+				});
+				return a.level - b.level;
+			}
 
 			// Then sort by completion status
 			if (a.status === 'completed' && b.status !== 'completed') return -1;
@@ -310,6 +404,20 @@
 			return dateA.getTime() - dateB.getTime();
 		});
 
+		console.log(
+			'DEBUG - Final sorted result with full details:',
+			result.map((t: Todo) => ({
+				id: t.id,
+				title: t.title,
+				level: t.level,
+				path: t.path,
+				parentId: t.parentId,
+				status: t.status,
+				deadline: t.deadline,
+				finishBy: t.finishBy,
+				todo: t.todo
+			}))
+		);
 		return result;
 	}
 
@@ -391,14 +499,56 @@
 
 		result.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
-			if (a.path < b.path) return -1;
-			if (a.path > b.path) return 1;
+			const pathA = a.path || '';
+			const pathB = b.path || '';
+			if (pathA !== pathB) {
+				console.log('DEBUG - Sorting by path:', {
+					a: {
+						id: a.id,
+						title: a.title,
+						path: pathA,
+						level: a.level,
+						parentId: a.parentId
+					},
+					b: {
+						id: b.id,
+						title: b.title,
+						path: pathB,
+						level: b.level,
+						parentId: b.parentId
+					},
+					comparison: `${pathA} vs ${pathB}`
+				});
+				return pathA.localeCompare(pathB);
+			}
+
+			// Then sort by level (parent tasks before subtasks)
+			if (a.level !== b.level) {
+				console.log('DEBUG - Sorting by level:', {
+					a: {
+						id: a.id,
+						title: a.title,
+						level: a.level,
+						path: a.path,
+						parentId: a.parentId
+					},
+					b: {
+						id: b.id,
+						title: b.title,
+						level: b.level,
+						path: b.path,
+						parentId: b.parentId
+					},
+					result: a.level - b.level
+				});
+				return a.level - b.level;
+			}
 
 			// Then sort by completion status
 			if (a.status === 'completed' && b.status !== 'completed') return -1;
 			if (a.status !== 'completed' && b.status === 'completed') return 1;
 
-			// Finally sort by date
+			// Finally sort by date if both tasks have dates
 			const dateA = a.todo || a.deadline || a.finishBy;
 			const dateB = b.todo || b.deadline || b.finishBy;
 			if (!dateA || !dateB) return 0;

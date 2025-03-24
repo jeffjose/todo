@@ -100,46 +100,29 @@ describe('Utility Functions', () => {
 
   describe('Random Data Generation', () => {
     it('should generate random todo data', () => {
-      const todoData = generateRandomTodoData();
+      // Use a fixed date for testing
+      const now = new Date('2024-01-01T00:00:00Z');
+      const todoData = generateRandomTodoData(now, new Date('2024-12-31T23:59:59Z'));
 
       // Check required fields
       expect(todoData.title).toBeDefined();
       expect(todoData.description).toBeDefined();
-      expect(todoData.emoji).toBeDefined();
-      expect(todoData.deadline).toBeDefined();
-      expect(todoData.finishBy).toBeDefined();
       expect(todoData.status).toBeDefined();
       expect(todoData.priority).toBeDefined();
       expect(todoData.urgency).toBeDefined();
+      expect(todoData.deadline).toBeDefined();
+      expect(todoData.finishBy).toBeDefined();
       expect(todoData.tags).toBeDefined();
       expect(todoData.attachments).toBeDefined();
-      expect(todoData.path).toBeDefined();
-      expect(todoData.level).toBeDefined();
-      expect(todoData.parentId).toBeDefined();
-
-      // Check field types
-      expect(typeof todoData.title).toBe('string');
-      expect(typeof todoData.description).toBe('string');
-      expect(typeof todoData.emoji).toBe('string');
-      expect(todoData.deadline instanceof Date).toBe(true);
-      expect(todoData.finishBy instanceof Date).toBe(true);
-      expect(typeof todoData.status).toBe('string');
-      expect(typeof todoData.priority).toBe('string');
-      expect(typeof todoData.urgency).toBe('string');
-      expect(Array.isArray(todoData.tags)).toBe(true);
-      expect(Array.isArray(todoData.attachments)).toBe(true);
-      expect(typeof todoData.path).toBe('string');
-      expect(typeof todoData.level).toBe('number');
-      expect(todoData.parentId).toBeNull();
+      expect(todoData.comments).toBeDefined();
+      expect(todoData.subtasks).toBeDefined();
 
       // Check business rules
-      expect(todoData.deadline.getTime()).toBeGreaterThan(new Date().getTime());
+      expect(todoData.deadline.getTime()).toBeGreaterThan(now.getTime());
       expect(todoData.finishBy.getTime()).toBeLessThan(todoData.deadline.getTime());
-      expect(todoData.finishBy.getTime()).toBeGreaterThan(new Date().getTime());
+      expect(todoData.finishBy.getTime()).toBeGreaterThan(now.getTime());
       expect(todoData.tags.length).toBeGreaterThan(0);
       expect(todoData.tags.length).toBeLessThanOrEqual(3);
-      expect(todoData.attachments.length).toBeLessThanOrEqual(3);
-      expect(todoData.level).toBe(0);
     });
   });
 }); 

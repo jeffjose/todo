@@ -969,11 +969,13 @@
 </div>
 
 <style>
+	.task-hover-target {
+		@apply border border-transparent;
+	}
+
 	.task-hover-target:hover {
-		@apply bg-blue-50;
-		@apply ring-2;
-		@apply ring-blue-200;
-		@apply ring-offset-1;
+		@apply bg-blue-100/80;
+		@apply border-blue-200;
 	}
 
 	.task-hover-highlight {
@@ -982,9 +984,7 @@
 	}
 
 	:global(.task-highlight) {
-		@apply bg-blue-50 !important;
-		@apply ring-2 !important;
-		@apply ring-blue-200 !important;
-		@apply ring-offset-1 !important;
+		@apply bg-blue-100/80 !important;
+		@apply border-blue-200 !important;
 	}
 </style>

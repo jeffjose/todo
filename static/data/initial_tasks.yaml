@@ -1,0 +1,63 @@
+tasks:
+  - title: Game Night
+    status: completed
+    deadline: 2025-03-06 14:22
+    finish_by: 2025-03-03 12:10
+    priority: P2
+    emoji: 🎂
+    description: Fun night with friends
+    urgency: medium
+    tags: [fun, social]
+
+  - title: Review Project
+    status: blocked
+    deadline: 2025-03-15 16:00
+    finish_by: 2025-03-10 10:00
+    todo: 2025-03-08 09:00
+    priority: P1
+    emoji: 📊
+    description: Review Q1 project status
+    urgency: high
+    tags: [work, urgent]
+
+  - title: Learn Guitar
+    status: pending
+    deadline: 2025-04-01
+    todo: 2025-03-20 15:00
+    priority: P3
+    emoji: 🎸
+    description: Start learning basic chords
+    urgency: low
+    tags: [personal, learning]
+
+  - title: Project Planning
+    status: pending
+    deadline: 2025-03-25 17:00
+    priority: P1
+    emoji: 📋
+    description: Plan next sprint
+    urgency: high
+    tags: [work, planning]
+    subtasks:
+      - title: Review current sprint
+        completed: false
+      - title: Set sprint goals
+        completed: false
+      - title: Assign tasks
+        completed: false
+
+  - title: Home Maintenance
+    status: pending
+    deadline: 2025-03-30
+    priority: P2
+    emoji: 🏠
+    description: Regular home maintenance tasks
+    urgency: medium
+    tags: [home, maintenance]
+    subtasks:
+      - title: Clean gutters
+        completed: false
+      - title: Change air filters
+        completed: false
+      - title: Check smoke detectors
+        completed: false

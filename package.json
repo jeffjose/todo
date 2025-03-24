@@ -23,7 +23,9 @@
 		"@oslojs/crypto": "^1.0.1",
 		"@oslojs/encoding": "^1.1.0",
 		"dexie": "^4.0.11",
-		"nanoid": "^5.1.2"
+		"js-yaml": "^4.1.0",
+		"nanoid": "^5.1.2",
+		"yaml": "^2.7.0"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^4.0.0",

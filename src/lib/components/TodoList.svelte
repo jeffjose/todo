@@ -7,7 +7,8 @@
 		getAllTodos,
 		createRandomTodo,
 		createMultipleRandomTodos,
-		loadTestData
+		loadTestData,
+		loadInitialTasks
 	} from '$lib/client/dexie';
 
 	// Core props from parent
@@ -212,6 +213,33 @@
 			}
 		}
 	}
+
+	async function handleLoadInitialTasks() {
+		try {
+			isLoading = true;
+			const result = await loadInitialTasks();
+			if (result.success) {
+				await onTodosChange();
+				notification = {
+					message: result.message,
+					type: 'success'
+				};
+			} else {
+				notification = {
+					message: result.message,
+					type: 'error'
+				};
+			}
+		} catch (error) {
+			console.error('Failed to load initial tasks:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to load initial tasks',
+				type: 'error'
+			};
+		} finally {
+			isLoading = false;
+		}
+	}
 </script>
 
 <div class="container mx-auto p-4">
@@ -397,15 +425,26 @@
 				{/if}
 			</div>
 		{:else}
-			<Button
-				onclick={handleLoadTestData}
-				variant="outline"
-				size="sm"
-				disabled={isLoading}
-				class="ml-auto text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-			>
-				Load Test Data
-			</Button>
+			<div class="mt-4 flex gap-2">
+				<Button
+					onclick={handleLoadTestData}
+					variant="outline"
+					size="sm"
+					disabled={isLoading}
+					class="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+				>
+					Load Test Data
+				</Button>
+				<Button
+					onclick={handleLoadInitialTasks}
+					variant="outline"
+					size="sm"
+					disabled={isLoading}
+					class="text-green-600 hover:bg-green-50 hover:text-green-700"
+				>
+					Load Initial Tasks
+				</Button>
+			</div>
 		{/if}
 
 		{#if isLoading}

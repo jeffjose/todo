@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
 import { customAlphabet } from 'nanoid';
 import type { User, Session } from '$lib/server/auth';
+import { load } from 'js-yaml';
 
 // Custom alphabet for nanoid - using only lowercase letters and numbers, excluding confusing characters
 const CUSTOM_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -642,50 +643,220 @@ export async function clearAllTodos(): Promise<{ success: boolean; message: stri
 export async function loadTestData(): Promise<{ success: boolean; message: string; todos: Todo[] }> {
   try {
     const db = await getDB();
+    const allTodos: Todo[] = [];
 
-    // Fetch the test data from the JSON file
-    const response = await fetch('/data/tasks.json');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch test data: ${response.statusText}`);
+    // Load from YAML file
+    try {
+      const yamlResponse = await fetch('/data/initial_tasks.yaml');
+      if (yamlResponse.ok) {
+        const yamlText = await yamlResponse.text();
+        const tasks = load(yamlText).tasks;
+
+        // Process YAML tasks
+        for (const task of tasks) {
+          const id = generateId();
+          const now = new Date();
+          const todo: Todo = {
+            id,
+            title: task.title,
+            status: task.status || 'pending',
+            deadline: task.deadline ? new Date(task.deadline) : null,
+            finishBy: task.finish_by ? new Date(task.finish_by) : null,
+            todo: task.todo ? new Date(task.todo) : null,
+            priority: task.priority || 'P3',
+            emoji: task.emoji || null,
+            description: task.description || null,
+            urgency: task.urgency || 'medium',
+            tags: task.tags || [],
+            attachments: [],
+            comments: [],
+            subtasks: task.subtasks?.map((subtask: any) => ({
+              id: generateId(),
+              title: subtask.title,
+              completed: subtask.completed || false,
+              createdAt: now,
+              updatedAt: now
+            })) || [],
+            path: 'root',
+            level: 0,
+            parentId: null,
+            createdAt: now,
+            updatedAt: now
+          };
+          allTodos.push(todo);
+        }
+      }
+    } catch (yamlError) {
+      console.warn('Failed to load YAML tasks:', yamlError);
     }
 
-    const testData = await response.json();
-    console.log('DEBUG - Raw test data from JSON:', testData);
+    // Load from JSON file
+    try {
+      const jsonResponse = await fetch('/data/tasks.json');
+      if (jsonResponse.ok) {
+        const testData = await jsonResponse.json();
+        console.log('DEBUG - Raw test data from JSON:', testData);
 
-    // Process dates in the test data
-    const processedData = testData.map((todo: any) => {
-      const processed = {
-        ...todo,
-        deadline: todo.deadline ? new Date(todo.deadline) : null,
-        finishBy: todo.finishBy ? new Date(todo.finishBy) : null,
-        todo: todo.todo ? new Date(todo.todo) : null,
-        createdAt: new Date(todo.createdAt),
-        updatedAt: new Date(todo.updatedAt)
+        // Process JSON tasks
+        const processedData = testData.map((todo: any) => {
+          const processed = {
+            ...todo,
+            deadline: todo.deadline ? new Date(todo.deadline) : null,
+            finishBy: todo.finishBy ? new Date(todo.finishBy) : null,
+            todo: todo.todo ? new Date(todo.todo) : null,
+            createdAt: new Date(todo.createdAt),
+            updatedAt: new Date(todo.updatedAt)
+          };
+          console.log('DEBUG - Processed test data item:', {
+            id: processed.id,
+            title: processed.title,
+            status: processed.status,
+            deadline: processed.deadline ? processed.deadline.toISOString() : null,
+            finishBy: processed.finishBy ? processed.finishBy.toISOString() : null,
+            todo: processed.todo ? processed.todo.toISOString() : null
+          });
+          return processed;
+        });
+        allTodos.push(...processedData);
+      }
+    } catch (jsonError) {
+      console.warn('Failed to load JSON tasks:', jsonError);
+    }
+
+    // Add all tasks to the database
+    if (allTodos.length > 0) {
+      await db.todos.bulkPut(allTodos);
+      return {
+        success: true,
+        message: `Loaded ${allTodos.length} test todos successfully (${allTodos.length} total)`,
+        todos: allTodos
       };
-      console.log('DEBUG - Processed test data item:', {
-        id: processed.id,
-        title: processed.title,
-        status: processed.status,
-        deadline: processed.deadline ? processed.deadline.toISOString() : null,
-        finishBy: processed.finishBy ? processed.finishBy.toISOString() : null,
-        todo: processed.todo ? processed.todo.toISOString() : null
-      });
-      return processed;
-    });
-
-    // Add the test data to the database
-    await db.todos.bulkPut(processedData);
-
-    return {
-      success: true,
-      message: `Loaded ${processedData.length} test todos successfully`,
-      todos: processedData
-    };
+    } else {
+      throw new Error('No tasks were loaded from either file');
+    }
   } catch (error) {
     console.error('Failed to load test data:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to load test data',
+      todos: []
+    };
+  }
+}
+
+// Helper function to parse CSV string
+function parseCSV(csv: string): any[] {
+  const lines = csv.split('\n').filter(line => line.trim());
+  const headers = lines[0].split(',').map(h => h.trim());
+
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim());
+    const row: any = {};
+
+    headers.forEach((header, index) => {
+      let value = values[index];
+
+      // Handle quoted values
+      if (value?.startsWith('"') && value?.endsWith('"')) {
+        value = value.slice(1, -1);
+      }
+
+      // Handle empty values
+      if (value === '') {
+        value = null;
+      }
+
+      // Handle array values (like tags)
+      if (header === 'tags' && value) {
+        value = value.split(',').map((tag: string) => tag.trim());
+      }
+
+      row[header] = value;
+    });
+
+    return row;
+  });
+}
+
+export async function loadInitialTasks(): Promise<{ success: boolean; message: string; todos: Todo[] }> {
+  try {
+    const db = await getDB();
+
+    // Fetch the CSV file
+    const response = await fetch('/data/initial_tasks.csv');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch initial tasks: ${response.statusText}`);
+    }
+
+    const csvText = await response.text();
+    const tasks = parseCSV(csvText);
+
+    // Create a map of titles to IDs for parent relationships
+    const titleToId = new Map<string, string>();
+    const processedTodos: Todo[] = [];
+
+    // First pass: create all todos with IDs
+    for (const task of tasks) {
+      const id = generateId();
+      titleToId.set(task.title, id);
+
+      const now = new Date();
+      const todo: Todo = {
+        id,
+        title: task.title,
+        status: task.status || 'pending',
+        deadline: task.deadline ? new Date(task.deadline) : null,
+        finishBy: task.finish_by ? new Date(task.finish_by) : null,
+        todo: task.todo ? new Date(task.todo) : null,
+        priority: task.priority || 'P3',
+        emoji: task.emoji || null,
+        description: task.description || null,
+        urgency: task.urgency || 'medium',
+        tags: task.tags || [],
+        attachments: [],
+        comments: [],
+        subtasks: [],
+        path: 'root',
+        level: 0,
+        parentId: null,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      processedTodos.push(todo);
+    }
+
+    // Second pass: handle parent relationships
+    for (const task of tasks) {
+      if (task.parent_title) {
+        const parentId = titleToId.get(task.parent_title);
+        if (parentId) {
+          const todo = processedTodos.find(t => t.title === task.title);
+          if (todo) {
+            const parentTodo = processedTodos.find(t => t.id === parentId);
+            if (parentTodo) {
+              todo.parentId = parentId;
+              todo.path = buildPath(parentTodo.path, parentId);
+              todo.level = parentTodo.level + 1;
+            }
+          }
+        }
+      }
+    }
+
+    // Add the processed todos to the database
+    await db.todos.bulkPut(processedTodos);
+
+    return {
+      success: true,
+      message: `Loaded ${processedTodos.length} initial todos successfully`,
+      todos: processedTodos
+    };
+  } catch (error) {
+    console.error('Failed to load initial tasks:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to load initial tasks',
       todos: []
     };
   }

@@ -54,7 +54,8 @@ function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | '
   const endDate = new Date(weekEvent.endDate);
   endDate.setHours(23, 59, 59, 999);
 
-  return todos.filter((todo) => {
+  // First filter todos based on date and type
+  const filteredTodos = todos.filter((todo) => {
     const date = type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
     if (!date) return false;
 
@@ -79,6 +80,71 @@ function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | '
 
     return date >= startDate && date <= endDate;
   });
+
+  // Create a map for quick lookup
+  const todoMap = new Map(todos.map(todo => [todo.id, todo]));
+
+  // Get all parent tasks and subtasks
+  const tasksWithRelations = new Set<Todo>();
+  filteredTodos.forEach(todo => {
+    // Add the current todo
+    tasksWithRelations.add(todo);
+
+    // Add all parent tasks
+    let currentTodo = todo;
+    while (currentTodo.parentId) {
+      const parentTodo = todoMap.get(currentTodo.parentId);
+      if (parentTodo) {
+        tasksWithRelations.add(parentTodo);
+        currentTodo = parentTodo;
+      } else {
+        break;
+      }
+    }
+
+    // Add immediate subtasks
+    todos.forEach(potentialSubtask => {
+      if (potentialSubtask.parentId === todo.id) {
+        tasksWithRelations.add(potentialSubtask);
+      }
+    });
+  });
+
+  // Convert to array and sort
+  const result = Array.from(tasksWithRelations);
+  result.sort((a, b) => {
+    // First compare root paths (before the first dot)
+    const pathPartsA = a.path.split('.');
+    const pathPartsB = b.path.split('.');
+    const rootA = pathPartsA[1];  // Skip 'root' prefix
+    const rootB = pathPartsB[1];
+
+    // If roots are different, sort alphabetically
+    if (rootA !== rootB) {
+      return rootA.localeCompare(rootB);
+    }
+
+    // If one is a parent of the other, parent comes first
+    if (b.parentId === a.id) return -1;
+    if (a.parentId === b.id) return 1;
+
+    // If they share the same parent, sort by date
+    if (a.parentId === b.parentId) {
+      const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
+      const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
+      if (dateA && dateB) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      if (dateA) return -1;
+      if (dateB) return 1;
+    }
+
+    // If they're at the same level but have different parents,
+    // maintain alphabetical order by path
+    return a.path.localeCompare(b.path);
+  });
+
+  return result;
 }
 
 describe('WeeklyView Task Promotion Tests', () => {
@@ -200,6 +266,194 @@ describe('WeeklyView Task Promotion Tests', () => {
       // Check previous week - should NOT see the finishBy task in finishBy column
       const previousWeekFinishBy = getTodosForWeek(previousWeekEvent, 'finishBy', tasks);
       expect(previousWeekFinishBy).toHaveLength(0);
+    });
+  });
+
+  describe('Subtask Behavior', () => {
+    it('should show parent tasks when subtask is visible', () => {
+      const parentTask = createTodo({
+        id: 'parent',
+        title: 'Parent Task',
+        path: 'root.parent',
+        status: 'pending'
+      });
+
+      const subtask = createTodo({
+        id: 'subtask',
+        title: 'Subtask',
+        parentId: 'parent',
+        path: 'root.parent.subtask',
+        level: 1,
+        deadline: new Date('2025-02-26T00:00:00.000Z') // Previous week
+      });
+
+      const todos = [parentTask, subtask];
+
+      // Check if both parent and subtask appear in previous week's deadline column
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'deadline', todos);
+      expect(previousWeekTodos).toHaveLength(2);
+      expect(previousWeekTodos.map(t => t.id)).toContain('parent');
+      expect(previousWeekTodos.map(t => t.id)).toContain('subtask');
+    });
+
+    it('should show subtasks when parent task is visible', () => {
+      const parentTask = createTodo({
+        id: 'parent',
+        title: 'Parent Task',
+        path: 'root.parent',
+        deadline: new Date('2025-02-26T00:00:00.000Z'), // Previous week
+        status: 'pending'
+      });
+
+      const subtask = createTodo({
+        id: 'subtask',
+        title: 'Subtask',
+        parentId: 'parent',
+        path: 'root.parent.subtask',
+        level: 1,
+        status: 'pending'
+      });
+
+      const todos = [parentTask, subtask];
+
+      // Check if both parent and subtask appear in previous week's deadline column
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'deadline', todos);
+      expect(previousWeekTodos).toHaveLength(2);
+      expect(previousWeekTodos.map(t => t.id)).toContain('parent');
+      expect(previousWeekTodos.map(t => t.id)).toContain('subtask');
+    });
+
+    it('should handle mixed deadline and finishBy tasks with subtasks', () => {
+      const parentDeadline = createTodo({
+        id: 'parent-deadline',
+        title: 'Parent Deadline Task',
+        path: 'root.parent-deadline',
+        deadline: new Date('2025-02-26T00:00:00.000Z'), // Previous week
+        status: 'pending'
+      });
+
+      const subtaskFinishBy = createTodo({
+        id: 'subtask-finishby',
+        title: 'Subtask FinishBy',
+        parentId: 'parent-deadline',
+        path: 'root.parent-deadline.subtask-finishby',
+        level: 1,
+        finishBy: new Date('2025-02-26T00:00:00.000Z'), // Previous week
+        status: 'pending'
+      });
+
+      const todos = [parentDeadline, subtaskFinishBy];
+
+      // Parent and subtask should appear in previous week's deadline column
+      const previousWeekDeadline = getTodosForWeek(previousWeekEvent, 'deadline', todos);
+      expect(previousWeekDeadline).toHaveLength(2);
+      expect(previousWeekDeadline.map(t => t.id)).toContain('parent-deadline');
+      expect(previousWeekDeadline.map(t => t.id)).toContain('subtask-finishby');
+
+      // Only subtask should appear in current week's finishBy column (promoted)
+      const currentWeekFinishBy = getTodosForWeek(currentWeekEvent, 'finishBy', todos);
+      expect(currentWeekFinishBy).toHaveLength(2);
+      expect(currentWeekFinishBy.map(t => t.id)).toContain('parent-deadline');
+      expect(currentWeekFinishBy.map(t => t.id)).toContain('subtask-finishby');
+    });
+  });
+
+  describe('Task Sorting', () => {
+    it('should sort tasks by path to maintain hierarchy', () => {
+      const tasks = [
+        createTodo({
+          id: 'parent2',
+          title: 'Parent 2',
+          path: 'root.parent2',
+          deadline: new Date('2025-02-26T00:00:00.000Z')
+        }),
+        createTodo({
+          id: 'parent1',
+          title: 'Parent 1',
+          path: 'root.parent1',
+          deadline: new Date('2025-02-26T00:00:00.000Z')
+        }),
+        createTodo({
+          id: 'subtask1',
+          title: 'Subtask 1',
+          parentId: 'parent1',
+          path: 'root.parent1.subtask1',
+          level: 1,
+          deadline: new Date('2025-02-26T00:00:00.000Z')
+        })
+      ];
+
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'deadline', tasks);
+      expect(previousWeekTodos).toHaveLength(3);
+      expect(previousWeekTodos.map(t => t.id)).toEqual(['parent1', 'subtask1', 'parent2']);
+    });
+
+    it('should sort tasks by status within same hierarchy level', () => {
+      const tasks = [
+        createTodo({
+          id: 'parent',
+          title: 'Parent',
+          path: 'root.parent',
+          deadline: new Date('2025-02-26T00:00:00.000Z'),
+          status: 'pending'
+        }),
+        createTodo({
+          id: 'subtask1',
+          title: 'Subtask 1',
+          parentId: 'parent',
+          path: 'root.parent.subtask1',
+          level: 1,
+          deadline: new Date('2025-02-26T00:00:00.000Z'),
+          status: 'completed'
+        }),
+        createTodo({
+          id: 'subtask2',
+          title: 'Subtask 2',
+          parentId: 'parent',
+          path: 'root.parent.subtask2',
+          level: 1,
+          deadline: new Date('2025-02-26T00:00:00.000Z'),
+          status: 'pending'
+        })
+      ];
+
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'deadline', tasks);
+      expect(previousWeekTodos).toHaveLength(3);
+      expect(previousWeekTodos.map(t => t.id)).toEqual(['parent', 'subtask1', 'subtask2']);
+    });
+
+    it('should sort tasks by date within same hierarchy level and status', () => {
+      const tasks = [
+        createTodo({
+          id: 'parent',
+          title: 'Parent',
+          path: 'root.parent',
+          deadline: new Date('2025-02-26T00:00:00.000Z'),
+          status: 'pending'
+        }),
+        createTodo({
+          id: 'subtask1',
+          title: 'Subtask 1',
+          parentId: 'parent',
+          path: 'root.parent.subtask1',
+          level: 1,
+          deadline: new Date('2025-02-27T00:00:00.000Z'),
+          status: 'pending'
+        }),
+        createTodo({
+          id: 'subtask2',
+          title: 'Subtask 2',
+          parentId: 'parent',
+          path: 'root.parent.subtask2',
+          level: 1,
+          deadline: new Date('2025-02-25T00:00:00.000Z'),
+          status: 'pending'
+        })
+      ];
+
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'deadline', tasks);
+      expect(previousWeekTodos).toHaveLength(3);
+      expect(previousWeekTodos.map(t => t.id)).toEqual(['parent', 'subtask2', 'subtask1']);
     });
   });
 }); 

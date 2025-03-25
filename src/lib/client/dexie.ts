@@ -952,3 +952,21 @@ export async function toggleTodoStatus(id: string): Promise<Todo> {
 
   return updateTodo(id, { status: newStatus });
 }
+
+// Helper function to cycle through priorities
+export async function cycleTodoPriority(id: string): Promise<Todo> {
+  const todo = await getTodoById(id);
+  if (!todo) {
+    throw new Error(`Todo with id ${id} not found`);
+  }
+
+  // Get current priority index
+  const priorities = RANDOM_DATA.priorities;
+  const currentIndex = priorities.indexOf(todo.priority);
+
+  // Get next priority (cycle back to start if at end)
+  const nextIndex = (currentIndex + 1) % priorities.length;
+  const newPriority = priorities[nextIndex];
+
+  return updateTodo(id, { priority: newPriority });
+}

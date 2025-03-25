@@ -9,7 +9,8 @@
 		createMultipleRandomTodos,
 		loadTestData,
 		loadInitialTasks,
-		toggleTodoStatus
+		toggleTodoStatus,
+		cycleTodoPriority
 	} from '$lib/client/dexie';
 
 	// Core props from parent
@@ -253,6 +254,22 @@
 			console.error('Failed to toggle todo status:', error);
 			notification = {
 				message: error instanceof Error ? error.message : 'Failed to toggle todo status',
+				type: 'error'
+			};
+		}
+	}
+
+	async function handleCyclePriority(todo: Todo, event: MouseEvent) {
+		// Prevent event from bubbling up to parent elements
+		event.stopPropagation();
+
+		try {
+			await cycleTodoPriority(todo.id);
+			await onTodosChange();
+		} catch (error) {
+			console.error('Failed to cycle todo priority:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to cycle todo priority',
 				type: 'error'
 			};
 		}
@@ -588,7 +605,7 @@
 							<!-- Priority -->
 							<td class="whitespace-nowrap px-2 py-2">
 								<span
-									class="rounded px-1.5 py-0.5 text-xs font-medium"
+									class="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
 									class:bg-red-100={todo.priority === 'P0'}
 									class:text-red-800={todo.priority === 'P0'}
 									class:bg-orange-100={todo.priority === 'P1'}
@@ -597,6 +614,7 @@
 									class:text-yellow-800={todo.priority === 'P2'}
 									class:bg-gray-100={todo.priority === 'P3'}
 									class:text-gray-800={todo.priority === 'P3'}
+									on:click={(e) => handleCyclePriority(todo, e)}
 								>
 									{todo.priority}
 								</span>

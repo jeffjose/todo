@@ -801,6 +801,62 @@
 											</div>
 										{/if}
 
+										{#if todo.urls && todo.urls.length > 0}
+											<div class="mb-2">
+												<span class="font-medium text-gray-700">URLs: </span>
+												<div class="mt-1 flex flex-col gap-2">
+													{#each todo.urls as urlData}
+														<a
+															href={urlData.url}
+															target="_blank"
+															rel="noopener noreferrer"
+															class="group flex items-start gap-2 rounded border border-gray-200 p-2 hover:border-blue-300 hover:bg-blue-50"
+														>
+															{#if urlData.favicon}
+																<img
+																	src={urlData.favicon}
+																	alt=""
+																	class="mt-0.5 h-4 w-4 flex-shrink-0"
+																	loading="lazy"
+																/>
+															{:else}
+																<svg
+																	xmlns="http://www.w3.org/2000/svg"
+																	width="16"
+																	height="16"
+																	viewBox="0 0 24 24"
+																	fill="none"
+																	stroke="currentColor"
+																	stroke-width="2"
+																	stroke-linecap="round"
+																	stroke-linejoin="round"
+																	class="mt-0.5 flex-shrink-0 text-gray-400"
+																>
+																	<path
+																		d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+																	></path>
+																	<path
+																		d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+																	></path>
+																</svg>
+															{/if}
+															<div class="flex flex-col">
+																<span
+																	class="text-sm font-medium text-blue-600 group-hover:underline"
+																>
+																	{urlData.title || urlData.url}
+																</span>
+																{#if urlData.description}
+																	<span class="text-xs text-gray-500">{urlData.description}</span>
+																{/if}
+																<span class="mt-1 text-xs text-gray-400">{urlData.url}</span>
+															</div>
+														</a>
+													{/each}
+												</div>
+											</div>
+										{/if}
+
 										<div class="text-xs text-gray-500">
 											<span>ID: <span class="font-mono">{todo.id}</span></span>
 											<span class="ml-3">Created: {new Date(todo.createdAt).toLocaleString()}</span>

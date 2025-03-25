@@ -19,6 +19,13 @@ export interface Attachment {
   createdAt: Date;
 }
 
+export interface UrlMetadata {
+  id: string;
+  url: string;
+  title: string | null;
+  favicon: string | null;
+}
+
 export interface Comment {
   id: string;
   content: string;
@@ -47,6 +54,7 @@ export interface Todo {
   urgency: string;
   tags: string[];
   attachments: Attachment[];
+  urls: UrlMetadata[];  // New field for URLs with metadata
   comments: Comment[];
   subtasks: SubTask[];
   path: string;
@@ -81,7 +89,7 @@ export class TodoDatabase extends Dexie {
 
   constructor() {
     super(env.PUBLIC_TODO_TABLE_NAME || 'todos');
-    this.version(2).stores({
+    this.version(3).stores({  // Increment version for schema change
       todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt, deadline, finishBy, todo, tags',
       knownEvents: '++id, startDate, endDate, description, createdAt, updatedAt',
       users: '++id, username',
@@ -542,23 +550,60 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
     });
   }
 
+  // Generate random URLs with metadata
+  const numUrls = Math.floor(Math.random() * 3);
+  const urls: UrlMetadata[] = [];
+  const sampleUrls = [
+    {
+      url: 'https://github.com',
+      title: 'GitHub: Where the world builds software',
+      favicon: 'https://github.githubassets.com/favicons/favicon.svg',
+    },
+    {
+      url: 'https://stackoverflow.com',
+      title: 'Stack Overflow - Where Developers Learn & Share',
+      favicon: 'https://cdn.sstatic.net/Sites/stackoverflow/Img/favicon.ico',
+    },
+    {
+      url: 'https://www.notion.so',
+      title: 'Notion – One workspace. Every team.',
+      favicon: 'https://www.notion.so/images/favicon.ico',
+    },
+    {
+      url: 'https://www.figma.com',
+      title: 'Figma: The Collaborative Interface Design Tool',
+      favicon: 'https://static.figma.com/app/icon/1/favicon.svg',
+    }
+  ];
+
+  for (let i = 0; i < numUrls; i++) {
+    const sampleUrl = sampleUrls[Math.floor(Math.random() * sampleUrls.length)];
+    urls.push({
+      id: generateId(),
+      url: sampleUrl.url,
+      title: sampleUrl.title,
+      favicon: sampleUrl.favicon
+    });
+  }
+
   return {
     title,
     description,
-    status,
-    priority,
-    urgency,
-    path: 'root',
-    level: 0,
-    parentId: null,
+    emoji,
     deadline,
     finishBy,
     todo,
+    status,
+    priority,
+    urgency,
     tags,
     attachments,
+    urls,  // Add the URLs array
     comments,
-    subtasks,
-    emoji
+    subtasks: [],
+    path: `root.${generateId()}`,
+    level: 0,
+    parentId: null
   };
 }
 
@@ -673,6 +718,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             urgency: task.urgency || 'medium',
             tags: task.tags || [],
             attachments: [],
+            urls: [],  // Add empty urls array
             comments: [],
             subtasks: [],
             path: `root.${id}`,
@@ -701,6 +747,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
                 urgency: subtask.urgency || 'medium',
                 tags: subtask.tags || [],
                 attachments: [],
+                urls: [],  // Add empty urls array
                 comments: [],
                 subtasks: [],
                 path: `root.${id}.${subtaskId}`,
@@ -832,6 +879,20 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
       for (const task of tasks) {
         const id = generateId();
         const now = new Date();
+
+        // Process URLs if they exist in the YAML
+        const urls: UrlMetadata[] = [];
+        if (task.urls && Array.isArray(task.urls)) {
+          for (const urlData of task.urls) {
+            urls.push({
+              id: generateId(),
+              url: urlData.url,
+              title: urlData.title || null,
+              favicon: urlData.favicon || null
+            });
+          }
+        }
+
         const todo: Todo = {
           id,
           title: task.title,
@@ -845,6 +906,7 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
           urgency: task.urgency || 'medium',
           tags: task.tags || [],
           attachments: [],
+          urls,  // Add the URLs array
           comments: [],
           subtasks: [],
           path: `root.${id}`,
@@ -855,59 +917,24 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
         };
         console.log('DEBUG - Processed YAML task:', todo);
         allTodos.push(todo);
-
-        // Process subtasks if they exist
-        if (task.subtasks) {
-          for (const subtask of task.subtasks) {
-            const subtaskId = generateId();
-            const subtaskTodo: Todo = {
-              id: subtaskId,
-              title: subtask.title,
-              status: subtask.status || 'pending',
-              deadline: subtask.deadline ? new Date(subtask.deadline) : null,
-              finishBy: subtask.finish_by ? new Date(subtask.finish_by) : null,
-              todo: subtask.todo ? new Date(subtask.todo) : null,
-              priority: subtask.priority || 'P3',
-              emoji: subtask.emoji || null,
-              description: subtask.description || null,
-              urgency: subtask.urgency || 'medium',
-              tags: subtask.tags || [],
-              attachments: [],
-              comments: [],
-              subtasks: [],
-              path: `root.${id}.${subtaskId}`,
-              level: 1,
-              parentId: id,
-              createdAt: now,
-              updatedAt: now
-            };
-            console.log('DEBUG - Processed YAML subtask:', subtaskTodo);
-            allTodos.push(subtaskTodo);
-          }
-        }
       }
 
-      // Add the processed todos to the database
-      await db.todos.bulkPut(allTodos);
+      // Add all todos to the database
+      await db.todos.bulkAdd(allTodos);
 
       return {
         success: true,
-        message: `Loaded ${allTodos.length} initial todos successfully`,
+        message: `Successfully loaded ${allTodos.length} tasks`,
         todos: allTodos
       };
     } else {
-      console.warn('Failed to load YAML file:', yamlResponse.statusText);
-      return {
-        success: false,
-        message: 'Failed to load YAML file',
-        todos: []
-      };
+      throw new Error('Failed to fetch initial tasks YAML file');
     }
   } catch (error) {
-    console.warn('Failed to load YAML tasks:', error);
+    console.error('Error loading initial tasks:', error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to load initial tasks',
+      message: error instanceof Error ? error.message : 'Unknown error loading initial tasks',
       todos: []
     };
   }

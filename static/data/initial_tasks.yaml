@@ -44,3 +44,31 @@ tasks:
         urgency: high
         tags: [work, communication]
         completed: false
+
+  - title: GDC
+    status: pending
+    deadline: 2025-03-17 17:00
+    priority: P1
+    emoji: 🎮
+    description: GDC-related tasks and preparations
+    urgency: high
+    tags: [work, conference]
+    subtasks:
+      - title: Create slides
+        status: pending
+        deadline: 2025-03-20 17:00
+        priority: P1
+        emoji: 📊
+        description: Prepare presentation slides for GDC
+        urgency: high
+        tags: [work, presentation]
+        completed: false
+      - title: Review booth
+        status: pending
+        deadline: 2025-03-17 17:00
+        priority: P1
+        emoji: 🎪
+        description: Review and finalize booth setup for GDC
+        urgency: high
+        tags: [work, conference]
+        completed: false

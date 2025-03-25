@@ -463,16 +463,19 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   // 10% chance to set a todo date between now and finishBy
   let todo: Date | null = null;
   if (Math.random() < 0.1) {
-    todo = new Date(now);
-    const timeDiff = finishBy.getTime() - now.getTime();
-    const randomDays = Math.floor(Math.random() * (timeDiff / (1000 * 60 * 60 * 24)));
-    todo = new Date(now.getTime() + randomDays * (1000 * 60 * 60 * 24));
-    while (todo.getDay() === 0 || todo.getDay() === 6) {
-      todo = getNextBusinessDay(todo);
+    // Start with finishBy and work backwards
+    todo = new Date(finishBy);
+    const maxDaysBack = Math.floor((finishBy.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (maxDaysBack > 0) {
+      const daysBack = Math.floor(Math.random() * maxDaysBack);
+      todo.setDate(todo.getDate() - daysBack);
+      while (todo.getDay() === 0 || todo.getDay() === 6) {
+        todo = getNextBusinessDay(todo);
+      }
     }
     todo = getRandomBusinessTime(todo);
 
-    // Ensure todo is before or equal to finishBy
+    // Final safety check
     if (todo.getTime() > finishBy.getTime()) {
       todo = new Date(finishBy);
       todo = getRandomBusinessTime(todo);

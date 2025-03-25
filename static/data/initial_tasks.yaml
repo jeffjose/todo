@@ -55,7 +55,7 @@ tasks:
     tags: [work, conference]
     subtasks:
       - title: Create slides
-        status: pending
+        status: completed
         deadline: 2025-03-20 17:00
         priority: P1
         emoji: 📊

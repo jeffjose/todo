@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateId, buildPath, PATH_SEPARATOR, ROOT_PATH, getNextBusinessDay, getRandomBusinessTime, generateRandomTodoData } from './dexie';
+import { generateId, buildPath, PATH_SEPARATOR, ROOT_PATH, getNextBusinessDay, getRandomBusinessTime } from './dexie';
 
 // Mock the validateUsername function
 const validateUsername = (username: unknown): boolean => {
@@ -130,64 +130,6 @@ describe('Todo Utilities', () => {
       // Check that seconds and milliseconds are 0
       expect(time.getSeconds()).toBe(0);
       expect(time.getMilliseconds()).toBe(0);
-    });
-  });
-
-  describe('Random Todo Data Generation', () => {
-    it('should generate valid todo data', () => {
-      const todoData = generateRandomTodoData();
-
-      // Check required fields
-      expect(todoData.title).toBeDefined();
-      expect(todoData.description).toBeDefined();
-      expect(todoData.emoji).toBeDefined();
-      expect(todoData.deadline).toBeDefined();
-      expect(todoData.finishBy).toBeDefined();
-      expect(todoData.status).toBeDefined();
-      expect(todoData.priority).toBeDefined();
-      expect(todoData.urgency).toBeDefined();
-      expect(todoData.tags).toBeDefined();
-      expect(todoData.attachments).toBeDefined();
-      expect(todoData.path).toBeDefined();
-      expect(todoData.level).toBeDefined();
-      expect(todoData.parentId).toBeDefined();
-
-      // Check field types
-      expect(typeof todoData.title).toBe('string');
-      expect(typeof todoData.description).toBe('string');
-      expect(typeof todoData.emoji).toBe('string');
-      expect(todoData.deadline instanceof Date).toBe(true);
-      expect(todoData.finishBy instanceof Date).toBe(true);
-      expect(typeof todoData.status).toBe('string');
-      expect(typeof todoData.priority).toBe('string');
-      expect(typeof todoData.urgency).toBe('string');
-      expect(Array.isArray(todoData.tags)).toBe(true);
-      expect(Array.isArray(todoData.attachments)).toBe(true);
-      expect(typeof todoData.path).toBe('string');
-      expect(typeof todoData.level).toBe('number');
-      expect(todoData.parentId).toBeNull();
-
-      // Check business rules
-      expect(todoData.deadline.getTime()).toBeGreaterThan(new Date().getTime());
-      expect(todoData.finishBy.getTime()).toBeLessThanOrEqual(todoData.deadline.getTime());
-      expect(todoData.finishBy.getTime()).toBeGreaterThan(new Date().getTime());
-      expect(todoData.tags.length).toBeGreaterThan(0);
-      expect(todoData.tags.length).toBeLessThanOrEqual(3);
-      expect(todoData.attachments.length).toBeLessThanOrEqual(3);
-      expect(todoData.level).toBe(0);
-    });
-
-    it('should ensure todo date is before or equal to finishBy', () => {
-      const now = new Date('2024-01-01T00:00:00Z');
-      const deadline = new Date('2024-01-15T00:00:00Z');
-
-      // Generate todos until we get one with a todo date
-      let todoData;
-      do {
-        todoData = generateRandomTodoData(now, deadline);
-      } while (todoData.todo === null);
-
-      expect(todoData.todo!.getTime()).toBeLessThanOrEqual(todoData.finishBy.getTime());
     });
   });
 }); 

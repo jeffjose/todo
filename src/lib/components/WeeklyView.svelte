@@ -302,7 +302,9 @@
 					// 2. Overdue tasks from past weeks that aren't completed
 					const isOriginallyScheduledForThisWeek = date >= startDate && date <= endDate;
 					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
-					const shouldShow = isOriginallyScheduledForThisWeek || isOverdueFromPastWeek;
+					const shouldShow =
+						(isOriginallyScheduledForThisWeek && todo.status !== 'completed') ||
+						isOverdueFromPastWeek;
 					console.log('Current week - should show:', shouldShow);
 					console.log('Originally scheduled for this week:', isOriginallyScheduledForThisWeek);
 					console.log('Overdue from past week:', isOverdueFromPastWeek);
@@ -321,19 +323,26 @@
 
 		// Get all parent tasks for the filtered todos
 		const tasksWithParents = new Set<Todo>();
+		const today = new Date();
 		weekTodos.forEach((todo: Todo) => {
-			// Add the current todo
-			tasksWithParents.add(todo);
+			// Only add the current todo if it's not completed or if we're not in the current week
+			const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+			if (!isCurrentWeek || todo.status !== 'completed') {
+				tasksWithParents.add(todo);
 
-			// Add all parent todos up to root
-			let currentTodo: Todo = todo;
-			while (currentTodo.parentId) {
-				const parentTodo = todoMap.get(currentTodo.parentId);
-				if (parentTodo) {
-					tasksWithParents.add(parentTodo as Todo);
-					currentTodo = parentTodo as Todo;
-				} else {
-					break;
+				// Add all parent todos up to root
+				let currentTodo: Todo = todo;
+				while (currentTodo.parentId) {
+					const parentTodo = todoMap.get(currentTodo.parentId) as Todo;
+					if (parentTodo) {
+						// Only add parent if it's not completed or if we're not in the current week
+						if (!isCurrentWeek || parentTodo.status !== 'completed') {
+							tasksWithParents.add(parentTodo);
+						}
+						currentTodo = parentTodo;
+					} else {
+						break;
+					}
 				}
 			}
 		});
@@ -342,7 +351,11 @@
 		weekTodos.forEach((todo: Todo) => {
 			todos.forEach((potentialSubtask: Todo) => {
 				if (potentialSubtask.parentId === todo.id) {
-					tasksWithParents.add(potentialSubtask);
+					// Only add subtask if it's not completed or if we're not in the current week
+					const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+					if (!isCurrentWeek || potentialSubtask.status !== 'completed') {
+						tasksWithParents.add(potentialSubtask);
+					}
 				}
 			});
 		});

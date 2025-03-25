@@ -346,120 +346,79 @@
 		// Convert Set back to array and sort
 		const result = Array.from(tasksWithParents);
 
-		// First, build a map of parent-child relationships
-		const childrenMap = new Map<string, Todo[]>();
-		const parentMap = new Map<string, Todo>();
-
-		result.forEach((todo) => {
-			if (todo.parentId) {
-				const children = childrenMap.get(todo.parentId) || [];
-				children.push(todo);
-				childrenMap.set(todo.parentId, children);
-				parentMap.set(todo.id, result.find((t) => t.id === todo.parentId)!);
-			}
-		});
-
-		// Sort tasks by date within the same hierarchy level
-		result.sort((a, b) => {
-			// If one is a parent of the other, parent comes first
-			if (b.parentId === a.id) return -1;
-			if (a.parentId === b.id) return 1;
-
-			// If they share the same parent (including null for root tasks), sort by date
-			if (a.parentId === b.parentId) {
-				const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
-				const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				if (dateA) return -1;
-				if (dateB) return 1;
-			}
-
-			// If they have different parents, sort by path
+		result.sort((a: Todo, b: Todo) => {
+			// First sort by path to maintain hierarchy
 			const pathA = a.path || '';
 			const pathB = b.path || '';
-			return pathA.localeCompare(pathB);
+			if (pathA !== pathB) {
+				console.log('DEBUG - Sorting by path:', {
+					a: {
+						id: a.id,
+						title: a.title,
+						path: pathA,
+						level: a.level,
+						parentId: a.parentId
+					},
+					b: {
+						id: b.id,
+						title: b.title,
+						path: pathB,
+						level: b.level,
+						parentId: b.parentId
+					},
+					comparison: `${pathA} vs ${pathB}`
+				});
+				return pathA.localeCompare(pathB);
+			}
+
+			// Then sort by level (parent tasks before subtasks)
+			if (a.level !== b.level) {
+				console.log('DEBUG - Sorting by level:', {
+					a: {
+						id: a.id,
+						title: a.title,
+						level: a.level,
+						path: a.path,
+						parentId: a.parentId
+					},
+					b: {
+						id: b.id,
+						title: b.title,
+						level: b.level,
+						path: b.path,
+						parentId: b.parentId
+					},
+					result: a.level - b.level
+				});
+				return a.level - b.level;
+			}
+
+			// Then sort by completion status
+			if (a.status === 'completed' && b.status !== 'completed') return -1;
+			if (a.status !== 'completed' && b.status === 'completed') return 1;
+
+			// Finally sort by date if both tasks have dates
+			const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
+			const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
+			if (!dateA || !dateB) return 0;
+			return dateA.getTime() - dateB.getTime();
 		});
 
-		// Group tasks by parent
-		const parentGroups = new Map<string | null, Todo[]>();
-		result.forEach((todo) => {
-			const group = parentGroups.get(todo.parentId) || [];
-			group.push(todo);
-			parentGroups.set(todo.parentId, group);
-		});
-
-		// Sort each group by date
-		for (const [parentId, tasks] of parentGroups) {
-			tasks.sort((a, b) => {
-				const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
-				const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				if (dateA) return -1;
-				if (dateB) return 1;
-				return a.path.localeCompare(b.path);
-			});
-		}
-
-		// Build the final result in the correct order
-		const finalResult: Todo[] = [];
-		const rootTasks = parentGroups.get(null) || [];
-		for (const rootTask of rootTasks) {
-			finalResult.push(rootTask);
-			const children = parentGroups.get(rootTask.id) || [];
-			finalResult.push(...children);
-		}
-
-		// Sort tasks with the same parent by date one more time
-		const sortedResult: Todo[] = [];
-		const sortedParentGroups = new Map<string | null, Todo[]>();
-		finalResult.forEach((todo) => {
-			const group = sortedParentGroups.get(todo.parentId) || [];
-			group.push(todo);
-			sortedParentGroups.set(todo.parentId, group);
-		});
-
-		for (const [parentId, tasks] of sortedParentGroups) {
-			tasks.sort((a, b) => {
-				const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
-				const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				if (dateA) return -1;
-				if (dateB) return 1;
-				return a.path.localeCompare(b.path);
-			});
-			sortedResult.push(...tasks);
-		}
-
-		// Sort tasks with the same parent by date one final time
-		const finalSortedResult: Todo[] = [];
-		const finalSortedParentGroups = new Map<string | null, Todo[]>();
-		sortedResult.forEach((todo) => {
-			const group = finalSortedParentGroups.get(todo.parentId) || [];
-			group.push(todo);
-			finalSortedParentGroups.set(todo.parentId, group);
-		});
-
-		for (const [parentId, tasks] of finalSortedParentGroups) {
-			tasks.sort((a, b) => {
-				const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
-				const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-				if (dateA && dateB) {
-					return dateA.getTime() - dateB.getTime();
-				}
-				if (dateA) return -1;
-				if (dateB) return 1;
-				return a.path.localeCompare(b.path);
-			});
-			finalSortedResult.push(...tasks);
-		}
-
-		return finalSortedResult;
+		console.log(
+			'DEBUG - Final sorted result with full details:',
+			result.map((t: Todo) => ({
+				id: t.id,
+				title: t.title,
+				level: t.level,
+				path: t.path,
+				parentId: t.parentId,
+				status: t.status,
+				deadline: t.deadline,
+				finishBy: t.finishBy,
+				todo: t.todo
+			}))
+		);
+		return result;
 	}
 
 	function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent): Todo[] {
@@ -654,64 +613,6 @@
 
 	function handleTaskHover(taskId: string | null) {
 		hoveredTaskId = taskId;
-	}
-
-	function sortTodos(todos: Todo[]): Todo[] {
-		// Build a map of parent-child relationships
-		const childrenMap = new Map<string, Todo[]>();
-		const parentMap = new Map<string, Todo>();
-
-		todos.forEach((todo) => {
-			if (todo.parentId) {
-				if (!childrenMap.has(todo.parentId)) {
-					childrenMap.set(todo.parentId, []);
-				}
-				childrenMap.get(todo.parentId)!.push(todo);
-				parentMap.set(todo.id, todos.find((t) => t.id === todo.parentId)!);
-			}
-		});
-
-		// Group tasks by their parent
-		const tasksByParent = new Map<string | null, Todo[]>();
-		todos.forEach((todo) => {
-			const parentId = todo.parentId || null;
-			if (!tasksByParent.has(parentId)) {
-				tasksByParent.set(parentId, []);
-			}
-			tasksByParent.get(parentId)!.push(todo);
-		});
-
-		// Sort tasks within each parent group by date
-		for (const [parentId, tasks] of tasksByParent) {
-			tasks.sort((a, b) => {
-				const aDate = getEffectiveDate(a);
-				const bDate = getEffectiveDate(b);
-				if (aDate && bDate) {
-					return aDate.getTime() - bDate.getTime();
-				}
-				if (aDate) return -1;
-				if (bDate) return 1;
-				return a.path.localeCompare(b.path);
-			});
-		}
-
-		// Build the final sorted list
-		const result: Todo[] = [];
-
-		// Add root tasks first
-		const rootTasks = tasksByParent.get(null) || [];
-		for (const rootTask of rootTasks) {
-			result.push(rootTask);
-			// Add children of this root task
-			const children = tasksByParent.get(rootTask.id) || [];
-			result.push(...children);
-		}
-
-		return result;
-	}
-
-	function getEffectiveDate(todo: Todo): Date | null {
-		return todo.deadline || todo.finishBy || todo.todo || null;
 	}
 </script>
 

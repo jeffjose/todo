@@ -110,41 +110,39 @@ function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | '
     });
   });
 
-  // Convert to array and sort
-  const result = Array.from(tasksWithRelations);
-  result.sort((a, b) => {
-    // First compare root paths (before the first dot)
-    const pathPartsA = a.path.split('.');
-    const pathPartsB = b.path.split('.');
-    const rootA = pathPartsA[1];  // Skip 'root' prefix
-    const rootB = pathPartsB[1];
+  // Convert Set back to array and sort
+  const sortedTodos = Array.from(tasksWithRelations).sort((a, b) => {
+    // Split paths into segments
+    const partsA = a.path.split('.');
+    const partsB = b.path.split('.');
 
-    // If roots are different, sort alphabetically
-    if (rootA !== rootB) {
-      return rootA.localeCompare(rootB);
+    // Compare the first path segment (root)
+    if (partsA[0] !== partsB[0]) {
+      return partsA[0].localeCompare(partsB[0]);
     }
 
-    // If one is a parent of the other, parent comes first
-    if (b.parentId === a.id) return -1;
-    if (a.parentId === b.id) return 1;
-
-    // If they share the same parent, sort by date
-    if (a.parentId === b.parentId) {
-      const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
-      const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-      if (dateA && dateB) {
-        return dateA.getTime() - dateB.getTime();
-      }
-      if (dateA) return -1;
-      if (dateB) return 1;
+    // If root is the same, compare the next segment
+    if (partsA[1] !== partsB[1]) {
+      return partsA[1].localeCompare(partsB[1]);
     }
 
-    // If they're at the same level but have different parents,
-    // maintain alphabetical order by path
-    return a.path.localeCompare(b.path);
+    // If we're at the same level in the hierarchy, sort by level
+    if (a.level !== b.level) return a.level - b.level;
+
+    // If levels are equal, sort by status
+    if (a.status !== b.status) {
+      return a.status === 'completed' ? -1 : 1;
+    }
+
+    // If status is equal and they share the same parent (same hierarchy level),
+    // sort by date
+    const aDate = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
+    const bDate = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
+    if (!aDate || !bDate) return 0;
+    return aDate.getTime() - bDate.getTime();
   });
 
-  return result;
+  return sortedTodos;
 }
 
 describe('WeeklyView Task Promotion Tests', () => {

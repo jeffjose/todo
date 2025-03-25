@@ -39,34 +39,40 @@ You can preview the production build with `npm run preview`.
 
 ## Testing
 
-This project includes comprehensive testing for the database initialization process.
+This project includes comprehensive testing for task management logic.
 
-### Database Tests
+### Task Management Tests
 
-We have several types of tests for the database:
+We have several types of tests:
 
-1. **Unit Tests**: Test the database initialization logic with mocks
+1. **Task Promotion Tests**: Test how tasks are promoted between weeks
 
-   ```bash
-   pnpm test:db
-   ```
+   - Deadline tasks stay in their original week
+   - Finish By tasks are promoted to current week if overdue
+   - Completed tasks stay in their original week
 
-2. **Integration Tests**: Test the actual database initialization in a browser environment
+2. **Task Hierarchy Tests**: Test parent-child relationships
 
-   ```bash
-   pnpm test:db:integration
-   ```
+   - Parent tasks appear before children
+   - Parent tasks are shown when subtasks are visible
+   - Subtasks are shown when parent tasks are visible
 
-3. **All Database Tests**: Run all database tests
-   ```bash
-   pnpm test:db:all
-   ```
+3. **Task Sorting Tests**: Test sorting logic
+   - Sort by path to maintain hierarchy
+   - Sort by status within same hierarchy level
+   - Sort by date within same hierarchy level and status
+
+To run the tests:
+
+```bash
+pnpm test
+```
 
 ### Git Hooks
 
 We use Husky to run tests automatically:
 
-- **Pre-commit Hook**: Runs database unit tests before each commit
+- **Pre-commit Hook**: Runs task management tests before each commit
 - **Pre-push Hook**: Runs all tests before pushing to the remote repository
 
-This ensures that database issues are caught early in the development process.
+This ensures that task management logic issues are caught early in the development process.

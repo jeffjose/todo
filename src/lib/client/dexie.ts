@@ -551,7 +551,7 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   }
 
   // Generate random URLs with metadata
-  const numUrls = Math.floor(Math.random() * 3);
+  const numUrls = Math.floor(Math.random() * 4);  // Changed to generate 0-3 URLs
   const urls: UrlMetadata[] = [];
   const sampleUrls = [
     {

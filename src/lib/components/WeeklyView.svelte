@@ -544,6 +544,24 @@
 		hoveredTaskId = taskId;
 	}
 
+	function getTotalTasks(): string {
+		const openTasks = todos.filter((todo: Todo) => todo.status !== 'completed').length;
+		const closedTasks = todos.filter((todo: Todo) => todo.status === 'completed').length;
+		return `${openTasks}+${closedTasks}`;
+	}
+
+	function getTotalDeadlineTasks(): string {
+		return getTotalTasks();
+	}
+
+	function getTotalFinishByTasks(): string {
+		return getTotalTasks();
+	}
+
+	function getTotalOpenTasks(): string {
+		return getTotalTasks();
+	}
+
 	async function handleToggleStatus(todo: Todo, event: MouseEvent) {
 		// Prevent event from bubbling up to parent elements
 		event.stopPropagation();
@@ -696,12 +714,14 @@
 					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Week</th>
 					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Event</th>
 					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
-						>Deadline Tasks</th
+						>Deadline Tasks ({getTotalDeadlineTasks()})</th
 					>
 					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
-						>Finish By Tasks</th
+						>Finish By Tasks ({getTotalFinishByTasks()})</th
 					>
-					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Todo</th>
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
+						>Todo ({getTotalOpenTasks()})</th
+					>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white text-sm">

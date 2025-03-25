@@ -708,7 +708,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             title: task.title,
             status: task.status || 'pending',
             deadline: task.deadline ? new Date(task.deadline) : null,
-            finishBy: task.finish_by ? new Date(task.finish_by) : null,
+            finishBy: task.finish_by ? new Date(task.finish_by) : (task.deadline ? new Date(task.deadline) : null),
             todo: task.todo ? new Date(task.todo) : null,
             priority: task.priority || 'P3',
             emoji: task.emoji || null,
@@ -946,19 +946,4 @@ export async function toggleTodoStatus(id: string): Promise<Todo> {
   const newStatus = todo.status === 'completed' ? 'pending' : 'completed';
 
   return updateTodo(id, { status: newStatus });
-}
-
-// Helper function to cycle todo priority
-export async function cycleTodoPriority(id: string): Promise<Todo> {
-  const todo = await getTodoById(id);
-  if (!todo) {
-    throw new Error(`Todo with id ${id} not found`);
-  }
-
-  const priorities = ['P0', 'P1', 'P2', 'P3'];
-  const currentIndex = priorities.indexOf(todo.priority);
-  const nextIndex = (currentIndex + 1) % priorities.length;
-  const newPriority = priorities[nextIndex];
-
-  return updateTodo(id, { priority: newPriority });
 }

@@ -7,8 +7,7 @@
 		clearAllTodos,
 		loadTestData,
 		type Todo,
-		toggleTodoStatus,
-		cycleTodoPriority
+		toggleTodoStatus
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
 	import { getTaskStatus, type TaskStatus } from '$lib/utils';
@@ -227,6 +226,22 @@
 	}
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | 'todo'): Todo[] {
+		console.log(`\n=== getTodosForWeek for ${type} ===`);
+		console.log('Week:', formatDate(weekEvent.startDate), 'to', formatDate(weekEvent.endDate));
+		console.log('Total todos:', todos.length);
+
+		// Debug: Print all todos with their dates
+		if (type === 'finishBy') {
+			console.log('\nAll todos with their dates:');
+			todos.forEach((todo: Todo) => {
+				console.log(`- ${todo.title}:`);
+				console.log('  finishBy:', formatTodoDate(todo.finishBy));
+				console.log('  deadline:', formatTodoDate(todo.deadline));
+				console.log('  todo:', formatTodoDate(todo.todo));
+				console.log('  status:', todo.status);
+			});
+		}
+
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
@@ -236,6 +251,9 @@
 				type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
 
 			if (!date) {
+				if (type === 'finishBy') {
+					console.log(`\nSkipping ${todo.title} - no ${type} date`);
+				}
 				return false;
 			}
 
@@ -247,11 +265,19 @@
 			const endDate = new Date(weekEvent.endDate);
 			endDate.setHours(23, 59, 59, 999);
 
+			// Debug print for each todo being checked
+			if (type === 'finishBy') {
+				console.log(`\nChecking todo: ${todo.title}`);
+				console.log('Finish By date:', formatTodoDate(todo.finishBy));
+				console.log('Week start:', formatTodoDate(startDate));
+				console.log('Week end:', formatTodoDate(endDate));
+			}
+
 			// Task promotion logic:
 			// - Deadline tasks: Stay in their original week, show as overdue in Todo column if past deadline
 			// - Finish By tasks:
-			//   * Completed tasks stay in their original week
-			//   * Open tasks from past weeks are promoted to current week
+			//   * All tasks stay in their original week
+			//   * Overdue tasks from past weeks are promoted to current week
 			//   * Promoted tasks show "slipped" badge
 			// - Todo tasks: Always show in their specified week
 			if (type === 'finishBy') {
@@ -259,19 +285,37 @@
 				const isPastWeek = weekEvent.endDate < today;
 				const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
+				console.log('Is past week:', isPastWeek);
+				console.log('Is current week:', isCurrentWeek);
+
 				if (isPastWeek) {
-					return date >= startDate && date <= endDate && todo.status === 'completed';
+					// For past weeks, show all tasks that were originally scheduled for that week
+					const shouldShow = date >= startDate && date <= endDate;
+					console.log('Past week - should show:', shouldShow);
+					return shouldShow;
 				}
 
 				if (isCurrentWeek) {
-					return (
-						(date >= startDate && date <= endDate) ||
-						(date < startDate && todo.status !== 'completed')
-					);
+					// For current week, show:
+					// 1. Tasks originally scheduled for this week
+					// 2. Overdue tasks from past weeks that aren't completed
+					const isOriginallyScheduledForThisWeek = date >= startDate && date <= endDate;
+					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
+					const shouldShow = isOriginallyScheduledForThisWeek || isOverdueFromPastWeek;
+					console.log('Current week - should show:', shouldShow);
+					console.log('Originally scheduled for this week:', isOriginallyScheduledForThisWeek);
+					console.log('Overdue from past week:', isOverdueFromPastWeek);
+					return shouldShow;
 				}
+
+				// For future weeks, show tasks scheduled for that week
+				const shouldShow = date >= startDate && date <= endDate;
+				console.log('Future week - should show:', shouldShow);
+				return shouldShow;
 			}
 
-			return date >= startDate && date <= endDate;
+			const shouldShow = date >= startDate && date <= endDate;
+			return shouldShow;
 		});
 
 		// Get all parent tasks for the filtered todos
@@ -327,6 +371,13 @@
 			const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
 			if (!dateA || !dateB) return 0;
 			return dateA.getTime() - dateB.getTime();
+		});
+
+		console.log(`\nFound ${result.length} todos for ${type} in this week`);
+		result.forEach((todo: Todo) => {
+			console.log(
+				`- ${todo.title} (${formatTodoDate(type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo)})`
+			);
 		});
 
 		return result;
@@ -503,22 +554,6 @@
 			console.error('Failed to toggle todo status:', error);
 			notification = {
 				message: error instanceof Error ? error.message : 'Failed to toggle todo status',
-				type: 'error'
-			};
-		}
-	}
-
-	async function handleCyclePriority(todo: Todo, event: MouseEvent) {
-		// Prevent event from bubbling up to parent elements
-		event.stopPropagation();
-
-		try {
-			await cycleTodoPriority(todo.id);
-			await onTodosChange();
-		} catch (error) {
-			console.error('Failed to cycle todo priority:', error);
-			notification = {
-				message: error instanceof Error ? error.message : 'Failed to cycle todo priority',
 				type: 'error'
 			};
 		}
@@ -718,7 +753,7 @@
 												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
-												class="cursor-pointer rounded px-1 py-0.5 text-xs"
+												class="rounded px-1 py-0.5 text-xs"
 												class:text-gray-400={todo.status === 'completed'}
 												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -730,7 +765,6 @@
 													todo.status !== 'completed'}
 												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
 												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
-												on:click={(e) => handleCyclePriority(todo, e)}
 											>
 												{todo.priority}
 											</span>
@@ -768,7 +802,7 @@
 												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
-												class="cursor-pointer rounded px-1 py-0.5 text-xs"
+												class="rounded px-1 py-0.5 text-xs"
 												class:text-gray-400={todo.status === 'completed'}
 												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -780,7 +814,6 @@
 													todo.status !== 'completed'}
 												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
 												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
-												on:click={(e) => handleCyclePriority(todo, e)}
 											>
 												{todo.priority}
 											</span>
@@ -835,7 +868,7 @@
 													{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 												</span>
 												<span
-													class="cursor-pointer rounded px-1 py-0.5 text-xs"
+													class="rounded px-1 py-0.5 text-xs"
 													class:text-gray-400={todo.status === 'completed'}
 													class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 													class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -850,7 +883,6 @@
 													class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
 													class:text-gray-800={todo.priority === 'P3' &&
 														todo.status !== 'completed'}
-													on:click={(e) => handleCyclePriority(todo, e)}
 												>
 													{todo.priority}
 												</span>

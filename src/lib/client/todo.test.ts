@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateId, buildPath, PATH_SEPARATOR, ROOT_PATH, getNextBusinessDay, getRandomBusinessTime } from './dexie';
+import { getTaskStatus } from '$lib/utils';
 
 // Mock the validateUsername function
 const validateUsername = (username: unknown): boolean => {
@@ -130,6 +131,86 @@ describe('Todo Utilities', () => {
       // Check that seconds and milliseconds are 0
       expect(time.getSeconds()).toBe(0);
       expect(time.getMilliseconds()).toBe(0);
+    });
+  });
+
+  describe('Task Status Functions', () => {
+    it('should correctly identify overdue tasks', () => {
+      const today = new Date('2024-03-18T00:00:00Z');
+      const weekStart = new Date('2024-03-18T00:00:00Z');
+
+      // Task due yesterday
+      const overdueTask = {
+        deadline: new Date('2024-03-17T00:00:00Z'),
+        finishBy: new Date('2024-03-17T00:00:00Z'),
+        status: 'open'
+      };
+
+      const status = getTaskStatus(overdueTask, weekStart);
+      expect(status).toBeDefined();
+      expect(status?.type).toBe('overdue');
+      expect(status?.daysOverdue).toBeGreaterThan(0);
+    });
+
+    it('should correctly identify slipped tasks', () => {
+      const today = new Date('2024-03-18T00:00:00Z');
+      const weekStart = new Date('2024-03-18T00:00:00Z');
+
+      // Task with finishBy date in past week
+      const slippedTask = {
+        deadline: new Date('2024-03-25T00:00:00Z'),
+        finishBy: new Date('2024-03-15T00:00:00Z'),
+        status: 'open'
+      };
+
+      const status = getTaskStatus(slippedTask, weekStart);
+      expect(status).toBeDefined();
+      expect(status?.type).toBe('slipped');
+    });
+
+    it('should not show status for completed tasks', () => {
+      const today = new Date('2024-03-18T00:00:00Z');
+      const weekStart = new Date('2024-03-18T00:00:00Z');
+
+      // Overdue task that is completed
+      const completedTask = {
+        deadline: new Date('2024-03-17T00:00:00Z'),
+        finishBy: new Date('2024-03-17T00:00:00Z'),
+        status: 'completed'
+      };
+
+      const status = getTaskStatus(completedTask, weekStart);
+      expect(status).toBeNull();
+    });
+
+    it('should not show status for future tasks', () => {
+      const today = new Date('2024-03-18T00:00:00Z');
+      const weekStart = new Date('2024-03-18T00:00:00Z');
+
+      // Task with future dates
+      const futureTask = {
+        deadline: new Date('2024-03-25T00:00:00Z'),
+        finishBy: new Date('2024-03-25T00:00:00Z'),
+        status: 'open'
+      };
+
+      const status = getTaskStatus(futureTask, weekStart);
+      expect(status).toBeNull();
+    });
+
+    it('should handle tasks with no dates', () => {
+      const today = new Date('2024-03-18T00:00:00Z');
+      const weekStart = new Date('2024-03-18T00:00:00Z');
+
+      // Task with no dates
+      const noDateTask = {
+        deadline: null,
+        finishBy: null,
+        status: 'open'
+      };
+
+      const status = getTaskStatus(noDateTask, weekStart);
+      expect(status).toBeNull();
     });
   });
 }); 

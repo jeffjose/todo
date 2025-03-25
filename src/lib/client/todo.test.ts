@@ -169,12 +169,25 @@ describe('Todo Utilities', () => {
 
       // Check business rules
       expect(todoData.deadline.getTime()).toBeGreaterThan(new Date().getTime());
-      expect(todoData.finishBy.getTime()).toBeLessThan(todoData.deadline.getTime());
+      expect(todoData.finishBy.getTime()).toBeLessThanOrEqual(todoData.deadline.getTime());
       expect(todoData.finishBy.getTime()).toBeGreaterThan(new Date().getTime());
       expect(todoData.tags.length).toBeGreaterThan(0);
       expect(todoData.tags.length).toBeLessThanOrEqual(3);
       expect(todoData.attachments.length).toBeLessThanOrEqual(3);
       expect(todoData.level).toBe(0);
+    });
+
+    it('should ensure todo date is before or equal to finishBy', () => {
+      const now = new Date('2024-01-01T00:00:00Z');
+      const deadline = new Date('2024-01-15T00:00:00Z');
+
+      // Generate todos until we get one with a todo date
+      let todoData;
+      do {
+        todoData = generateRandomTodoData(now, deadline);
+      } while (todoData.todo === null);
+
+      expect(todoData.todo!.getTime()).toBeLessThanOrEqual(todoData.finishBy.getTime());
     });
   });
 }); 

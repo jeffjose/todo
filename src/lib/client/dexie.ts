@@ -454,13 +454,9 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   }
   finishBy = getRandomBusinessTime(finishBy);
 
-  // Ensure finishBy is before deadline
-  if (finishBy.getTime() >= deadline.getTime()) {
+  // Ensure finishBy is before or equal to deadline
+  if (finishBy.getTime() > deadline.getTime()) {
     finishBy = new Date(deadline);
-    finishBy.setDate(deadline.getDate() - 1);
-    while (finishBy.getDay() === 0 || finishBy.getDay() === 6) {
-      finishBy.setDate(finishBy.getDate() - 1);
-    }
     finishBy = getRandomBusinessTime(finishBy);
   }
 
@@ -475,6 +471,12 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
       todo = getNextBusinessDay(todo);
     }
     todo = getRandomBusinessTime(todo);
+
+    // Ensure todo is before or equal to finishBy
+    if (todo.getTime() > finishBy.getTime()) {
+      todo = new Date(finishBy);
+      todo = getRandomBusinessTime(todo);
+    }
   }
 
   const status = (() => {

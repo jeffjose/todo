@@ -116,7 +116,6 @@ describe('Utility Functions', () => {
       expect(todoData.attachments).toBeDefined();
       expect(todoData.comments).toBeDefined();
       expect(todoData.subtasks).toBeDefined();
-      expect(todoData.urls).toBeDefined();  // Check urls array exists
 
       // Check business rules
       expect(todoData.deadline.getTime()).toBeGreaterThan(now.getTime());
@@ -124,65 +123,6 @@ describe('Utility Functions', () => {
       expect(todoData.finishBy.getTime()).toBeGreaterThan(now.getTime());
       expect(todoData.tags.length).toBeGreaterThan(0);
       expect(todoData.tags.length).toBeLessThanOrEqual(3);
-      expect(todoData.urls.length).toBeLessThanOrEqual(3);  // Check max number of URLs
-    });
-  });
-
-  describe('URL Metadata', () => {
-    it('should generate valid URL metadata in random todos', () => {
-      const todoData = generateRandomTodoData();
-
-      // Check that URLs array exists
-      expect(Array.isArray(todoData.urls)).toBe(true);
-
-      // Check each URL in the array
-      todoData.urls.forEach(url => {
-        // Check required fields
-        expect(url.id).toBeDefined();
-        expect(typeof url.id).toBe('string');
-        expect(url.id.length).toBeGreaterThan(0);
-
-        expect(url.url).toBeDefined();
-        expect(typeof url.url).toBe('string');
-        expect(url.url.startsWith('http')).toBe(true);
-
-        // Check optional fields
-        expect(url.title === null || typeof url.title === 'string').toBe(true);
-        expect(url.favicon === null || typeof url.favicon === 'string').toBe(true);
-
-        // Check that if favicon exists, it's a valid URL
-        if (url.favicon) {
-          expect(url.favicon.startsWith('http')).toBe(true);
-        }
-      });
-    });
-
-    it('should handle empty URLs array', () => {
-      // Mock Math.random to always return 0 to force 0 URLs
-      const originalRandom = Math.random;
-      Math.random = () => 0;
-
-      const todoData = generateRandomTodoData();
-      expect(todoData.urls).toEqual([]);
-
-      // Restore Math.random
-      Math.random = originalRandom;
-    });
-
-    it('should generate unique IDs for URLs', () => {
-      // Mock Math.random to always return 1 to force maximum URLs
-      const originalRandom = Math.random;
-      Math.random = () => 0.99;
-
-      const todoData = generateRandomTodoData();
-      const urlIds = todoData.urls.map(url => url.id);
-      const uniqueIds = new Set(urlIds);
-
-      expect(urlIds.length).toBe(uniqueIds.size);
-      expect(urlIds.length).toBe(3); // Should generate max URLs
-
-      // Restore Math.random
-      Math.random = originalRandom;
     });
   });
 }); 

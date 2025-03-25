@@ -20,7 +20,6 @@ export interface Attachment {
 }
 
 export interface UrlMetadata {
-  id: string;
   url: string;
   title: string | null;
   favicon: string | null;
@@ -551,7 +550,7 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   }
 
   // Generate random URLs with metadata
-  const numUrls = Math.floor(Math.random() * 4);  // Changed to generate 0-3 URLs
+  const numUrls = Math.floor(Math.random() * 3);
   const urls: UrlMetadata[] = [];
   const sampleUrls = [
     {
@@ -579,7 +578,6 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
   for (let i = 0; i < numUrls; i++) {
     const sampleUrl = sampleUrls[Math.floor(Math.random() * sampleUrls.length)];
     urls.push({
-      id: generateId(),
       url: sampleUrl.url,
       title: sampleUrl.title,
       favicon: sampleUrl.favicon
@@ -718,7 +716,6 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             urgency: task.urgency || 'medium',
             tags: task.tags || [],
             attachments: [],
-            urls: [],  // Add empty urls array
             comments: [],
             subtasks: [],
             path: `root.${id}`,
@@ -747,7 +744,6 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
                 urgency: subtask.urgency || 'medium',
                 tags: subtask.tags || [],
                 attachments: [],
-                urls: [],  // Add empty urls array
                 comments: [],
                 subtasks: [],
                 path: `root.${id}.${subtaskId}`,
@@ -885,7 +881,6 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
         if (task.urls && Array.isArray(task.urls)) {
           for (const urlData of task.urls) {
             urls.push({
-              id: generateId(),
               url: urlData.url,
               title: urlData.title || null,
               favicon: urlData.favicon || null
@@ -938,4 +933,32 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
       todos: []
     };
   }
+}
+
+// Helper function to toggle todo status
+export async function toggleTodoStatus(id: string): Promise<Todo> {
+  const todo = await getTodoById(id);
+  if (!todo) {
+    throw new Error(`Todo with id ${id} not found`);
+  }
+
+  // Toggle between pending and completed
+  const newStatus = todo.status === 'completed' ? 'pending' : 'completed';
+
+  return updateTodo(id, { status: newStatus });
+}
+
+// Helper function to cycle todo priority
+export async function cycleTodoPriority(id: string): Promise<Todo> {
+  const todo = await getTodoById(id);
+  if (!todo) {
+    throw new Error(`Todo with id ${id} not found`);
+  }
+
+  const priorities = ['P0', 'P1', 'P2', 'P3'];
+  const currentIndex = priorities.indexOf(todo.priority);
+  const nextIndex = (currentIndex + 1) % priorities.length;
+  const newPriority = priorities[nextIndex];
+
+  return updateTodo(id, { priority: newPriority });
 }

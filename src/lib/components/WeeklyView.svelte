@@ -6,7 +6,9 @@
 		createMultipleRandomTodos,
 		clearAllTodos,
 		loadTestData,
-		type Todo
+		type Todo,
+		toggleTodoStatus,
+		cycleTodoPriority
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
 	import { getTaskStatus, type TaskStatus } from '$lib/utils';
@@ -489,6 +491,38 @@
 	function handleTaskHover(taskId: string | null) {
 		hoveredTaskId = taskId;
 	}
+
+	async function handleToggleStatus(todo: Todo, event: MouseEvent) {
+		// Prevent event from bubbling up to parent elements
+		event.stopPropagation();
+
+		try {
+			await toggleTodoStatus(todo.id);
+			await onTodosChange();
+		} catch (error) {
+			console.error('Failed to toggle todo status:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to toggle todo status',
+				type: 'error'
+			};
+		}
+	}
+
+	async function handleCyclePriority(todo: Todo, event: MouseEvent) {
+		// Prevent event from bubbling up to parent elements
+		event.stopPropagation();
+
+		try {
+			await cycleTodoPriority(todo.id);
+			await onTodosChange();
+		} catch (error) {
+			console.error('Failed to cycle todo priority:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to cycle todo priority',
+				type: 'error'
+			};
+		}
+	}
 </script>
 
 <div class="container mx-auto p-2">
@@ -673,17 +707,18 @@
 											class:text-gray-400={todo.status === 'completed'}
 										>
 											<span
-												class="text-xs leading-snug"
+												class="cursor-pointer text-xs leading-snug"
 												style="padding-left: {todo.level * 0.75}rem"
 												class:line-through={todo.status === 'completed'}
 												style:color={todo.status === 'completed'
 													? '#9CA3AF'
 													: getColorForId(todo.id)}
+												on:click={(e) => handleToggleStatus(todo, e)}
 											>
 												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
-												class="rounded px-1 py-0.5 text-xs"
+												class="cursor-pointer rounded px-1 py-0.5 text-xs"
 												class:text-gray-400={todo.status === 'completed'}
 												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -695,6 +730,7 @@
 													todo.status !== 'completed'}
 												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
 												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
+												on:click={(e) => handleCyclePriority(todo, e)}
 											>
 												{todo.priority}
 											</span>
@@ -721,17 +757,18 @@
 											class:text-gray-400={todo.status === 'completed'}
 										>
 											<span
-												class="text-xs leading-snug"
+												class="cursor-pointer text-xs leading-snug"
 												style="padding-left: {todo.level * 0.75}rem"
 												class:line-through={todo.status === 'completed'}
 												style:color={todo.status === 'completed'
 													? '#9CA3AF'
 													: getColorForId(todo.id)}
+												on:click={(e) => handleToggleStatus(todo, e)}
 											>
 												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
-												class="rounded px-1 py-0.5 text-xs"
+												class="cursor-pointer rounded px-1 py-0.5 text-xs"
 												class:text-gray-400={todo.status === 'completed'}
 												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -743,11 +780,12 @@
 													todo.status !== 'completed'}
 												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
 												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
+												on:click={(e) => handleCyclePriority(todo, e)}
 											>
 												{todo.priority}
 											</span>
 											{#if isCurrentWeek(weekEvent)}
-												{@const status = getTaskStatus(todo, weekEvent.startDate, simulatedDate)}
+												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
 													<span
 														class="rounded px-1 py-0.5 text-xs text-white"
@@ -786,17 +824,18 @@
 												class:text-gray-400={todo.status === 'completed'}
 											>
 												<span
-													class="text-xs leading-snug"
+													class="cursor-pointer text-xs leading-snug"
 													style="padding-left: {todo.level * 0.75}rem"
 													class:line-through={todo.status === 'completed'}
 													style:color={todo.status === 'completed'
 														? '#9CA3AF'
 														: getColorForId(todo.id)}
+													on:click={(e) => handleToggleStatus(todo, e)}
 												>
 													{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 												</span>
 												<span
-													class="rounded px-1 py-0.5 text-xs"
+													class="cursor-pointer rounded px-1 py-0.5 text-xs"
 													class:text-gray-400={todo.status === 'completed'}
 													class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
 													class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
@@ -811,6 +850,7 @@
 													class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
 													class:text-gray-800={todo.priority === 'P3' &&
 														todo.status !== 'completed'}
+													on:click={(e) => handleCyclePriority(todo, e)}
 												>
 													{todo.priority}
 												</span>

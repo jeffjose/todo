@@ -8,7 +8,9 @@
 		createRandomTodo,
 		createMultipleRandomTodos,
 		loadTestData,
-		loadInitialTasks
+		loadInitialTasks,
+		toggleTodoStatus,
+		cycleTodoPriority
 	} from '$lib/client/dexie';
 
 	// Core props from parent
@@ -238,6 +240,38 @@
 			};
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	async function handleToggleStatus(todo: Todo, event: MouseEvent) {
+		// Prevent event from bubbling up to parent elements
+		event.stopPropagation();
+
+		try {
+			await toggleTodoStatus(todo.id);
+			await onTodosChange();
+		} catch (error) {
+			console.error('Failed to toggle todo status:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to toggle todo status',
+				type: 'error'
+			};
+		}
+	}
+
+	async function handleCyclePriority(todo: Todo, event: MouseEvent) {
+		// Prevent event from bubbling up to parent elements
+		event.stopPropagation();
+
+		try {
+			await cycleTodoPriority(todo.id);
+			await onTodosChange();
+		} catch (error) {
+			console.error('Failed to cycle todo priority:', error);
+			notification = {
+				message: error instanceof Error ? error.message : 'Failed to cycle todo priority',
+				type: 'error'
+			};
 		}
 	}
 </script>
@@ -571,7 +605,7 @@
 							<!-- Priority -->
 							<td class="whitespace-nowrap px-2 py-2">
 								<span
-									class="rounded px-1.5 py-0.5 text-xs font-medium"
+									class="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
 									class:bg-red-100={todo.priority === 'P0'}
 									class:text-red-800={todo.priority === 'P0'}
 									class:bg-orange-100={todo.priority === 'P1'}
@@ -580,6 +614,7 @@
 									class:text-yellow-800={todo.priority === 'P2'}
 									class:bg-gray-100={todo.priority === 'P3'}
 									class:text-gray-800={todo.priority === 'P3'}
+									on:click={(e) => handleCyclePriority(todo, e)}
 								>
 									{todo.priority}
 								</span>
@@ -604,8 +639,9 @@
 							<td class="whitespace-nowrap px-2 py-2">
 								<div class="flex items-center">
 									<div
-										class="max-w-[200px] truncate font-medium"
+										class="max-w-[200px] cursor-pointer truncate font-medium"
 										style="color: {getColorForId(todo.id)}"
+										on:click={(e) => handleToggleStatus(todo, e)}
 									>
 										{#if todo.emoji}
 											<span class="mr-1">{todo.emoji}</span>
@@ -846,9 +882,6 @@
 																>
 																	{urlData.title || urlData.url}
 																</span>
-																{#if urlData.description}
-																	<span class="text-xs text-gray-500">{urlData.description}</span>
-																{/if}
 																<span class="mt-1 text-xs text-gray-400">{urlData.url}</span>
 															</div>
 														</a>

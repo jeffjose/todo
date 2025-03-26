@@ -230,6 +230,22 @@
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
+		// Debug logging for Pre Review Q1 Report
+		const preReviewTask = todos.find((todo) => todo.title === 'Pre Review Q1 Report');
+		if (preReviewTask) {
+			console.log(`Debug - Pre Review Q1 Report in getTodosForWeek (${type}):`, {
+				task: preReviewTask,
+				weekStart: weekEvent.startDate,
+				weekEnd: weekEvent.endDate,
+				date:
+					type === 'deadline'
+						? preReviewTask.deadline
+						: type === 'finishBy'
+							? preReviewTask.finishBy
+							: preReviewTask.todo
+			});
+		}
+
 		// First, filter todos for the week
 		const weekTodos = todos.filter((todo: Todo) => {
 			const date =
@@ -261,15 +277,31 @@
 				const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
 				if (isPastWeek) {
-					// For past weeks, only show completed tasks that were originally scheduled for that week
-					// and were completed in that week (not completed later)
-					const shouldShow =
+					// For past weeks, show:
+					// 1. Tasks that were completed in this week
+					// 2. Tasks that were scheduled for this week and completed later
+					const wasCompletedInThisWeek =
 						date >= startDate &&
 						date <= endDate &&
 						todo.status === 'completed' &&
 						todo.completed &&
 						todo.completed >= startDate &&
 						todo.completed <= endDate;
+					const wasScheduledForThisWeek = date >= startDate && date <= endDate;
+					const shouldShow = wasCompletedInThisWeek || wasScheduledForThisWeek;
+
+					// Debug logging for Pre Review Q1 Report
+					if (todo.title === 'Pre Review Q1 Report') {
+						console.log('Debug - Pre Review Q1 Report past week check:', {
+							shouldShow,
+							wasCompletedInThisWeek,
+							wasScheduledForThisWeek,
+							date,
+							startDate,
+							endDate,
+							completed: todo.completed
+						});
+					}
 					return shouldShow;
 				}
 
@@ -277,29 +309,63 @@
 					// For current week, show:
 					// 1. Tasks originally scheduled for this week (including completed ones)
 					// 2. Overdue tasks from past weeks that aren't completed
-					// 3. Overdue tasks that were completed this week (keep them in current week)
+					// 3. Tasks that were completed this week (keep them in current week)
 					const isOriginallyScheduledForThisWeek = date >= startDate && date <= endDate;
 					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
-					const isOverdueAndCompletedThisWeek =
+					const isCompletedThisWeek =
 						todo.status === 'completed' &&
 						todo.completed &&
 						todo.completed >= startDate &&
-						todo.completed <= endDate &&
-						date < today;
+						todo.completed <= endDate;
 					const shouldShow =
 						isOriginallyScheduledForThisWeek || // Show all tasks scheduled for this week, including completed ones
 						isOverdueFromPastWeek ||
-						isOverdueAndCompletedThisWeek;
+						isCompletedThisWeek; // Show any task completed this week
+
+					// Debug logging for Pre Review Q1 Report
+					if (todo.title === 'Pre Review Q1 Report') {
+						console.log('Debug - Pre Review Q1 Report current week check:', {
+							shouldShow,
+							isOriginallyScheduledForThisWeek,
+							isOverdueFromPastWeek,
+							isCompletedThisWeek,
+							date,
+							today,
+							startDate,
+							endDate,
+							completed: todo.completed
+						});
+					}
 					return shouldShow;
 				}
 
 				// For future weeks, show tasks scheduled for that week
 				const shouldShow = date >= startDate && date <= endDate;
+
+				// Debug logging for Pre Review Q1 Report
+				if (todo.title === 'Pre Review Q1 Report') {
+					console.log('Debug - Pre Review Q1 Report future week check:', {
+						shouldShow,
+						date,
+						startDate,
+						endDate
+					});
+				}
 				return shouldShow;
 			}
 
 			// For deadline column
 			const shouldShow = date >= startDate && date <= endDate;
+
+			// Debug logging for Pre Review Q1 Report
+			if (todo.title === 'Pre Review Q1 Report') {
+				console.log('Debug - Pre Review Q1 Report deadline check:', {
+					shouldShow,
+					date,
+					startDate,
+					endDate
+				});
+			}
 			return shouldShow;
 		});
 
@@ -367,6 +433,19 @@
 		const isPastWeek = weekEvent.endDate < today;
 		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
+		// Debug logging for Pre Review Q1 Report
+		const preReviewTask = todos.find((todo) => todo.title === 'Pre Review Q1 Report');
+		if (preReviewTask) {
+			console.log(`Debug - Pre Review Q1 Report in getOpenTodosUpToCurrentWeek:`, {
+				task: preReviewTask,
+				weekStart: weekEvent.startDate,
+				weekEnd: weekEvent.endDate,
+				isPastWeek,
+				isCurrentWeek,
+				today
+			});
+		}
+
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
@@ -395,12 +474,8 @@
 		if (isPastWeek) {
 			todos.forEach((todo: Todo) => {
 				if (todo.status === 'completed') {
-					const date = todo.deadline || todo.finishBy || todo.todo;
-					// Only show completed tasks that were completed in this week
+					// Show tasks that were completed in this week
 					if (
-						date &&
-						date >= weekEvent.startDate &&
-						date <= weekEvent.endDate &&
 						todo.completed &&
 						todo.completed >= weekEvent.startDate &&
 						todo.completed <= weekEvent.endDate

@@ -25,8 +25,7 @@ export function getTaskStatus(todo: {
 
 	// Task is overdue if it has a deadline in the past
 	if (todo.deadline && todo.deadline < weekStartDate) {
-		const today = new Date();
-		const daysOverdue = Math.ceil((today.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+		const daysOverdue = Math.ceil((weekStartDate.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
 		return { type: 'overdue', daysOverdue };
 	}
 

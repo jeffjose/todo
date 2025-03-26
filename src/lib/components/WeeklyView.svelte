@@ -819,6 +819,14 @@
 											>
 												{todo.priority}
 											</span>
+											{#if todo.status !== 'completed'}
+												{#if getTaskStatus(todo, new Date())?.type === 'overdue'}
+													<span
+														class="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-800"
+														>overdue</span
+													>
+												{/if}
+											{/if}
 										</div>
 									</div>
 								{:else}

@@ -212,5 +212,73 @@ describe('Todo Utilities', () => {
       const status = getTaskStatus(noDateTask, weekStart);
       expect(status).toBeNull();
     });
+
+    // New tests for overdue badge behavior
+    describe('Overdue Badge Behavior', () => {
+      it('should show overdue badge for tasks with past deadline', () => {
+        const today = new Date('2024-03-18T00:00:00Z');
+        const weekStart = new Date('2024-03-18T00:00:00Z');
+
+        // Task due 2 days ago
+        const overdueTask = {
+          deadline: new Date('2024-03-16T00:00:00Z'),
+          finishBy: null,
+          status: 'open'
+        };
+
+        const status = getTaskStatus(overdueTask, weekStart);
+        expect(status).toBeDefined();
+        expect(status?.type).toBe('overdue');
+        expect(status?.daysOverdue).toBe(2);
+      });
+
+      it('should not show overdue badge for tasks with past finishBy but future deadline', () => {
+        const today = new Date('2024-03-18T00:00:00Z');
+        const weekStart = new Date('2024-03-18T00:00:00Z');
+
+        // Task with past finishBy but future deadline
+        const task = {
+          deadline: new Date('2024-03-25T00:00:00Z'),
+          finishBy: new Date('2024-03-16T00:00:00Z'),
+          status: 'open'
+        };
+
+        const status = getTaskStatus(task, weekStart);
+        expect(status).toBeDefined();
+        expect(status?.type).toBe('slipped');
+      });
+
+      it('should show overdue badge for tasks with past deadline even if they have past finishBy', () => {
+        const today = new Date('2024-03-18T00:00:00Z');
+        const weekStart = new Date('2024-03-18T00:00:00Z');
+
+        // Task with both past deadline and past finishBy
+        const task = {
+          deadline: new Date('2024-03-16T00:00:00Z'),
+          finishBy: new Date('2024-03-15T00:00:00Z'),
+          status: 'open'
+        };
+
+        const status = getTaskStatus(task, weekStart);
+        expect(status).toBeDefined();
+        expect(status?.type).toBe('overdue');
+        expect(status?.daysOverdue).toBe(2);
+      });
+
+      it('should not show overdue badge for tasks with past deadline but completed status', () => {
+        const today = new Date('2024-03-18T00:00:00Z');
+        const weekStart = new Date('2024-03-18T00:00:00Z');
+
+        // Completed task with past deadline
+        const task = {
+          deadline: new Date('2024-03-16T00:00:00Z'),
+          finishBy: null,
+          status: 'completed'
+        };
+
+        const status = getTaskStatus(task, weekStart);
+        expect(status).toBeNull();
+      });
+    });
   });
 }); 

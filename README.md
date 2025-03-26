@@ -47,20 +47,23 @@ We have several types of tests:
 
 1. **Task Promotion Tests**: Test how tasks are promoted between weeks
 
-   - Deadline tasks stay in their original week
-   - Finish By tasks are promoted to current week if overdue
-   - Completed tasks stay in their original week
+   - Deadline tasks stay in original week (`should keep deadline tasks in their original week even if overdue`)
+   - Finish By tasks are promoted to current week if overdue (`should promote overdue finishBy tasks to current week`)
+   - Completed tasks stay in original week (`should keep completed finishBy tasks in their original week`)
+   - Mixed task types (`should handle mixed deadline and finishBy tasks correctly`)
 
 2. **Task Hierarchy Tests**: Test parent-child relationships
 
-   - Parent tasks appear before children
-   - Parent tasks are shown when subtasks are visible
-   - Subtasks are shown when parent tasks are visible
+   - Parent tasks appear before children (`should sort tasks by path to maintain hierarchy`)
+   - Parent tasks are shown when subtasks are visible (`should show parent tasks when subtask is visible`)
+   - Subtasks are shown when parent tasks are visible (`should show subtasks when parent task is visible`)
+   - Mixed deadline/finishBy with subtasks (`should handle mixed deadline and finishBy tasks with subtasks`)
 
 3. **Task Sorting Tests**: Test sorting logic
-   - Sort by path to maintain hierarchy
-   - Sort by status within same hierarchy level
-   - Sort by date within same hierarchy level and status
+   - Sort by path to maintain hierarchy (`should sort tasks by path to maintain hierarchy`)
+   - Sort by status within same hierarchy level (`should sort tasks by status within same hierarchy level`)
+   - Sort by date within same hierarchy level and status (`should sort tasks by date within same hierarchy level and status`)
+   - Tasks with earlier dates appear first (`should promote slipped tasks to current week regardless of finishBy date`)
 
 To run the tests:
 
@@ -127,6 +130,22 @@ This ensures that task management logic issues are caught early in the developme
    - Completed tasks stay in their original week
    - Open tasks from past weeks are promoted to current week
    - Promoted tasks show "slipped" badge
+   - Original finishBy date is preserved when promoted
+
+### Task Sorting Order
+
+Tasks are sorted in the following order:
+
+1. By path to maintain hierarchy (e.g., 'root.parent' before 'root.parent.child')
+2. By level within the hierarchy (parent tasks before children)
+3. By status (completed tasks first within same level)
+4. By date (earlier dates first within same status)
+
+This ensures:
+
+- Parent tasks always appear before their children
+- Completed tasks are grouped together within each level
+- Tasks with earlier dates appear first when status and level are equal
 
 ### Week Display
 

@@ -22,7 +22,7 @@ tasks:
   - title: Review Q1 Report
     status: pending
     deadline: 2025-03-31 17:00
-    finish_by: 2024-03-15 17:00
+    finishBy: 2024-03-15 17:00
     priority: P1
     emoji: 📊
     description: Review and finalize Q1 performance report
@@ -33,7 +33,7 @@ tasks:
   - title: Pre Review Q1 Report
     status: completed
     deadline: 2025-03-31 17:00
-    finish_by: 2025-03-15 17:00
+    finishBy: 2025-03-15 17:00
     priority: P1
     emoji: 📊
     description: Review and finalize Q1 performance report

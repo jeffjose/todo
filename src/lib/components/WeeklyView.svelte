@@ -280,6 +280,7 @@
 			//   * All tasks stay in their original week
 			//   * Overdue tasks from past weeks are promoted to current week
 			//   * Promoted tasks show "slipped" badge
+			//   * Overdue tasks completed in current week stay in current week
 			// - Todo tasks: Always show in their specified week
 			if (type === 'finishBy') {
 				const today = new Date();
@@ -291,7 +292,14 @@
 
 				if (isPastWeek) {
 					// For past weeks, only show completed tasks that were originally scheduled for that week
-					const shouldShow = date >= startDate && date <= endDate && todo.status === 'completed';
+					// and were completed in that week (not completed later)
+					const shouldShow =
+						date >= startDate &&
+						date <= endDate &&
+						todo.status === 'completed' &&
+						todo.completedBy &&
+						todo.completedBy >= startDate &&
+						todo.completedBy <= endDate;
 					console.log('Past week - should show:', shouldShow);
 					return shouldShow;
 				}
@@ -300,14 +308,23 @@
 					// For current week, show:
 					// 1. Tasks originally scheduled for this week (including completed ones)
 					// 2. Overdue tasks from past weeks that aren't completed
+					// 3. Overdue tasks that were completed this week (keep them in current week)
 					const isOriginallyScheduledForThisWeek = date >= startDate && date <= endDate;
 					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
+					const isOverdueAndCompletedThisWeek =
+						todo.status === 'completed' &&
+						todo.completedBy &&
+						todo.completedBy >= startDate &&
+						todo.completedBy <= endDate &&
+						date < today;
 					const shouldShow =
 						isOriginallyScheduledForThisWeek || // Show all tasks scheduled for this week, including completed ones
-						isOverdueFromPastWeek;
+						isOverdueFromPastWeek ||
+						isOverdueAndCompletedThisWeek;
 					console.log('Current week - should show:', shouldShow);
 					console.log('Originally scheduled for this week:', isOriginallyScheduledForThisWeek);
 					console.log('Overdue from past week:', isOverdueFromPastWeek);
+					console.log('Overdue and completed this week:', isOverdueAndCompletedThisWeek);
 					return shouldShow;
 				}
 
@@ -422,7 +439,15 @@
 			todos.forEach((todo: Todo) => {
 				if (todo.status === 'completed') {
 					const date = todo.deadline || todo.finishBy || todo.todo;
-					if (date && date >= weekEvent.startDate && date <= weekEvent.endDate) {
+					// Only show completed tasks that were completed in this week
+					if (
+						date &&
+						date >= weekEvent.startDate &&
+						date <= weekEvent.endDate &&
+						todo.completedBy &&
+						todo.completedBy >= weekEvent.startDate &&
+						todo.completedBy <= weekEvent.endDate
+					) {
 						getTaskWithParents(todo, tasksWithParents);
 					}
 				}
@@ -433,6 +458,7 @@
 		// 1. All open tasks from past and current week (if they don't have a todo date)
 		// 2. Tasks with todo date in this week
 		// 3. Completed tasks that were completed this week
+		// 4. Overdue tasks that were completed this week (keep them in current week)
 		if (isCurrentWeek) {
 			todos.forEach((todo: Todo) => {
 				const hasTodoInWeek =
@@ -443,15 +469,23 @@
 					todo.completedBy &&
 					todo.completedBy >= weekEvent.startDate &&
 					todo.completedBy <= weekEvent.endDate;
+				const isOverdueAndCompletedThisWeek =
+					todo.status === 'completed' &&
+					todo.completedBy &&
+					todo.completedBy >= weekEvent.startDate &&
+					todo.completedBy <= weekEvent.endDate &&
+					((todo.deadline && todo.deadline < today) || (todo.finishBy && todo.finishBy < today));
 
 				// If task has a todo date, only show it in that specific week
 				// If task has no todo date or has a past todo date, show it in current week if not completed
 				// Also show completed tasks if they were completed this week
+				// Keep overdue tasks that were completed this week in the current week
 				const shouldShow =
 					hasTodoInWeek ||
 					(!todo.todo && todo.status !== 'completed') ||
 					(hasPastTodo && todo.status !== 'completed') ||
-					wasCompletedThisWeek;
+					wasCompletedThisWeek ||
+					isOverdueAndCompletedThisWeek;
 
 				if (shouldShow) {
 					getTaskWithParents(todo, tasksWithParents);
@@ -461,7 +495,11 @@
 
 		const result = Array.from(tasksWithParents);
 
-		result.sort((a: Todo, b: Todo) => {
+		// Remove duplicates based on todo ID
+		const uniqueTodos = new Map(result.map((todo) => [todo.id, todo]));
+		const uniqueResult = Array.from(uniqueTodos.values());
+
+		uniqueResult.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
 			const pathA = a.path || '';
 			const pathB = b.path || '';
@@ -485,7 +523,7 @@
 			return dateA.getTime() - dateB.getTime();
 		});
 
-		return result;
+		return uniqueResult;
 	}
 
 	function formatDate(date: Date): string {

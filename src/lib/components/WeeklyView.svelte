@@ -807,11 +807,27 @@
 											>
 												{todo.priority}
 											</span>
-											{#if getTaskStatus(todo, new Date())?.type === 'overdue'}
-												<span
-													class="ml-1 rounded bg-red-500 px-1.5 py-0.5 text-xs font-medium text-white"
-													>overdue</span
-												>
+											{#if isCurrentWeek(weekEvent)}
+												{@const status = getTaskStatus(todo, weekEvent.startDate)}
+												{#if status}
+													<span
+														class="rounded px-1 py-0.5 text-xs text-white"
+														class:bg-red-500={status.type === 'overdue' &&
+															todo.status !== 'completed'}
+														class:bg-red-100={status.type === 'overdue' &&
+															todo.status === 'completed'}
+														class:text-red-400={status.type === 'overdue' &&
+															todo.status === 'completed'}
+														class:bg-yellow-500={status.type === 'slipped'}
+														class:line-through={todo.status === 'completed'}
+													>
+														{#if status.type === 'overdue'}
+															overdue ({status.daysOverdue}d)
+														{:else}
+															{status.type}
+														{/if}
+													</span>
+												{/if}
 											{/if}
 										</div>
 									</div>
@@ -868,8 +884,14 @@
 												{#if status}
 													<span
 														class="rounded px-1 py-0.5 text-xs text-white"
-														class:bg-red-500={status.type === 'overdue'}
+														class:bg-red-500={status.type === 'overdue' &&
+															todo.status !== 'completed'}
+														class:bg-red-100={status.type === 'overdue' &&
+															todo.status === 'completed'}
+														class:text-red-400={status.type === 'overdue' &&
+															todo.status === 'completed'}
 														class:bg-yellow-500={status.type === 'slipped'}
+														class:line-through={todo.status === 'completed'}
 													>
 														{#if status.type === 'overdue'}
 															overdue ({status.daysOverdue}d)
@@ -939,8 +961,14 @@
 													{#if status}
 														<span
 															class="rounded px-1 py-0.5 text-xs text-white"
-															class:bg-red-500={status.type === 'overdue'}
+															class:bg-red-500={status.type === 'overdue' &&
+																todo.status !== 'completed'}
+															class:bg-red-100={status.type === 'overdue' &&
+																todo.status === 'completed'}
+															class:text-red-400={status.type === 'overdue' &&
+																todo.status === 'completed'}
 															class:bg-yellow-500={status.type === 'slipped'}
+															class:line-through={todo.status === 'completed'}
 														>
 															{#if status.type === 'overdue'}
 																overdue ({status.daysOverdue}d)

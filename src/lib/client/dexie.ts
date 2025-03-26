@@ -884,7 +884,7 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
           title: task.title,
           status: task.status || 'pending',
           deadline: task.deadline ? new Date(task.deadline) : null,
-          finishBy: task.finish_by ? new Date(task.finish_by) : null,
+          finishBy: task.finish_by ? new Date(task.finish_by) : (task.deadline ? new Date(task.deadline) : null),
           todo: task.todo ? new Date(task.todo) : null,
           priority: task.priority || 'P3',
           emoji: task.emoji || null,

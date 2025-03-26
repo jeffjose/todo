@@ -227,22 +227,6 @@
 	}
 
 	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | 'todo'): Todo[] {
-		console.log(`\n=== getTodosForWeek for ${type} ===`);
-		console.log('Week:', formatDate(weekEvent.startDate), 'to', formatDate(weekEvent.endDate));
-		console.log('Total todos:', todos.length);
-
-		// Debug: Print all todos with their dates
-		if (type === 'finishBy') {
-			console.log('\nAll todos with their dates:');
-			todos.forEach((todo: Todo) => {
-				console.log(`- ${todo.title}:`);
-				console.log('  finishBy:', formatTodoDate(todo.finishBy));
-				console.log('  deadline:', formatTodoDate(todo.deadline));
-				console.log('  todo:', formatTodoDate(todo.todo));
-				console.log('  status:', todo.status);
-			});
-		}
-
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
@@ -252,9 +236,6 @@
 				type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
 
 			if (!date) {
-				if (type === 'finishBy') {
-					console.log(`\nSkipping ${todo.title} - no ${type} date`);
-				}
 				return false;
 			}
 
@@ -265,14 +246,6 @@
 			// Set end date to end of day (23:59:59)
 			const endDate = new Date(weekEvent.endDate);
 			endDate.setHours(23, 59, 59, 999);
-
-			// Debug print for each todo being checked
-			if (type === 'finishBy') {
-				console.log(`\nChecking todo: ${todo.title}`);
-				console.log('Finish By date:', formatTodoDate(todo.finishBy));
-				console.log('Week start:', formatTodoDate(startDate));
-				console.log('Week end:', formatTodoDate(endDate));
-			}
 
 			// Task promotion logic:
 			// - Deadline tasks: Stay in their original week, show as overdue in Todo column if past deadline
@@ -287,9 +260,6 @@
 				const isPastWeek = weekEvent.endDate < today;
 				const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
 
-				console.log('Is past week:', isPastWeek);
-				console.log('Is current week:', isCurrentWeek);
-
 				if (isPastWeek) {
 					// For past weeks, only show completed tasks that were originally scheduled for that week
 					// and were completed in that week (not completed later)
@@ -300,7 +270,6 @@
 						todo.completedBy &&
 						todo.completedBy >= startDate &&
 						todo.completedBy <= endDate;
-					console.log('Past week - should show:', shouldShow);
 					return shouldShow;
 				}
 
@@ -321,16 +290,11 @@
 						isOriginallyScheduledForThisWeek || // Show all tasks scheduled for this week, including completed ones
 						isOverdueFromPastWeek ||
 						isOverdueAndCompletedThisWeek;
-					console.log('Current week - should show:', shouldShow);
-					console.log('Originally scheduled for this week:', isOriginallyScheduledForThisWeek);
-					console.log('Overdue from past week:', isOverdueFromPastWeek);
-					console.log('Overdue and completed this week:', isOverdueAndCompletedThisWeek);
 					return shouldShow;
 				}
 
 				// For future weeks, show tasks scheduled for that week
 				const shouldShow = date >= startDate && date <= endDate;
-				console.log('Future week - should show:', shouldShow);
 				return shouldShow;
 			}
 
@@ -393,13 +357,6 @@
 			const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
 			if (!dateA || !dateB) return 0;
 			return dateA.getTime() - dateB.getTime();
-		});
-
-		console.log(`\nFound ${result.length} todos for ${type} in this week`);
-		result.forEach((todo: Todo) => {
-			console.log(
-				`- ${todo.title} (${formatTodoDate(type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo)})`
-			);
 		});
 
 		return result;

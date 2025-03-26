@@ -59,6 +59,7 @@ export interface Todo {
   path: string;
   level: number;
   parentId: string | null;
+  completedBy: Date | null;  // Track when the task was completed
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,8 +89,8 @@ export class TodoDatabase extends Dexie {
 
   constructor() {
     super(env.PUBLIC_TODO_TABLE_NAME || 'todos');
-    this.version(3).stores({  // Increment version for schema change
-      todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt, deadline, finishBy, todo, tags',
+    this.version(4).stores({  // Increment version for schema change
+      todos: '++id, title, status, priority, urgency, path, level, parentId, createdAt, updatedAt, deadline, finishBy, todo, tags, completedBy',
       knownEvents: '++id, startDate, endDate, description, createdAt, updatedAt',
       users: '++id, username',
       sessions: '++id, userId, expiresAt'
@@ -606,7 +607,8 @@ export function generateRandomTodoData(startDate?: Date, endDate?: Date): Omit<T
     subtasks: [],
     path: `root.${generateId()}`,
     level: 0,
-    parentId: null
+    parentId: null,
+    completedBy: null
   };
 }
 
@@ -726,6 +728,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             path: `root.${id}`,
             level: 0,
             parentId: null,
+            completedBy: null,
             createdAt: now,
             updatedAt: now
           };
@@ -754,6 +757,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
                 path: `root.${id}.${subtaskId}`,
                 level: 1,
                 parentId: id,
+                completedBy: null,
                 createdAt: now,
                 updatedAt: now
               };
@@ -783,6 +787,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             deadline: todo.deadline ? new Date(todo.deadline) : null,
             finishBy: todo.finishBy ? new Date(todo.finishBy) : null,
             todo: todo.todo ? new Date(todo.todo) : null,
+            completedBy: null,
             createdAt: new Date(todo.createdAt),
             updatedAt: new Date(todo.updatedAt)
           };
@@ -912,6 +917,7 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
           path: `root.${id}`,
           level: 0,
           parentId: null,
+          completedBy: null,
           createdAt: now,
           updatedAt: now
         };
@@ -949,8 +955,12 @@ export async function toggleTodoStatus(id: string): Promise<Todo> {
 
   // Toggle between pending and completed
   const newStatus = todo.status === 'completed' ? 'pending' : 'completed';
+  const completedBy = newStatus === 'completed' ? new Date() : null;
 
-  return updateTodo(id, { status: newStatus });
+  return updateTodo(id, {
+    status: newStatus,
+    completedBy
+  });
 }
 
 // Helper function to cycle through priorities

@@ -20,13 +20,13 @@ export function getTaskStatus(todo: {
 	deadline: Date | null;
 	finishBy: Date | null;
 	completed: Date | null;
-	title: string;
+	title?: string;
 }, weekStartDate: Date): TaskStatus {
 	const now = new Date();
 	now.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
 
 	// Debug logging for GDC tasks
-	if (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides')) {
+	if (todo.title && (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides'))) {
 		console.log('\nTask:', todo.title);
 		console.log('Status:', todo.status);
 		console.log('Deadline:', todo.deadline?.toISOString());
@@ -41,7 +41,7 @@ export function getTaskStatus(todo: {
 			const deadlineDate = new Date(todo.deadline);
 
 			// Debug logging for GDC tasks
-			if (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides')) {
+			if (todo.title && (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides'))) {
 				console.log('Comparing dates:');
 				console.log('Completed timestamp:', completedDate.getTime());
 				console.log('Deadline timestamp:', deadlineDate.getTime());
@@ -51,28 +51,20 @@ export function getTaskStatus(todo: {
 			// Compare the full timestamps to handle time components correctly
 			if (completedDate.getTime() > deadlineDate.getTime()) {
 				const daysOverdue = Math.ceil((completedDate.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24));
-				if (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides')) {
+				if (todo.title && (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides'))) {
 					console.log('Days overdue:', daysOverdue);
 				}
 				return { type: 'overdue', daysOverdue };
 			}
 		} else if (todo.status !== 'completed') {
-			// For non-completed tasks, show overdue if deadline is in the past
 			const daysOverdue = Math.ceil((now.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
-			if (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides')) {
-				console.log('Non-completed task days overdue:', daysOverdue);
-			}
 			return { type: 'overdue', daysOverdue };
 		}
 	}
 
-	// Task is slipped if it has a finishBy date in the past but either:
-	// 1. Has no deadline, or
-	// 2. Has a deadline that's in the future
-	if (todo.finishBy && todo.finishBy < now) {
-		if (!todo.deadline || todo.deadline >= now) {
-			return { type: 'slipped' };
-		}
+	// Task is slipped if it has a finishBy date in the past
+	if (todo.finishBy && todo.finishBy < now && todo.status !== 'completed') {
+		return { type: 'slipped' };
 	}
 
 	return null;

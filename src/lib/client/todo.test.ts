@@ -182,15 +182,38 @@ describe('Todo Utilities', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      // Overdue task that is completed
+      // Overdue task that is completed on time
       const completedTask = {
         deadline: new Date('2024-03-17T00:00:00Z'),
         finishBy: new Date('2024-03-17T00:00:00Z'),
-        status: 'completed'
+        status: 'completed',
+        completed: new Date('2024-03-17T00:00:00Z')
       };
 
       const status = getTaskStatus(completedTask);
       expect(status).toBeNull();
+
+      // Reset system time
+      vi.setSystemTime(new Date());
+    });
+
+    it('should show overdue badge for completed tasks that were completed after deadline', () => {
+      // Mock current date to 2024-03-18
+      const mockDate = new Date('2024-03-18T00:00:00Z');
+      vi.setSystemTime(mockDate);
+
+      // Task completed after deadline
+      const completedTask = {
+        deadline: new Date('2024-03-17T00:00:00Z'),
+        finishBy: new Date('2024-03-17T00:00:00Z'),
+        status: 'completed',
+        completed: new Date('2024-03-18T00:00:00Z')
+      };
+
+      const status = getTaskStatus(completedTask);
+      expect(status).toBeDefined();
+      expect(status?.type).toBe('overdue');
+      expect(status?.daysOverdue).toBe(1);
 
       // Reset system time
       vi.setSystemTime(new Date());
@@ -282,7 +305,8 @@ describe('Todo Utilities', () => {
           const task = {
             deadline: new Date('2024-03-16T00:00:00Z'),
             finishBy: null,
-            status: 'completed'
+            status: 'completed',
+            completed: new Date('2024-03-16T00:00:00Z')
           };
 
           const status = getTaskStatus(task);

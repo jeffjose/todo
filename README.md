@@ -76,3 +76,61 @@ We use Husky to run tests automatically:
 - **Pre-push Hook**: Runs all tests before pushing to the remote repository
 
 This ensures that task management logic issues are caught early in the development process.
+
+# Task Status Behaviors
+
+## Task Types and Status Indicators
+
+### Deadline Tasks
+
+- Tasks with a hard deadline
+- If deadline is in the past:
+  - Shows "overdue" badge (red) for:
+    - Non-completed tasks
+    - Completed tasks that were completed after their deadline (shows days overdue)
+- Tasks stay in their original week regardless of status
+
+### Finish By Tasks
+
+- Tasks with a softer target completion date
+- If finishBy date is in the past and task is not completed:
+  - Shows "slipped" badge (yellow)
+  - Task is automatically promoted to current week
+  - Original finishBy date is preserved
+- Completed tasks stay in their original week
+
+### Todo Column Tasks
+
+- Shows all open tasks for current week
+- Shows appropriate badges:
+  - "overdue" (red) for tasks with past deadline
+  - "slipped" (yellow) for tasks with past finishBy date
+
+## Visual Indicators
+
+### Badges
+
+- **overdue** (red):
+  - For non-completed tasks with deadline in the past
+  - For completed tasks that were completed after their deadline
+  - Shows number of days overdue
+- **slipped** (yellow):
+  - For non-completed tasks with finishBy date in the past
+  - Shown in both Finish By column and Todo column
+
+### Task Promotion Logic
+
+1. Deadline tasks:
+   - Stay in their original week
+   - Show overdue badge if past deadline
+2. Finish By tasks:
+   - Completed tasks stay in their original week
+   - Open tasks from past weeks are promoted to current week
+   - Promoted tasks show "slipped" badge
+
+### Week Display
+
+- Current week has amber background
+- Past weeks only show completed tasks
+- Future weeks show tasks with future dates
+- Todo column shows all open tasks for current week, with appropriate badges

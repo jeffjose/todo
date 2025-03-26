@@ -230,22 +230,6 @@
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
-		// Debug logging for Pre Review Q1 Report
-		const preReviewTask = todos.find((todo) => todo.title === 'Pre Review Q1 Report');
-		if (preReviewTask) {
-			console.log(`Debug - Pre Review Q1 Report in getTodosForWeek (${type}):`, {
-				task: preReviewTask,
-				weekStart: weekEvent.startDate,
-				weekEnd: weekEvent.endDate,
-				date:
-					type === 'deadline'
-						? preReviewTask.deadline
-						: type === 'finishBy'
-							? preReviewTask.finishBy
-							: preReviewTask.todo
-			});
-		}
-
 		const today = new Date();
 		const isPastWeek = weekEvent.endDate < today;
 		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
@@ -322,24 +306,125 @@
 
 		// Convert Set back to array and sort
 		const result = Array.from(tasksWithParents);
+
+		// Debug logging for sorting
+		console.log(`Debug - Sorting ${type} column for week ${formatDate(weekEvent.startDate)}:`, {
+			totalTasks: result.length,
+			tasks: result.map((t) => ({
+				id: t.id,
+				title: t.title,
+				path: t.path,
+				level: t.level,
+				status: t.status,
+				date: type === 'deadline' ? t.deadline : type === 'finishBy' ? t.finishBy : t.todo,
+				priority: t.priority
+			}))
+		});
+
 		result.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
 			const pathA = a.path || '';
 			const pathB = b.path || '';
-			if (pathA !== pathB) return pathA.localeCompare(pathB);
+			if (pathA !== pathB) {
+				console.log(`Debug - Path comparison for ${a.title} vs ${b.title}:`, {
+					pathA,
+					pathB,
+					result: pathA.localeCompare(pathB)
+				});
+				return pathA.localeCompare(pathB);
+			}
 
 			// Then sort by level (parent tasks before subtasks)
-			if (a.level !== b.level) return a.level - b.level;
+			if (a.level !== b.level) {
+				console.log(`Debug - Level comparison for ${a.title} vs ${b.title}:`, {
+					levelA: a.level,
+					levelB: b.level,
+					result: a.level - b.level
+				});
+				return a.level - b.level;
+			}
 
 			// Then sort by completion status
-			if (a.status === 'completed' && b.status !== 'completed') return -1;
-			if (a.status !== 'completed' && b.status === 'completed') return 1;
+			if (a.status === 'completed' && b.status !== 'completed') {
+				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
+					statusA: a.status,
+					statusB: b.status,
+					result: -1
+				});
+				return -1;
+			}
+			if (a.status !== 'completed' && b.status === 'completed') {
+				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
+					statusA: a.status,
+					statusB: b.status,
+					result: 1
+				});
+				return 1;
+			}
 
-			// Finally sort by date if both tasks have dates
+			// Then sort by date if both tasks have dates
 			const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
 			const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-			if (!dateA || !dateB) return 0;
-			return dateA.getTime() - dateB.getTime();
+
+			// Handle date comparison consistently
+			if (dateA && dateB) {
+				const dateCompare = dateA.getTime() - dateB.getTime();
+				if (dateCompare !== 0) {
+					console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
+						dateA: dateA.toISOString(),
+						dateB: dateB.toISOString(),
+						result: dateCompare
+					});
+					return dateCompare;
+				}
+			} else if (dateA) {
+				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
+					dateA: dateA.toISOString(),
+					dateB: null,
+					result: -1
+				});
+				return -1;
+			} else if (dateB) {
+				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
+					dateA: null,
+					dateB: dateB.toISOString(),
+					result: 1
+				});
+				return 1;
+			}
+
+			// Then sort by ID for stability
+			if (a.id !== b.id) {
+				console.log(`Debug - ID comparison for ${a.title} vs ${b.title}:`, {
+					idA: a.id,
+					idB: b.id,
+					result: a.id.localeCompare(b.id)
+				});
+				return a.id.localeCompare(b.id);
+			}
+
+			// Finally sort alphabetically by title as a last resort
+			const titleCompare = (a.title || '').localeCompare(b.title || '');
+			console.log(`Debug - Title comparison for ${a.title} vs ${b.title}:`, {
+				titleA: a.title,
+				titleB: b.title,
+				result: titleCompare
+			});
+			return titleCompare;
+		});
+
+		// Debug logging for final sorted order
+		console.log(`Debug - Final sorted order for ${type} column:`, {
+			week: formatDate(weekEvent.startDate),
+			tasks: result.map((t) => ({
+				id: t.id,
+				title: t.title,
+				path: t.path,
+				level: t.level,
+				status: t.status,
+				date: type === 'deadline' ? t.deadline : type === 'finishBy' ? t.finishBy : t.todo,
+				priority: t.priority
+			}))
 		});
 
 		return result;
@@ -349,19 +434,6 @@
 		const today = new Date();
 		const isPastWeek = weekEvent.endDate < today;
 		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
-
-		// Debug logging for Pre Review Q1 Report
-		const preReviewTask = todos.find((todo) => todo.title === 'Pre Review Q1 Report');
-		if (preReviewTask) {
-			console.log(`Debug - Pre Review Q1 Report in getOpenTodosUpToCurrentWeek:`, {
-				task: preReviewTask,
-				weekStart: weekEvent.startDate,
-				weekEnd: weekEvent.endDate,
-				isPastWeek,
-				isCurrentWeek,
-				today
-			});
-		}
 
 		// Create a map of all todos for quick lookup
 		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
@@ -443,24 +515,124 @@
 		const uniqueTodos = new Map(result.map((todo) => [todo.id, todo]));
 		const uniqueResult = Array.from(uniqueTodos.values());
 
+		// Debug logging for sorting
+		console.log(`Debug - Sorting TODO column for week ${formatDate(weekEvent.startDate)}:`, {
+			totalTasks: uniqueResult.length,
+			tasks: uniqueResult.map((t) => ({
+				id: t.id,
+				title: t.title,
+				path: t.path,
+				level: t.level,
+				status: t.status,
+				date: t.todo || t.deadline || t.finishBy,
+				priority: t.priority
+			}))
+		});
+
 		uniqueResult.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
 			const pathA = a.path || '';
 			const pathB = b.path || '';
-			if (pathA !== pathB) return pathA.localeCompare(pathB);
+			if (pathA !== pathB) {
+				console.log(`Debug - Path comparison for ${a.title} vs ${b.title}:`, {
+					pathA,
+					pathB,
+					result: pathA.localeCompare(pathB)
+				});
+				return pathA.localeCompare(pathB);
+			}
 
 			// Then sort by level (parent tasks before subtasks)
-			if (a.level !== b.level) return a.level - b.level;
+			if (a.level !== b.level) {
+				console.log(`Debug - Level comparison for ${a.title} vs ${b.title}:`, {
+					levelA: a.level,
+					levelB: b.level,
+					result: a.level - b.level
+				});
+				return a.level - b.level;
+			}
 
 			// Then sort by completion status
-			if (a.status === 'completed' && b.status !== 'completed') return -1;
-			if (a.status !== 'completed' && b.status === 'completed') return 1;
+			if (a.status === 'completed' && b.status !== 'completed') {
+				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
+					statusA: a.status,
+					statusB: b.status,
+					result: -1
+				});
+				return -1;
+			}
+			if (a.status !== 'completed' && b.status === 'completed') {
+				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
+					statusA: a.status,
+					statusB: b.status,
+					result: 1
+				});
+				return 1;
+			}
 
-			// Finally sort by date if both tasks have dates
+			// Then sort by date if both tasks have dates
 			const dateA = a.todo || a.deadline || a.finishBy;
 			const dateB = b.todo || b.deadline || b.finishBy;
-			if (!dateA || !dateB) return 0;
-			return dateA.getTime() - dateB.getTime();
+
+			// Handle date comparison consistently
+			if (dateA && dateB) {
+				const dateCompare = dateA.getTime() - dateB.getTime();
+				if (dateCompare !== 0) {
+					console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
+						dateA: dateA.toISOString(),
+						dateB: dateB.toISOString(),
+						result: dateCompare
+					});
+					return dateCompare;
+				}
+			} else if (dateA) {
+				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
+					dateA: dateA.toISOString(),
+					dateB: null,
+					result: -1
+				});
+				return -1;
+			} else if (dateB) {
+				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
+					dateA: null,
+					dateB: dateB.toISOString(),
+					result: 1
+				});
+				return 1;
+			}
+
+			// Then sort by ID for stability
+			if (a.id !== b.id) {
+				console.log(`Debug - ID comparison for ${a.title} vs ${b.title}:`, {
+					idA: a.id,
+					idB: b.id,
+					result: a.id.localeCompare(b.id)
+				});
+				return a.id.localeCompare(b.id);
+			}
+
+			// Finally sort alphabetically by title as a last resort
+			const titleCompare = (a.title || '').localeCompare(b.title || '');
+			console.log(`Debug - Title comparison for ${a.title} vs ${b.title}:`, {
+				titleA: a.title,
+				titleB: b.title,
+				result: titleCompare
+			});
+			return titleCompare;
+		});
+
+		// Debug logging for final sorted order
+		console.log(`Debug - Final sorted order for TODO column:`, {
+			week: formatDate(weekEvent.startDate),
+			tasks: uniqueResult.map((t) => ({
+				id: t.id,
+				title: t.title,
+				path: t.path,
+				level: t.level,
+				status: t.status,
+				date: t.todo || t.deadline || t.finishBy,
+				priority: t.priority
+			}))
 		});
 
 		return uniqueResult;

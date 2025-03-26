@@ -703,60 +703,114 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
         const data = load(yamlText);
         const tasks = data.tasks;
 
+        // Get existing todos to preserve IDs
+        const existingTodos = await db.todos.toArray();
+        const existingTodoMap = new Map(existingTodos.map(todo => [todo.title, todo]));
+
         // Process YAML tasks
         for (const task of tasks) {
-          const id = generateId();
           const now = new Date();
-          const todo: Todo = {
-            id,
-            title: task.title,
-            status: task.status || 'pending',
-            deadline: task.deadline ? new Date(task.deadline) : null,
-            finishBy: task.finishBy ? new Date(task.finishBy) : (task.deadline ? new Date(task.deadline) : null),
-            todo: task.todo ? new Date(task.todo) : null,
-            priority: task.priority || 'P3',
-            emoji: task.emoji || null,
-            description: task.description || null,
-            urgency: task.urgency || 'medium',
-            tags: task.tags || [],
-            attachments: [],
-            comments: [],
-            subtasks: [],
-            path: `root.${id}`,
-            level: 0,
-            parentId: null,
-            completed: task.completed ? new Date(task.completed) : null,
-            createdAt: now,
-            updatedAt: now
-          };
+          let todo: Todo;
+
+          // Try to find existing todo with same title
+          const existingTodo = existingTodoMap.get(task.title);
+          if (existingTodo) {
+            // Update existing todo with new data
+            todo = {
+              ...existingTodo,
+              status: task.status || existingTodo.status,
+              deadline: task.deadline ? new Date(task.deadline) : existingTodo.deadline,
+              finishBy: task.finishBy ? new Date(task.finishBy) : (task.deadline ? new Date(task.deadline) : existingTodo.finishBy),
+              todo: task.todo ? new Date(task.todo) : existingTodo.todo,
+              priority: task.priority || existingTodo.priority,
+              emoji: task.emoji || existingTodo.emoji,
+              description: task.description || existingTodo.description,
+              urgency: task.urgency || existingTodo.urgency,
+              tags: task.tags || existingTodo.tags,
+              completed: task.completed ? new Date(task.completed) : existingTodo.completed,
+              updatedAt: now
+            };
+          } else {
+            // Create new todo with new ID
+            const id = generateId();
+            todo = {
+              id,
+              title: task.title,
+              status: task.status || 'pending',
+              deadline: task.deadline ? new Date(task.deadline) : null,
+              finishBy: task.finishBy ? new Date(task.finishBy) : (task.deadline ? new Date(task.deadline) : null),
+              todo: task.todo ? new Date(task.todo) : null,
+              priority: task.priority || 'P3',
+              emoji: task.emoji || null,
+              description: task.description || null,
+              urgency: task.urgency || 'medium',
+              tags: task.tags || [],
+              attachments: [],
+              comments: [],
+              subtasks: [],
+              path: `root.${id}`,
+              level: 0,
+              parentId: null,
+              completed: task.completed ? new Date(task.completed) : null,
+              createdAt: now,
+              updatedAt: now
+            };
+          }
           allTodos.push(todo);
 
           // Process subtasks if they exist
           if (task.subtasks) {
             for (const subtask of task.subtasks) {
-              const subtaskId = generateId();
-              const subtaskTodo: Todo = {
-                id: subtaskId,
-                title: subtask.title,
-                status: subtask.status || 'pending',
-                deadline: subtask.deadline ? new Date(subtask.deadline) : null,
-                finishBy: subtask.finishBy ? new Date(subtask.finishBy) : null,
-                todo: subtask.todo ? new Date(subtask.todo) : null,
-                priority: subtask.priority || 'P3',
-                emoji: subtask.emoji || null,
-                description: subtask.description || null,
-                urgency: subtask.urgency || 'medium',
-                tags: subtask.tags || [],
-                attachments: [],
-                comments: [],
-                subtasks: [],
-                path: `root.${id}.${subtaskId}`,
-                level: 1,
-                parentId: id,
-                completed: subtask.completed ? new Date(subtask.completed) : null,
-                createdAt: now,
-                updatedAt: now
-              };
+              const now = new Date();
+              let subtaskTodo: Todo;
+
+              // Try to find existing subtask with same title under this parent
+              const existingSubtask = existingTodos.find(t =>
+                t.parentId === todo.id && t.title === subtask.title
+              );
+
+              if (existingSubtask) {
+                // Update existing subtask with new data
+                subtaskTodo = {
+                  ...existingSubtask,
+                  status: subtask.status || existingSubtask.status,
+                  deadline: subtask.deadline ? new Date(subtask.deadline) : existingSubtask.deadline,
+                  finishBy: subtask.finishBy ? new Date(subtask.finishBy) : null,
+                  todo: subtask.todo ? new Date(subtask.todo) : null,
+                  priority: subtask.priority || existingSubtask.priority,
+                  emoji: subtask.emoji || existingSubtask.emoji,
+                  description: subtask.description || existingSubtask.description,
+                  urgency: subtask.urgency || existingSubtask.urgency,
+                  tags: subtask.tags || existingSubtask.tags,
+                  completed: subtask.completed ? new Date(subtask.completed) : existingSubtask.completed,
+                  updatedAt: now
+                };
+              } else {
+                // Create new subtask with new ID
+                const subtaskId = generateId();
+                subtaskTodo = {
+                  id: subtaskId,
+                  title: subtask.title,
+                  status: subtask.status || 'pending',
+                  deadline: subtask.deadline ? new Date(subtask.deadline) : null,
+                  finishBy: subtask.finishBy ? new Date(subtask.finishBy) : null,
+                  todo: subtask.todo ? new Date(subtask.todo) : null,
+                  priority: subtask.priority || 'P3',
+                  emoji: subtask.emoji || null,
+                  description: subtask.description || null,
+                  urgency: subtask.urgency || 'medium',
+                  tags: subtask.tags || [],
+                  attachments: [],
+                  comments: [],
+                  subtasks: [],
+                  path: `root.${todo.id}.${subtaskId}`,
+                  level: 1,
+                  parentId: todo.id,
+                  completed: subtask.completed ? new Date(subtask.completed) : null,
+                  createdAt: now,
+                  updatedAt: now
+                };
+              }
               allTodos.push(subtaskTodo);
             }
           }

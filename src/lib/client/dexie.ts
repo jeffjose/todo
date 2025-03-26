@@ -961,3 +961,30 @@ export async function cycleTodoPriority(id: string): Promise<Todo> {
 
   return updateTodo(id, { priority: newPriority });
 }
+
+export async function importFromYaml(yamlText: string): Promise<void> {
+  try {
+    const data = load(yamlText);
+    const tasks = data?.tasks || [];
+
+    for (const task of tasks) {
+      const todo = {
+        title: task.title,
+        status: task.status || 'pending',
+        deadline: task.deadline ? new Date(task.deadline) : null,
+        priority: task.priority || 'P2',
+        emoji: task.emoji || '📝',
+        description: task.description || '',
+        urgency: task.urgency || 'medium',
+        tags: task.tags || [],
+        completed: task.completed ? new Date(task.completed) : null,
+        subtasks: task.subtasks || []
+      };
+
+      await db.todos.add(todo);
+    }
+  } catch (error) {
+    console.error('Error importing YAML:', error);
+    throw error;
+  }
+}

@@ -25,14 +25,6 @@ export function getTaskStatus(todo: {
 	const now = new Date();
 	now.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
 
-	// Debug logging for GDC tasks
-	if (todo.title && (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides'))) {
-		console.log('\nTask:', todo.title);
-		console.log('Status:', todo.status);
-		console.log('Deadline:', todo.deadline?.toISOString());
-		console.log('Completed:', todo.completed?.toISOString());
-	}
-
 	// Task is overdue if it has a deadline in the past
 	if (todo.deadline && todo.deadline < now) {
 		// For completed tasks, only show overdue if completed after deadline
@@ -40,20 +32,9 @@ export function getTaskStatus(todo: {
 			const completedDate = new Date(todo.completed);
 			const deadlineDate = new Date(todo.deadline);
 
-			// Debug logging for GDC tasks
-			if (todo.title && (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides'))) {
-				console.log('Comparing dates:');
-				console.log('Completed timestamp:', completedDate.getTime());
-				console.log('Deadline timestamp:', deadlineDate.getTime());
-				console.log('Is overdue:', completedDate.getTime() > deadlineDate.getTime());
-			}
-
 			// Compare the full timestamps to handle time components correctly
 			if (completedDate.getTime() > deadlineDate.getTime()) {
 				const daysOverdue = Math.ceil((completedDate.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24));
-				if (todo.title && (todo.title.toLowerCase().includes('gdc') || todo.title.toLowerCase().includes('slides'))) {
-					console.log('Days overdue:', daysOverdue);
-				}
 				return { type: 'overdue', daysOverdue };
 			}
 		} else if (todo.status !== 'completed') {
@@ -68,4 +49,23 @@ export function getTaskStatus(todo: {
 	}
 
 	return null;
+}
+
+export function isOverdue(todo: Todo): boolean {
+	if (!todo.completed || !todo.deadline) return false;
+
+	const completedDate = new Date(todo.completed);
+	const deadlineDate = new Date(todo.deadline);
+
+	return completedDate.getTime() > deadlineDate.getTime();
+}
+
+export function getDaysOverdue(todo: Todo): number {
+	if (!todo.completed || !todo.deadline) return 0;
+
+	const completedDate = new Date(todo.completed);
+	const deadlineDate = new Date(todo.deadline);
+
+	const diffTime = completedDate.getTime() - deadlineDate.getTime();
+	return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }

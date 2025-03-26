@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateId, buildPath, PATH_SEPARATOR, ROOT_PATH, getNextBusinessDay, getRandomBusinessTime } from './dexie';
 import { getTaskStatus } from '$lib/utils';
+import { vi } from 'vitest';
 
 // Mock the validateUsername function
 const validateUsername = (username: unknown): boolean => {
@@ -136,8 +137,9 @@ describe('Todo Utilities', () => {
 
   describe('Task Status Functions', () => {
     it('should correctly identify overdue tasks', () => {
-      const today = new Date('2024-03-18T00:00:00Z');
-      const weekStart = new Date('2024-03-18T00:00:00Z');
+      // Mock current date to 2024-03-18
+      const mockDate = new Date('2024-03-18T00:00:00Z');
+      vi.setSystemTime(mockDate);
 
       // Task due yesterday
       const overdueTask = {
@@ -146,15 +148,19 @@ describe('Todo Utilities', () => {
         status: 'open'
       };
 
-      const status = getTaskStatus(overdueTask, weekStart);
+      const status = getTaskStatus(overdueTask);
       expect(status).toBeDefined();
       expect(status?.type).toBe('overdue');
       expect(status?.daysOverdue).toBeGreaterThan(0);
+
+      // Reset system time
+      vi.setSystemTime(new Date());
     });
 
     it('should correctly identify slipped tasks', () => {
-      const today = new Date('2024-03-18T00:00:00Z');
-      const weekStart = new Date('2024-03-18T00:00:00Z');
+      // Mock current date to 2024-03-18
+      const mockDate = new Date('2024-03-18T00:00:00Z');
+      vi.setSystemTime(mockDate);
 
       // Task with finishBy date in past week
       const slippedTask = {
@@ -163,14 +169,18 @@ describe('Todo Utilities', () => {
         status: 'open'
       };
 
-      const status = getTaskStatus(slippedTask, weekStart);
+      const status = getTaskStatus(slippedTask);
       expect(status).toBeDefined();
       expect(status?.type).toBe('slipped');
+
+      // Reset system time
+      vi.setSystemTime(new Date());
     });
 
     it('should not show status for completed tasks', () => {
-      const today = new Date('2024-03-18T00:00:00Z');
-      const weekStart = new Date('2024-03-18T00:00:00Z');
+      // Mock current date to 2024-03-18
+      const mockDate = new Date('2024-03-18T00:00:00Z');
+      vi.setSystemTime(mockDate);
 
       // Overdue task that is completed
       const completedTask = {
@@ -179,13 +189,17 @@ describe('Todo Utilities', () => {
         status: 'completed'
       };
 
-      const status = getTaskStatus(completedTask, weekStart);
+      const status = getTaskStatus(completedTask);
       expect(status).toBeNull();
+
+      // Reset system time
+      vi.setSystemTime(new Date());
     });
 
     it('should not show status for future tasks', () => {
-      const today = new Date('2024-03-18T00:00:00Z');
-      const weekStart = new Date('2024-03-18T00:00:00Z');
+      // Mock current date to 2024-03-18
+      const mockDate = new Date('2024-03-18T00:00:00Z');
+      vi.setSystemTime(mockDate);
 
       // Task with future dates
       const futureTask = {
@@ -194,13 +208,17 @@ describe('Todo Utilities', () => {
         status: 'open'
       };
 
-      const status = getTaskStatus(futureTask, weekStart);
+      const status = getTaskStatus(futureTask);
       expect(status).toBeNull();
+
+      // Reset system time
+      vi.setSystemTime(new Date());
     });
 
     it('should handle tasks with no dates', () => {
-      const today = new Date('2024-03-18T00:00:00Z');
-      const weekStart = new Date('2024-03-18T00:00:00Z');
+      // Mock current date to 2024-03-18
+      const mockDate = new Date('2024-03-18T00:00:00Z');
+      vi.setSystemTime(mockDate);
 
       // Task with no dates
       const noDateTask = {
@@ -209,47 +227,69 @@ describe('Todo Utilities', () => {
         status: 'open'
       };
 
-      const status = getTaskStatus(noDateTask, weekStart);
+      const status = getTaskStatus(noDateTask);
       expect(status).toBeNull();
+
+      // Reset system time
+      vi.setSystemTime(new Date());
     });
 
     describe('Badge Behavior', () => {
-      const weekStart = new Date('2024-03-18T00:00:00Z');
-
       describe('Deadline Column Badges', () => {
         it('should show overdue badge for tasks with past deadline', () => {
+          // Mock current date to 2024-03-18
+          const mockDate = new Date('2024-03-18T00:00:00Z');
+          vi.setSystemTime(mockDate);
+
           const task = {
             deadline: new Date('2024-03-16T00:00:00Z'),
             finishBy: null,
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeDefined();
           expect(status?.type).toBe('overdue');
           expect(status?.daysOverdue).toBe(2);
+
+          // Reset system time
+          vi.setSystemTime(new Date());
         });
 
         it('should not show overdue badge for tasks with future deadline', () => {
+          // Mock current date to 2024-03-18
+          const mockDate = new Date('2024-03-18T00:00:00Z');
+          vi.setSystemTime(mockDate);
+
           const task = {
             deadline: new Date('2024-03-20T00:00:00Z'),
             finishBy: null,
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
+
+          // Reset system time
+          vi.setSystemTime(new Date());
         });
 
         it('should not show overdue badge for completed tasks with past deadline', () => {
+          // Mock current date to 2024-03-18
+          const mockDate = new Date('2024-03-18T00:00:00Z');
+          vi.setSystemTime(mockDate);
+
           const task = {
             deadline: new Date('2024-03-16T00:00:00Z'),
             finishBy: null,
             status: 'completed'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
+
+          // Reset system time
+          vi.setSystemTime(new Date());
         });
       });
 
@@ -261,7 +301,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeDefined();
           expect(status?.type).toBe('slipped');
         });
@@ -273,7 +313,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
 
@@ -284,7 +324,7 @@ describe('Todo Utilities', () => {
             status: 'completed'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
       });
@@ -297,7 +337,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeDefined();
           expect(status?.type).toBe('overdue');
           expect(status?.daysOverdue).toBe(2);
@@ -310,7 +350,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeDefined();
           expect(status?.type).toBe('slipped');
         });
@@ -324,7 +364,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
 
@@ -335,7 +375,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
 
@@ -346,7 +386,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
 
@@ -357,7 +397,7 @@ describe('Todo Utilities', () => {
             status: 'open'
           };
 
-          const status = getTaskStatus(task, weekStart);
+          const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
       });

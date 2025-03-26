@@ -7,6 +7,7 @@ export function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent, todos: Todo[],
 
   const isPastWeek = weekEvent.endDate < today;
   const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+  const isFutureWeek = weekEvent.startDate > today;
 
   // Create a map of all todos for quick lookup
   const todoMap = new Map(todos.map((todo) => [todo.id, todo]));
@@ -41,24 +42,24 @@ export function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent, todos: Todo[],
   }
 
   // For current week, show:
-  // 1. All open tasks from past and current week (if they don't have a todo date)
-  // 2. Tasks with todo date in this week
-  // 3. Completed tasks with deadline or finishBy date in this week
+  // 1. All tasks (including completed ones) with dates in this week
+  // 2. All open tasks from past weeks
+  // 3. Tasks without dates
   if (isCurrentWeek) {
     todos.forEach((todo) => {
-      const hasTodoInWeek =
-        todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate;
-      const hasPastTodo = todo.todo && todo.todo < weekEvent.startDate;
-      const hasDeadlineInWeek =
-        todo.deadline && todo.deadline >= weekEvent.startDate && todo.deadline <= weekEvent.endDate;
-      const hasFinishByInWeek =
-        todo.finishBy && todo.finishBy >= weekEvent.startDate && todo.finishBy <= weekEvent.endDate;
+      const hasDateInWeek =
+        (todo.deadline && todo.deadline >= weekEvent.startDate && todo.deadline <= weekEvent.endDate) ||
+        (todo.finishBy && todo.finishBy >= weekEvent.startDate && todo.finishBy <= weekEvent.endDate) ||
+        (todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate);
 
-      const shouldShow =
-        hasTodoInWeek ||
-        (!todo.todo && todo.status !== 'completed') ||
-        (hasPastTodo && todo.status !== 'completed') ||
-        (todo.status === 'completed' && (hasDeadlineInWeek || hasFinishByInWeek));
+      const isFromPastWeek =
+        (todo.deadline && todo.deadline < weekEvent.startDate) ||
+        (todo.finishBy && todo.finishBy < weekEvent.startDate) ||
+        (todo.todo && todo.todo < weekEvent.startDate);
+
+      const hasNoDates = !todo.deadline && !todo.finishBy && !todo.todo;
+
+      const shouldShow = hasDateInWeek || (isFromPastWeek && todo.status !== 'completed') || hasNoDates;
 
       if (shouldShow) {
         getTaskWithParents(todo, tasksWithParents);
@@ -66,12 +67,36 @@ export function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent, todos: Todo[],
     });
   }
 
+  // For future weeks, show all tasks scheduled for that week
+  if (isFutureWeek) {
+    todos.forEach((todo) => {
+      const hasDateInWeek =
+        (todo.deadline && todo.deadline >= weekEvent.startDate && todo.deadline <= weekEvent.endDate) ||
+        (todo.finishBy && todo.finishBy >= weekEvent.startDate && todo.finishBy <= weekEvent.endDate) ||
+        (todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate);
+
+      if (hasDateInWeek) {
+        getTaskWithParents(todo, tasksWithParents);
+      }
+    });
+  }
+
   const result = Array.from(tasksWithParents);
   result.sort((a, b) => {
+    // First sort by path to maintain hierarchy
     if (a.path < b.path) return -1;
     if (a.path > b.path) return 1;
+
+    // Then sort by level (parent tasks before subtasks)
+    if (a.level !== b.level) {
+      return a.level - b.level;
+    }
+
+    // Then sort by completion status
     if (a.status === 'completed' && b.status !== 'completed') return -1;
     if (a.status !== 'completed' && b.status === 'completed') return 1;
+
+    // Finally sort by date if both tasks have dates
     const dateA = a.todo || a.deadline || a.finishBy;
     const dateB = b.todo || b.deadline || b.finishBy;
     if (!dateA || !dateB) return 0;

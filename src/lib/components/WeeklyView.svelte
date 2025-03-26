@@ -432,29 +432,26 @@
 		// For current week, show:
 		// 1. All open tasks from past and current week (if they don't have a todo date)
 		// 2. Tasks with todo date in this week
-		// 3. Completed tasks with deadline or finishBy date in this week
+		// 3. Completed tasks that were completed this week
 		if (isCurrentWeek) {
 			todos.forEach((todo: Todo) => {
 				const hasTodoInWeek =
 					todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate;
 				const hasPastTodo = todo.todo && todo.todo < weekEvent.startDate;
-				const hasDeadlineInWeek =
-					todo.deadline &&
-					todo.deadline >= weekEvent.startDate &&
-					todo.deadline <= weekEvent.endDate;
-				const hasFinishByInWeek =
-					todo.finishBy &&
-					todo.finishBy >= weekEvent.startDate &&
-					todo.finishBy <= weekEvent.endDate;
+				const wasCompletedThisWeek =
+					todo.status === 'completed' &&
+					todo.completedBy &&
+					todo.completedBy >= weekEvent.startDate &&
+					todo.completedBy <= weekEvent.endDate;
 
 				// If task has a todo date, only show it in that specific week
 				// If task has no todo date or has a past todo date, show it in current week if not completed
-				// Also show completed tasks if they have a deadline or finishBy date in this week
+				// Also show completed tasks if they were completed this week
 				const shouldShow =
 					hasTodoInWeek ||
 					(!todo.todo && todo.status !== 'completed') ||
 					(hasPastTodo && todo.status !== 'completed') ||
-					(todo.status === 'completed' && (hasDeadlineInWeek || hasFinishByInWeek));
+					wasCompletedThisWeek;
 
 				if (shouldShow) {
 					getTaskWithParents(todo, tasksWithParents);

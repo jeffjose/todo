@@ -20,9 +20,7 @@ export function getTaskStatus(todo: {
 	deadline: Date | null;
 	finishBy: Date | null;
 }, weekStartDate: Date): TaskStatus {
-	// Don't show any status for completed tasks
-	if (todo.status === 'completed') return null;
-
+	// Show overdue status even for completed tasks
 	const now = new Date();
 	now.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
 

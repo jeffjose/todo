@@ -351,6 +351,45 @@ describe('Todo Utilities', () => {
           const status = getTaskStatus(task);
           expect(status).toBeNull();
         });
+
+        it('should show slipped badge for completed tasks that were completed after finishBy date', () => {
+          // Mock current date to 2024-03-18
+          const mockDate = new Date('2024-03-18T00:00:00Z');
+          vi.setSystemTime(mockDate);
+
+          const task = {
+            deadline: null,
+            finishBy: new Date('2024-03-16T00:00:00Z'),
+            status: 'completed',
+            completed: new Date('2024-03-17T00:00:00Z')
+          };
+
+          const status = getTaskStatus(task);
+          expect(status).toBeDefined();
+          expect(status?.type).toBe('slipped');
+
+          // Reset system time
+          vi.setSystemTime(new Date());
+        });
+
+        it('should not show slipped badge for completed tasks that were completed before finishBy date', () => {
+          // Mock current date to 2024-03-18
+          const mockDate = new Date('2024-03-18T00:00:00Z');
+          vi.setSystemTime(mockDate);
+
+          const task = {
+            deadline: null,
+            finishBy: new Date('2024-03-16T00:00:00Z'),
+            status: 'completed',
+            completed: new Date('2024-03-15T00:00:00Z')
+          };
+
+          const status = getTaskStatus(task);
+          expect(status).toBeNull();
+
+          // Reset system time
+          vi.setSystemTime(new Date());
+        });
       });
 
       describe('Badge Priority', () => {

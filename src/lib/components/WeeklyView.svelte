@@ -895,7 +895,7 @@
 											>
 												{todo.priority}
 											</span>
-											{#if isCurrentWeek(weekEvent)}
+											{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
 													<span
@@ -906,7 +906,12 @@
 															todo.status === 'completed'}
 														class:text-red-400={status.type === 'overdue' &&
 															todo.status === 'completed'}
-														class:bg-yellow-500={status.type === 'slipped'}
+														class:bg-yellow-500={status.type === 'slipped' &&
+															todo.status !== 'completed'}
+														class:bg-yellow-100={status.type === 'slipped' &&
+															todo.status === 'completed'}
+														class:text-yellow-400={status.type === 'slipped' &&
+															todo.status === 'completed'}
 														class:line-through={todo.status === 'completed'}
 													>
 														{#if status.type === 'overdue'}
@@ -967,7 +972,7 @@
 											>
 												{todo.priority}
 											</span>
-											{#if isCurrentWeek(weekEvent)}
+											{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
 													<span
@@ -978,7 +983,12 @@
 															todo.status === 'completed'}
 														class:text-red-400={status.type === 'overdue' &&
 															todo.status === 'completed'}
-														class:bg-yellow-500={status.type === 'slipped'}
+														class:bg-yellow-500={status.type === 'slipped' &&
+															todo.status !== 'completed'}
+														class:bg-yellow-100={status.type === 'slipped' &&
+															todo.status === 'completed'}
+														class:text-yellow-400={status.type === 'slipped' &&
+															todo.status === 'completed'}
 														class:line-through={todo.status === 'completed'}
 													>
 														{#if status.type === 'overdue'}
@@ -1044,7 +1054,7 @@
 													{todo.priority}
 												</span>
 												<!-- Visual indicators for task status -->
-												{#if isCurrentWeek(weekEvent)}
+												{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 													{@const status = getTaskStatus(todo, weekEvent.startDate)}
 													{#if status}
 														<span
@@ -1055,7 +1065,12 @@
 																todo.status === 'completed'}
 															class:text-red-400={status.type === 'overdue' &&
 																todo.status === 'completed'}
-															class:bg-yellow-500={status.type === 'slipped'}
+															class:bg-yellow-500={status.type === 'slipped' &&
+																todo.status !== 'completed'}
+															class:bg-yellow-100={status.type === 'slipped' &&
+																todo.status === 'completed'}
+															class:text-yellow-400={status.type === 'slipped' &&
+																todo.status === 'completed'}
 															class:line-through={todo.status === 'completed'}
 														>
 															{#if status.type === 'overdue'}

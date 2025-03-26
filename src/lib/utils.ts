@@ -25,6 +25,18 @@ export function getTaskStatus(todo: {
 	const now = new Date();
 	now.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
 
+	// Debug logging for Pre Review Q1 Report
+	if (todo.title === 'Pre Review Q1 Report') {
+		console.log('Debug - Pre Review Q1 Report in getTaskStatus:', {
+			status: todo.status,
+			deadline: todo.deadline,
+			finishBy: todo.finishBy,
+			completed: todo.completed,
+			now,
+			weekStartDate
+		});
+	}
+
 	// Task is overdue if it has a deadline in the past
 	if (todo.deadline && todo.deadline < now) {
 		// For completed tasks, only show overdue if completed after deadline
@@ -35,19 +47,54 @@ export function getTaskStatus(todo: {
 			// Compare the full timestamps to handle time components correctly
 			if (completedDate.getTime() > deadlineDate.getTime()) {
 				const daysOverdue = Math.ceil((completedDate.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24));
+				if (todo.title === 'Pre Review Q1 Report') {
+					console.log('Debug - Pre Review Q1 Report is overdue:', {
+						completedDate,
+						deadlineDate,
+						daysOverdue
+					});
+				}
 				return { type: 'overdue', daysOverdue };
 			}
 		} else if (todo.status !== 'completed') {
 			const daysOverdue = Math.ceil((now.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+			if (todo.title === 'Pre Review Q1 Report') {
+				console.log('Debug - Pre Review Q1 Report is overdue (not completed):', {
+					daysOverdue
+				});
+			}
 			return { type: 'overdue', daysOverdue };
 		}
 	}
 
 	// Task is slipped if it has a finishBy date in the past
-	if (todo.finishBy && todo.finishBy < now && todo.status !== 'completed') {
-		return { type: 'slipped' };
+	if (todo.finishBy && todo.finishBy < now) {
+		// For completed tasks, only show slipped if completed after finishBy
+		if (todo.status === 'completed' && todo.completed) {
+			const completedDate = new Date(todo.completed);
+			const finishByDate = new Date(todo.finishBy);
+
+			// Compare the full timestamps to handle time components correctly
+			if (completedDate.getTime() > finishByDate.getTime()) {
+				if (todo.title === 'Pre Review Q1 Report') {
+					console.log('Debug - Pre Review Q1 Report is slipped (completed after finishBy):', {
+						completedDate,
+						finishByDate
+					});
+				}
+				return { type: 'slipped' };
+			}
+		} else if (todo.status !== 'completed') {
+			if (todo.title === 'Pre Review Q1 Report') {
+				console.log('Debug - Pre Review Q1 Report is slipped (not completed)');
+			}
+			return { type: 'slipped' };
+		}
 	}
 
+	if (todo.title === 'Pre Review Q1 Report') {
+		console.log('Debug - Pre Review Q1 Report has no status');
+	}
 	return null;
 }
 

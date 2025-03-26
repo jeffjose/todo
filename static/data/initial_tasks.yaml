@@ -1,7 +1,7 @@
 tasks:
   - title: Write expectations
     status: pending
-    deadline: 2025-03-24 17:00
+    deadline: 2025-03-31 17:00
     priority: P0
     emoji: 📝
     description: Document project expectations and requirements

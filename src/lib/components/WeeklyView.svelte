@@ -281,14 +281,12 @@
 					// 1. Tasks that were completed in this week
 					// 2. Tasks that were scheduled for this week and completed later
 					const wasCompletedInThisWeek =
-						date >= startDate &&
-						date <= endDate &&
 						todo.status === 'completed' &&
 						todo.completed &&
 						todo.completed >= startDate &&
 						todo.completed <= endDate;
 					const wasScheduledForThisWeek = date >= startDate && date <= endDate;
-					const shouldShow = wasCompletedInThisWeek || wasScheduledForThisWeek;
+					const shouldShow = wasCompletedInThisWeek;
 
 					// Debug logging for Pre Review Q1 Report
 					if (todo.title === 'Pre Review Q1 Report') {

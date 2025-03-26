@@ -1019,13 +1019,7 @@
 											</div>
 										</div>
 									{:else}
-										<span class="text-xs text-gray-400">
-											{#if isCurrentWeek(weekEvent)}
-												No open tasks
-											{:else}
-												No completed tasks
-											{/if}
-										</span>
+										<span class="text-xs text-gray-400">-</span>
 									{/each}
 								</div>
 							{:else}

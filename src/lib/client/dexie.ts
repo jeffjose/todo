@@ -725,7 +725,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             path: `root.${id}`,
             level: 0,
             parentId: null,
-            completed: null,
+            completed: task.completed ? new Date(task.completed) : null,
             createdAt: now,
             updatedAt: now
           };
@@ -753,7 +753,7 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
                 path: `root.${id}.${subtaskId}`,
                 level: 1,
                 parentId: id,
-                completed: null,
+                completed: subtask.completed ? new Date(subtask.completed) : null,
                 createdAt: now,
                 updatedAt: now
               };

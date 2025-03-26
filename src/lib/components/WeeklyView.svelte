@@ -246,14 +246,15 @@
 			});
 		}
 
+		const today = new Date();
+		const isPastWeek = weekEvent.endDate < today;
+		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+
 		// First, filter todos for the week
 		const weekTodos = todos.filter((todo: Todo) => {
 			const date =
 				type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
-
-			if (!date) {
-				return false;
-			}
+			if (!date) return false;
 
 			// Set start date to beginning of day (midnight)
 			const startDate = new Date(weekEvent.startDate);
@@ -263,118 +264,41 @@
 			const endDate = new Date(weekEvent.endDate);
 			endDate.setHours(23, 59, 59, 999);
 
-			// Task promotion logic:
-			// - Deadline tasks: Stay in their original week, show as overdue in Todo column if past deadline
-			// - Finish By tasks:
-			//   * All tasks stay in their original week
-			//   * Overdue tasks from past weeks are promoted to current week
-			//   * Promoted tasks show "slipped" badge
-			//   * Overdue tasks completed in current week stay in current week
-			// - Todo tasks: Always show in their specified week
 			if (type === 'finishBy') {
-				const today = new Date();
-				const isPastWeek = weekEvent.endDate < today;
-				const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
+				// For finishBy column:
+				// 1. Show tasks completed in this week
+				// 2. Show tasks scheduled for this week
+				// 3. For past weeks, only show tasks completed in that week
+				// 4. For current week, also show overdue tasks
+				const wasCompletedInThisWeek =
+					todo.status === 'completed' &&
+					todo.completed &&
+					todo.completed >= startDate &&
+					todo.completed <= endDate;
+
+				const wasScheduledForThisWeek = date >= startDate && date <= endDate;
 
 				if (isPastWeek) {
-					// For past weeks, show:
-					// 1. Tasks that were completed in this week
-					// 2. Tasks that were scheduled for this week and completed later
-					const wasCompletedInThisWeek =
-						todo.status === 'completed' &&
-						todo.completed &&
-						todo.completed >= startDate &&
-						todo.completed <= endDate;
-					const wasScheduledForThisWeek = date >= startDate && date <= endDate;
-					const shouldShow = wasCompletedInThisWeek;
-
-					// Debug logging for Pre Review Q1 Report
-					if (todo.title === 'Pre Review Q1 Report') {
-						console.log('Debug - Pre Review Q1 Report past week check:', {
-							shouldShow,
-							wasCompletedInThisWeek,
-							wasScheduledForThisWeek,
-							date,
-							startDate,
-							endDate,
-							completed: todo.completed
-						});
-					}
-					return shouldShow;
+					return wasCompletedInThisWeek;
 				}
 
 				if (isCurrentWeek) {
-					// For current week, show:
-					// 1. Tasks originally scheduled for this week (including completed ones)
-					// 2. Overdue tasks from past weeks that aren't completed
-					// 3. Tasks that were completed this week (keep them in current week)
-					const isOriginallyScheduledForThisWeek = date >= startDate && date <= endDate;
 					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
-					const isCompletedThisWeek =
-						todo.status === 'completed' &&
-						todo.completed &&
-						todo.completed >= startDate &&
-						todo.completed <= endDate;
-					const shouldShow =
-						isOriginallyScheduledForThisWeek || // Show all tasks scheduled for this week, including completed ones
-						isOverdueFromPastWeek ||
-						isCompletedThisWeek; // Show any task completed this week
-
-					// Debug logging for Pre Review Q1 Report
-					if (todo.title === 'Pre Review Q1 Report') {
-						console.log('Debug - Pre Review Q1 Report current week check:', {
-							shouldShow,
-							isOriginallyScheduledForThisWeek,
-							isOverdueFromPastWeek,
-							isCompletedThisWeek,
-							date,
-							today,
-							startDate,
-							endDate,
-							completed: todo.completed
-						});
-					}
-					return shouldShow;
+					return wasCompletedInThisWeek || wasScheduledForThisWeek || isOverdueFromPastWeek;
 				}
 
-				// For future weeks, show tasks scheduled for that week
-				const shouldShow = date >= startDate && date <= endDate;
-
-				// Debug logging for Pre Review Q1 Report
-				if (todo.title === 'Pre Review Q1 Report') {
-					console.log('Debug - Pre Review Q1 Report future week check:', {
-						shouldShow,
-						date,
-						startDate,
-						endDate
-					});
-				}
-				return shouldShow;
+				return wasScheduledForThisWeek;
 			}
 
-			// For deadline column
-			const shouldShow = date >= startDate && date <= endDate;
-
-			// Debug logging for Pre Review Q1 Report
-			if (todo.title === 'Pre Review Q1 Report') {
-				console.log('Debug - Pre Review Q1 Report deadline check:', {
-					shouldShow,
-					date,
-					startDate,
-					endDate
-				});
-			}
-			return shouldShow;
+			// For deadline and todo columns, show tasks scheduled for this week
+			return date >= startDate && date <= endDate;
 		});
 
 		// Get all parent tasks for the filtered todos
 		const tasksWithParents = new Set<Todo>();
-		const today = new Date();
 		weekTodos.forEach((todo: Todo) => {
-			// Add the current todo and its parents regardless of completion status
+			// Add the current todo and its parents
 			tasksWithParents.add(todo);
-
-			// Add all parent todos up to root
 			let currentTodo: Todo = todo;
 			while (currentTodo.parentId) {
 				const parentTodo = todoMap.get(currentTodo.parentId) as Todo;
@@ -398,19 +322,14 @@
 
 		// Convert Set back to array and sort
 		const result = Array.from(tasksWithParents);
-
 		result.sort((a: Todo, b: Todo) => {
 			// First sort by path to maintain hierarchy
 			const pathA = a.path || '';
 			const pathB = b.path || '';
-			if (pathA !== pathB) {
-				return pathA.localeCompare(pathB);
-			}
+			if (pathA !== pathB) return pathA.localeCompare(pathB);
 
 			// Then sort by level (parent tasks before subtasks)
-			if (a.level !== b.level) {
-				return a.level - b.level;
-			}
+			if (a.level !== b.level) return a.level - b.level;
 
 			// Then sort by completion status
 			if (a.status === 'completed' && b.status !== 'completed') return -1;
@@ -449,10 +368,7 @@
 
 		// Helper function to get a task and all its parents
 		function getTaskWithParents(todo: Todo, tasksSet: Set<Todo>) {
-			// Add the current todo
 			tasksSet.add(todo);
-
-			// Add all parent todos up to root
 			let currentTodo: Todo = todo;
 			while (currentTodo.parentId) {
 				const parentTodo = todoMap.get(currentTodo.parentId);
@@ -468,78 +384,56 @@
 
 		const tasksWithParents = new Set<Todo>();
 
-		// For past weeks, show completed tasks from that week and their parents
 		if (isPastWeek) {
+			// For past weeks, show tasks completed in this week
 			todos.forEach((todo: Todo) => {
-				if (todo.status === 'completed') {
-					// Show tasks that were completed in this week
-					if (
-						todo.completed &&
-						todo.completed >= weekEvent.startDate &&
-						todo.completed <= weekEvent.endDate
-					) {
-						getTaskWithParents(todo, tasksWithParents);
-					}
+				if (
+					todo.status === 'completed' &&
+					todo.completed &&
+					todo.completed >= weekEvent.startDate &&
+					todo.completed <= weekEvent.endDate
+				) {
+					getTaskWithParents(todo, tasksWithParents);
 				}
 			});
 		}
 
-		// For current week, show:
-		// 1. All open tasks from past and current week (if they don't have a todo date)
-		// 2. Tasks with todo date in this week
-		// 3. Completed tasks that were completed this week
-		// 4. Overdue tasks that were completed this week (keep them in current week)
-		// 5. Completed subtasks under their parent tasks
 		if (isCurrentWeek) {
+			// For current week, show:
+			// 1. All tasks with dates in this week
+			// 2. All open tasks without dates
+			// 3. All open tasks from past weeks
+			// 4. Completed tasks from this week
 			todos.forEach((todo: Todo) => {
-				const hasTodoInWeek =
-					todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate;
-				const hasPastTodo = todo.todo && todo.todo < weekEvent.startDate;
+				const hasDateInWeek =
+					(todo.deadline &&
+						todo.deadline >= weekEvent.startDate &&
+						todo.deadline <= weekEvent.endDate) ||
+					(todo.finishBy &&
+						todo.finishBy >= weekEvent.startDate &&
+						todo.finishBy <= weekEvent.endDate) ||
+					(todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate);
+
+				const hasPastDate =
+					(todo.deadline && todo.deadline < weekEvent.startDate) ||
+					(todo.finishBy && todo.finishBy < weekEvent.startDate) ||
+					(todo.todo && todo.todo < weekEvent.startDate);
+
 				const wasCompletedThisWeek =
 					todo.status === 'completed' &&
 					todo.completed &&
 					todo.completed >= weekEvent.startDate &&
 					todo.completed <= weekEvent.endDate;
-				const isOverdueAndCompletedThisWeek =
-					todo.status === 'completed' &&
-					todo.completed &&
-					todo.completed >= weekEvent.startDate &&
-					todo.completed <= weekEvent.endDate &&
-					((todo.deadline && todo.deadline < today) || (todo.finishBy && todo.finishBy < today));
-				const isCompletedSubtask =
-					todo.status === 'completed' &&
-					todo.parentId &&
-					todo.completed &&
-					todo.completed >= weekEvent.startDate &&
-					todo.completed <= weekEvent.endDate;
 
-				// If task has a todo date, only show it in that specific week
-				// If task has no todo date or has a past todo date, show it in current week if not completed
-				// Also show completed tasks if they were completed this week
-				// Keep overdue tasks that were completed this week in the current week
-				// Show completed subtasks under their parent tasks
 				const shouldShow =
-					hasTodoInWeek ||
-					(!todo.todo && todo.status !== 'completed') ||
-					(hasPastTodo && todo.status !== 'completed') ||
-					wasCompletedThisWeek ||
-					isOverdueAndCompletedThisWeek ||
-					isCompletedSubtask;
+					hasDateInWeek ||
+					(!todo.deadline && !todo.finishBy && !todo.todo && todo.status !== 'completed') ||
+					(hasPastDate && todo.status !== 'completed') ||
+					wasCompletedThisWeek;
 
 				if (shouldShow) {
 					getTaskWithParents(todo, tasksWithParents);
 				}
-			});
-
-			// Also add any subtasks of the tasks we're showing
-			const tasksToShow = Array.from(tasksWithParents);
-			tasksToShow.forEach((todo: Todo) => {
-				todos.forEach((potentialSubtask: Todo) => {
-					if (potentialSubtask.parentId === todo.id) {
-						// If the parent is shown, show all its subtasks
-						getTaskWithParents(potentialSubtask, tasksWithParents);
-					}
-				});
 			});
 		}
 
@@ -553,14 +447,10 @@
 			// First sort by path to maintain hierarchy
 			const pathA = a.path || '';
 			const pathB = b.path || '';
-			if (pathA !== pathB) {
-				return pathA.localeCompare(pathB);
-			}
+			if (pathA !== pathB) return pathA.localeCompare(pathB);
 
 			// Then sort by level (parent tasks before subtasks)
-			if (a.level !== b.level) {
-				return a.level - b.level;
-			}
+			if (a.level !== b.level) return a.level - b.level;
 
 			// Then sort by completion status
 			if (a.status === 'completed' && b.status !== 'completed') return -1;

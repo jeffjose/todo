@@ -7,6 +7,7 @@ tasks:
     description: Document project expectations and requirements
     urgency: high
     tags: [work, documentation]
+    completed: null
 
   - title: Reach out to x for marketing
     status: pending
@@ -16,6 +17,7 @@ tasks:
     description: Contact x for marketing collaboration
     urgency: medium
     tags: [work, marketing, communication]
+    completed: null
 
   - title: hdr
     status: pending
@@ -25,6 +27,7 @@ tasks:
     description: HDR-related tasks
     urgency: high
     tags: [work, research]
+    completed: null
     subtasks:
       - title: Read up hdr doc
         status: pending
@@ -34,7 +37,7 @@ tasks:
         description: Review HDR documentation
         urgency: high
         tags: [work, research, documentation]
-        completed: false
+        completed: null
       - title: Catch up on hdr email
         status: pending
         deadline: 2025-03-31 17:00
@@ -43,7 +46,7 @@ tasks:
         description: Review and respond to HDR-related emails
         urgency: high
         tags: [work, communication]
-        completed: false
+        completed: null
 
   - title: GDC
     status: pending
@@ -53,6 +56,7 @@ tasks:
     description: GDC-related tasks and preparations
     urgency: high
     tags: [work, conference]
+    completed: null
     subtasks:
       - title: Create slides
         status: completed
@@ -62,7 +66,7 @@ tasks:
         description: Prepare presentation slides for GDC
         urgency: high
         tags: [work, presentation]
-        completed: false
+        completed: 2025-03-20 17:00
       - title: Review booth
         status: pending
         deadline: 2025-03-17 17:00
@@ -71,4 +75,4 @@ tasks:
         description: Review and finalize booth setup for GDC
         urgency: high
         tags: [work, conference]
-        completed: false
+        completed: null

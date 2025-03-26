@@ -23,7 +23,7 @@ function createTodo(overrides: Partial<Todo> = {}): Todo {
     path: 'root',
     level: 0,
     parentId: null,
-    completedBy: null,
+    completed: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides
@@ -54,7 +54,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         deadline: new Date('2024-03-19T00:00:00Z'), // Tuesday
-        completedBy: new Date('2024-03-19T00:00:00Z')
+        completed: new Date('2024-03-19T00:00:00Z')
       });
 
       const result = getOpenTodosUpToCurrentWeek(currentWeek, [task], today);
@@ -69,7 +69,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         deadline: new Date('2024-03-19T00:00:00Z'), // Tuesday
-        completedBy: new Date('2024-03-21T00:00:00Z') // Completed on Thursday
+        completed: new Date('2024-03-21T00:00:00Z') // Completed on Thursday
       });
 
       const result = getOpenTodosUpToCurrentWeek(currentWeek, [task], today);
@@ -84,7 +84,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         finishBy: new Date('2024-03-19T00:00:00Z'), // Tuesday
-        completedBy: new Date('2024-03-21T00:00:00Z') // Completed on Thursday
+        completed: new Date('2024-03-21T00:00:00Z') // Completed on Thursday
       });
 
       const result = getOpenTodosUpToCurrentWeek(currentWeek, [task], today);
@@ -105,7 +105,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         deadline: new Date('2024-03-15T00:00:00Z'), // Friday
-        completedBy: new Date('2024-03-15T00:00:00Z')
+        completed: new Date('2024-03-15T00:00:00Z')
       });
 
       const result = getOpenTodosUpToCurrentWeek(pastWeek, [task], today);
@@ -120,7 +120,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         deadline: new Date('2024-03-15T00:00:00Z'), // Friday
-        completedBy: new Date('2024-03-15T00:00:00Z')
+        completed: new Date('2024-03-15T00:00:00Z')
       });
 
       const result = getOpenTodosUpToCurrentWeek(currentWeek, [task], today);
@@ -139,7 +139,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         deadline: new Date('2024-03-27T00:00:00Z'), // Wednesday
-        completedBy: new Date('2024-03-27T00:00:00Z')
+        completed: new Date('2024-03-27T00:00:00Z')
       });
 
       const result = getOpenTodosUpToCurrentWeek(futureWeek, [task], today);
@@ -154,7 +154,7 @@ describe('Task Completion Behavior', () => {
         title: 'Completed Task',
         status: 'completed',
         deadline: new Date('2024-03-27T00:00:00Z'), // Wednesday
-        completedBy: new Date('2024-03-27T00:00:00Z')
+        completed: new Date('2024-03-27T00:00:00Z')
       });
 
       const result = getOpenTodosUpToCurrentWeek(currentWeek, [task], today);
@@ -169,7 +169,7 @@ describe('Task Completion Behavior', () => {
         title: 'Parent Task',
         status: 'completed',
         deadline: new Date('2024-03-19T00:00:00Z'),
-        completedBy: new Date('2024-03-19T00:00:00Z')
+        completed: new Date('2024-03-19T00:00:00Z')
       });
 
       const childTask = createTodo({
@@ -202,7 +202,7 @@ describe('Task Completion Behavior', () => {
         deadline: new Date('2024-03-19T00:00:00Z'),
         parentId: 'parent-task',
         path: 'root.parent-task',
-        completedBy: new Date('2024-03-19T00:00:00Z')
+        completed: new Date('2024-03-19T00:00:00Z')
       });
 
       const result = getOpenTodosUpToCurrentWeek(currentWeek, [parentTask, childTask], today);

@@ -267,9 +267,9 @@
 						date >= startDate &&
 						date <= endDate &&
 						todo.status === 'completed' &&
-						todo.completedBy &&
-						todo.completedBy >= startDate &&
-						todo.completedBy <= endDate;
+						todo.completed &&
+						todo.completed >= startDate &&
+						todo.completed <= endDate;
 					return shouldShow;
 				}
 
@@ -282,9 +282,9 @@
 					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
 					const isOverdueAndCompletedThisWeek =
 						todo.status === 'completed' &&
-						todo.completedBy &&
-						todo.completedBy >= startDate &&
-						todo.completedBy <= endDate &&
+						todo.completed &&
+						todo.completed >= startDate &&
+						todo.completed <= endDate &&
 						date < today;
 					const shouldShow =
 						isOriginallyScheduledForThisWeek || // Show all tasks scheduled for this week, including completed ones
@@ -401,9 +401,9 @@
 						date &&
 						date >= weekEvent.startDate &&
 						date <= weekEvent.endDate &&
-						todo.completedBy &&
-						todo.completedBy >= weekEvent.startDate &&
-						todo.completedBy <= weekEvent.endDate
+						todo.completed &&
+						todo.completed >= weekEvent.startDate &&
+						todo.completed <= weekEvent.endDate
 					) {
 						getTaskWithParents(todo, tasksWithParents);
 					}
@@ -424,21 +424,21 @@
 				const hasPastTodo = todo.todo && todo.todo < weekEvent.startDate;
 				const wasCompletedThisWeek =
 					todo.status === 'completed' &&
-					todo.completedBy &&
-					todo.completedBy >= weekEvent.startDate &&
-					todo.completedBy <= weekEvent.endDate;
+					todo.completed &&
+					todo.completed >= weekEvent.startDate &&
+					todo.completed <= weekEvent.endDate;
 				const isOverdueAndCompletedThisWeek =
 					todo.status === 'completed' &&
-					todo.completedBy &&
-					todo.completedBy >= weekEvent.startDate &&
-					todo.completedBy <= weekEvent.endDate &&
+					todo.completed &&
+					todo.completed >= weekEvent.startDate &&
+					todo.completed <= weekEvent.endDate &&
 					((todo.deadline && todo.deadline < today) || (todo.finishBy && todo.finishBy < today));
 				const isCompletedSubtask =
 					todo.status === 'completed' &&
 					todo.parentId &&
-					todo.completedBy &&
-					todo.completedBy >= weekEvent.startDate &&
-					todo.completedBy <= weekEvent.endDate;
+					todo.completed &&
+					todo.completed >= weekEvent.startDate &&
+					todo.completed <= weekEvent.endDate;
 
 				// If task has a todo date, only show it in that specific week
 				// If task has no todo date or has a past todo date, show it in current week if not completed

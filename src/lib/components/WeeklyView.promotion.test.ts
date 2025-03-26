@@ -228,6 +228,60 @@ describe('WeeklyView Task Promotion Tests', () => {
       const currentWeekTodos = getTodosForWeek(currentWeekEvent, 'finishBy', [completedFinishByTask]);
       expect(currentWeekTodos).toHaveLength(0);
     });
+
+    it('should promote slipped tasks to current week regardless of finishBy date', () => {
+      const tasks = [
+        createTodo({
+          id: 'slipped-task-1',
+          title: 'Slipped Task 1',
+          status: 'pending',
+          finishBy: new Date('2025-02-20T00:00:00.000Z') // Previous week
+        }),
+        createTodo({
+          id: 'slipped-task-2',
+          title: 'Slipped Task 2',
+          status: 'pending',
+          finishBy: new Date('2025-02-15T00:00:00.000Z') // Two weeks ago
+        })
+      ];
+
+      // Both tasks should appear in current week's finishBy column
+      const currentWeekTodos = getTodosForWeek(currentWeekEvent, 'finishBy', tasks);
+      expect(currentWeekTodos).toHaveLength(2);
+      // Tasks should be sorted by finishBy date (earlier date first)
+      expect(currentWeekTodos.map(t => t.id)).toEqual(['slipped-task-2', 'slipped-task-1']);
+
+      // Neither task should appear in previous week's finishBy column
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'finishBy', tasks);
+      expect(previousWeekTodos).toHaveLength(0);
+    });
+
+    it('should handle mixed slipped and completed tasks correctly', () => {
+      const tasks = [
+        createTodo({
+          id: 'slipped-task',
+          title: 'Slipped Task',
+          status: 'pending',
+          finishBy: new Date('2025-02-26T00:00:00.000Z') // Previous week
+        }),
+        createTodo({
+          id: 'completed-task',
+          title: 'Completed Task',
+          status: 'completed',
+          finishBy: new Date('2025-02-26T00:00:00.000Z') // Previous week
+        })
+      ];
+
+      // Only slipped task should appear in current week
+      const currentWeekTodos = getTodosForWeek(currentWeekEvent, 'finishBy', tasks);
+      expect(currentWeekTodos).toHaveLength(1);
+      expect(currentWeekTodos[0].id).toBe('slipped-task');
+
+      // Only completed task should appear in previous week
+      const previousWeekTodos = getTodosForWeek(previousWeekEvent, 'finishBy', tasks);
+      expect(previousWeekTodos).toHaveLength(1);
+      expect(previousWeekTodos[0].id).toBe('completed-task');
+    });
   });
 
   describe('Mixed Task Types', () => {

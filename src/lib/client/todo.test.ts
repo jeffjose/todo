@@ -213,71 +213,153 @@ describe('Todo Utilities', () => {
       expect(status).toBeNull();
     });
 
-    // New tests for overdue badge behavior
-    describe('Overdue Badge Behavior', () => {
-      it('should show overdue badge for tasks with past deadline', () => {
-        const today = new Date('2024-03-18T00:00:00Z');
-        const weekStart = new Date('2024-03-18T00:00:00Z');
+    describe('Badge Behavior', () => {
+      const weekStart = new Date('2024-03-18T00:00:00Z');
 
-        // Task due 2 days ago
-        const overdueTask = {
-          deadline: new Date('2024-03-16T00:00:00Z'),
-          finishBy: null,
-          status: 'open'
-        };
+      describe('Deadline Column Badges', () => {
+        it('should show overdue badge for tasks with past deadline', () => {
+          const task = {
+            deadline: new Date('2024-03-16T00:00:00Z'),
+            finishBy: null,
+            status: 'open'
+          };
 
-        const status = getTaskStatus(overdueTask, weekStart);
-        expect(status).toBeDefined();
-        expect(status?.type).toBe('overdue');
-        expect(status?.daysOverdue).toBe(2);
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeDefined();
+          expect(status?.type).toBe('overdue');
+          expect(status?.daysOverdue).toBe(2);
+        });
+
+        it('should not show overdue badge for tasks with future deadline', () => {
+          const task = {
+            deadline: new Date('2024-03-20T00:00:00Z'),
+            finishBy: null,
+            status: 'open'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
+
+        it('should not show overdue badge for completed tasks with past deadline', () => {
+          const task = {
+            deadline: new Date('2024-03-16T00:00:00Z'),
+            finishBy: null,
+            status: 'completed'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
       });
 
-      it('should not show overdue badge for tasks with past finishBy but future deadline', () => {
-        const today = new Date('2024-03-18T00:00:00Z');
-        const weekStart = new Date('2024-03-18T00:00:00Z');
+      describe('Finish By Column Badges', () => {
+        it('should show slipped badge for tasks with past finishBy date', () => {
+          const task = {
+            deadline: null,
+            finishBy: new Date('2024-03-16T00:00:00Z'),
+            status: 'open'
+          };
 
-        // Task with past finishBy but future deadline
-        const task = {
-          deadline: new Date('2024-03-25T00:00:00Z'),
-          finishBy: new Date('2024-03-16T00:00:00Z'),
-          status: 'open'
-        };
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeDefined();
+          expect(status?.type).toBe('slipped');
+        });
 
-        const status = getTaskStatus(task, weekStart);
-        expect(status).toBeDefined();
-        expect(status?.type).toBe('slipped');
+        it('should not show slipped badge for tasks with future finishBy date', () => {
+          const task = {
+            deadline: null,
+            finishBy: new Date('2024-03-20T00:00:00Z'),
+            status: 'open'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
+
+        it('should not show slipped badge for completed tasks with past finishBy date', () => {
+          const task = {
+            deadline: null,
+            finishBy: new Date('2024-03-16T00:00:00Z'),
+            status: 'completed'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
       });
 
-      it('should show overdue badge for tasks with past deadline even if they have past finishBy', () => {
-        const today = new Date('2024-03-18T00:00:00Z');
-        const weekStart = new Date('2024-03-18T00:00:00Z');
+      describe('Badge Priority', () => {
+        it('should show overdue badge instead of slipped when both deadline and finishBy are past', () => {
+          const task = {
+            deadline: new Date('2024-03-16T00:00:00Z'),
+            finishBy: new Date('2024-03-15T00:00:00Z'),
+            status: 'open'
+          };
 
-        // Task with both past deadline and past finishBy
-        const task = {
-          deadline: new Date('2024-03-16T00:00:00Z'),
-          finishBy: new Date('2024-03-15T00:00:00Z'),
-          status: 'open'
-        };
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeDefined();
+          expect(status?.type).toBe('overdue');
+          expect(status?.daysOverdue).toBe(2);
+        });
 
-        const status = getTaskStatus(task, weekStart);
-        expect(status).toBeDefined();
-        expect(status?.type).toBe('overdue');
-        expect(status?.daysOverdue).toBe(2);
+        it('should show slipped badge when finishBy is past but deadline is future', () => {
+          const task = {
+            deadline: new Date('2024-03-20T00:00:00Z'),
+            finishBy: new Date('2024-03-16T00:00:00Z'),
+            status: 'open'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeDefined();
+          expect(status?.type).toBe('slipped');
+        });
       });
 
-      it('should not show overdue badge for tasks with past deadline but completed status', () => {
-        const today = new Date('2024-03-18T00:00:00Z');
-        const weekStart = new Date('2024-03-18T00:00:00Z');
+      describe('Edge Cases', () => {
+        it('should handle tasks with same day deadline', () => {
+          const task = {
+            deadline: new Date('2024-03-18T00:00:00Z'),
+            finishBy: null,
+            status: 'open'
+          };
 
-        // Completed task with past deadline
-        const task = {
-          deadline: new Date('2024-03-16T00:00:00Z'),
-          finishBy: null,
-          status: 'completed'
-        };
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
 
-        const status = getTaskStatus(task, weekStart);
-        expect(status).toBeNull();
+        it('should handle tasks with same day finishBy', () => {
+          const task = {
+            deadline: null,
+            finishBy: new Date('2024-03-18T00:00:00Z'),
+            status: 'open'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
+
+        it('should handle tasks with no dates', () => {
+          const task = {
+            deadline: null,
+            finishBy: null,
+            status: 'open'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
+
+        it('should handle tasks with invalid dates', () => {
+          const task = {
+            deadline: new Date('invalid'),
+            finishBy: new Date('invalid'),
+            status: 'open'
+          };
+
+          const status = getTaskStatus(task, weekStart);
+          expect(status).toBeNull();
+        });
       });
     });
   });

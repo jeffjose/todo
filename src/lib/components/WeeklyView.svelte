@@ -290,8 +290,8 @@
 				console.log('Is current week:', isCurrentWeek);
 
 				if (isPastWeek) {
-					// For past weeks, show all tasks that were originally scheduled for that week
-					const shouldShow = date >= startDate && date <= endDate;
+					// For past weeks, only show completed tasks that were originally scheduled for that week
+					const shouldShow = date >= startDate && date <= endDate && todo.status === 'completed';
 					console.log('Past week - should show:', shouldShow);
 					return shouldShow;
 				}

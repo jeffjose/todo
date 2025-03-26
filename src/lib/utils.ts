@@ -23,18 +23,20 @@ export function getTaskStatus(todo: {
 	// Don't show any status for completed tasks
 	if (todo.status === 'completed') return null;
 
+	const now = new Date();
+	now.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
+
 	// Task is overdue if it has a deadline in the past
-	if (todo.deadline && todo.deadline < weekStartDate) {
-		const daysOverdue = Math.ceil((weekStartDate.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+	if (todo.deadline && todo.deadline < now) {
+		const daysOverdue = Math.ceil((now.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
 		return { type: 'overdue', daysOverdue };
 	}
 
 	// Task is slipped if it has a finishBy date in the past but either:
 	// 1. Has no deadline, or
 	// 2. Has a deadline that's in the future
-	// AND the task is not completed
-	if (todo.finishBy && todo.finishBy < weekStartDate) {
-		if (!todo.deadline || todo.deadline >= weekStartDate) {
+	if (todo.finishBy && todo.finishBy < now) {
+		if (!todo.deadline || todo.deadline >= now) {
 			return { type: 'slipped' };
 		}
 	}

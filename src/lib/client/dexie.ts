@@ -700,11 +700,8 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
       const yamlResponse = await fetch('/data/initial_tasks.yaml');
       if (yamlResponse.ok) {
         const yamlText = await yamlResponse.text();
-        console.log('DEBUG - Raw YAML text:', yamlText);
         const data = load(yamlText);
-        console.log('DEBUG - Parsed YAML data:', data);
         const tasks = data.tasks;
-        console.log('DEBUG - Parsed YAML tasks:', tasks);
 
         // Process YAML tasks
         for (const task of tasks) {
@@ -732,7 +729,6 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             createdAt: now,
             updatedAt: now
           };
-          console.log('DEBUG - Processed YAML task:', todo);
           allTodos.push(todo);
 
           // Process subtasks if they exist
@@ -761,7 +757,6 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
                 createdAt: now,
                 updatedAt: now
               };
-              console.log('DEBUG - Processed YAML subtask:', subtaskTodo);
               allTodos.push(subtaskTodo);
             }
           }
@@ -773,16 +768,14 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
       console.warn('Failed to load YAML tasks:', error);
     }
 
-    // Then try to load from JSON
+    // Then try to load from JSON only if it exists and has content
     try {
       const response = await fetch('/data/tasks.json');
       if (response.ok) {
-        const testData = await response.json();
-        console.log('DEBUG - Raw test data from JSON:', testData);
-
-        // Process dates in the test data
-        const processedData = testData.map((todo: any) => {
-          const processed = {
+        const text = await response.text();
+        if (text.trim()) {  // Only process if the file has content
+          const testData = JSON.parse(text);
+          const processedData = testData.map((todo: any) => ({
             ...todo,
             deadline: todo.deadline ? new Date(todo.deadline) : null,
             finishBy: todo.finishBy ? new Date(todo.finishBy) : null,
@@ -790,21 +783,9 @@ export async function loadTestData(): Promise<{ success: boolean; message: strin
             completedBy: null,
             createdAt: new Date(todo.createdAt),
             updatedAt: new Date(todo.updatedAt)
-          };
-          console.log('DEBUG - Processed test data item:', {
-            id: processed.id,
-            title: processed.title,
-            status: processed.status,
-            deadline: processed.deadline ? processed.deadline.toISOString() : null,
-            finishBy: processed.finishBy ? processed.finishBy.toISOString() : null,
-            todo: processed.todo ? processed.todo.toISOString() : null
-          });
-          return processed;
-        });
-
-        allTodos.push(...processedData);
-      } else {
-        console.warn('Failed to load JSON file:', response.statusText);
+          }));
+          allTodos.push(...processedData);
+        }
       }
     } catch (error) {
       console.warn('Failed to load JSON tasks:', error);

@@ -18,7 +18,17 @@ export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | nul
   const today = new Date();
   const isPastWeek = weekStartDate < today;
 
-  if (todo.status === 'completed') return null;
+  // For completed tasks, only show status if completed after deadline/finishBy
+  if (todo.status === 'completed') {
+    if (todo.deadline && todo.completed && todo.completed > todo.deadline) {
+      const daysOverdue = Math.ceil((todo.completed.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+      return { type: 'overdue', daysOverdue };
+    }
+    if (todo.finishBy && todo.completed && todo.completed > todo.finishBy) {
+      return { type: 'slipped' };
+    }
+    return null;
+  }
 
   if (todo.deadline) {
     if (todo.deadline < today) {

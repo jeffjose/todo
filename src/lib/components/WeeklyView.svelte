@@ -470,7 +470,7 @@
 										>
 											<span
 												class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-													? 'line-through'
+													? 'text-gray-400 line-through'
 													: ''}"
 												style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
 												on:click={(e) => handleToggleStatus(todo, e)}
@@ -493,7 +493,7 @@
 														class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
 															status,
 															todo.status === 'completed'
-														)}"
+														)} {todo.status === 'completed' ? 'line-through' : ''}"
 														on:click={(e) => handleToggleStatus(todo, e)}
 														on:mouseenter={() => handleTaskHover(todo.id)}
 														on:mouseleave={() => handleTaskHover(null)}
@@ -530,7 +530,7 @@
 										>
 											<span
 												class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-													? 'line-through'
+													? 'text-gray-400 line-through'
 													: ''}"
 												style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
 												on:click={(e) => handleToggleStatus(todo, e)}
@@ -553,7 +553,7 @@
 														class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
 															status,
 															todo.status === 'completed'
-														)}"
+														)} {todo.status === 'completed' ? 'line-through' : ''}"
 														on:click={(e) => handleToggleStatus(todo, e)}
 														on:mouseenter={() => handleTaskHover(todo.id)}
 														on:mouseleave={() => handleTaskHover(null)}
@@ -591,7 +591,7 @@
 											>
 												<span
 													class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-														? 'line-through'
+														? 'text-gray-400 line-through'
 														: ''}"
 													style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
 													on:click={(e) => handleToggleStatus(todo, e)}
@@ -614,7 +614,7 @@
 															class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
 																status,
 																todo.status === 'completed'
-															)}"
+															)} {todo.status === 'completed' ? 'line-through' : ''}"
 															on:click={(e) => handleToggleStatus(todo, e)}
 															on:mouseenter={() => handleTaskHover(todo.id)}
 															on:mouseleave={() => handleTaskHover(null)}

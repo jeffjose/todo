@@ -11,16 +11,20 @@
 		cycleTodoPriority
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
-	import { getTaskStatus, type TaskStatus } from '$lib/utils';
-
-	export interface WeekEvent {
-		id: string;
-		startDate: Date;
-		endDate: Date;
-		description: string | null;
-		createdAt: Date;
-		updatedAt: Date;
-	}
+	import {
+		getTaskStatus,
+		getStatusBadgeClass,
+		getPriorityBadgeClass,
+		getTaskColor,
+		formatDate,
+		formatTodoDate,
+		isCurrentWeek,
+		isStartOfMonth,
+		getMonthYear,
+		shouldShowMonthHeader,
+		type WeekEvent
+	} from '$lib/utils/taskLogic';
+	import { getTodosForWeek, getOpenTodosUpToCurrentWeek } from '$lib/utils/taskFilters';
 
 	const { todos = [], onTodosChange } = $props<{
 		todos: Todo[];
@@ -224,471 +228,6 @@
 		}
 
 		return weekEvents;
-	}
-
-	function getTodosForWeek(weekEvent: WeekEvent, type: 'deadline' | 'finishBy' | 'todo'): Todo[] {
-		// Create a map of all todos for quick lookup
-		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
-
-		const today = new Date();
-		const isPastWeek = weekEvent.endDate < today;
-		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
-
-		// First, filter todos for the week
-		const weekTodos = todos.filter((todo: Todo) => {
-			const date =
-				type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
-			if (!date) return false;
-
-			// Set start date to beginning of day (midnight)
-			const startDate = new Date(weekEvent.startDate);
-			startDate.setHours(0, 0, 0, 0);
-
-			// Set end date to end of day (23:59:59)
-			const endDate = new Date(weekEvent.endDate);
-			endDate.setHours(23, 59, 59, 999);
-
-			if (type === 'finishBy') {
-				// For finishBy column:
-				// 1. Show tasks completed in this week
-				// 2. Show tasks scheduled for this week
-				// 3. For past weeks, only show tasks completed in that week
-				// 4. For current week, also show overdue tasks
-				const wasCompletedInThisWeek =
-					todo.status === 'completed' &&
-					todo.completed &&
-					todo.completed >= startDate &&
-					todo.completed <= endDate;
-
-				const wasScheduledForThisWeek = date >= startDate && date <= endDate;
-
-				if (isPastWeek) {
-					return wasCompletedInThisWeek;
-				}
-
-				if (isCurrentWeek) {
-					const isOverdueFromPastWeek = date < today && todo.status !== 'completed';
-					return wasCompletedInThisWeek || wasScheduledForThisWeek || isOverdueFromPastWeek;
-				}
-
-				return wasScheduledForThisWeek;
-			}
-
-			// For deadline and todo columns, show tasks scheduled for this week
-			return date >= startDate && date <= endDate;
-		});
-
-		// Get all parent tasks for the filtered todos
-		const tasksWithParents = new Set<Todo>();
-		weekTodos.forEach((todo: Todo) => {
-			// Add the current todo and its parents
-			tasksWithParents.add(todo);
-			let currentTodo: Todo = todo;
-			while (currentTodo.parentId) {
-				const parentTodo = todoMap.get(currentTodo.parentId) as Todo;
-				if (parentTodo) {
-					tasksWithParents.add(parentTodo);
-					currentTodo = parentTodo;
-				} else {
-					break;
-				}
-			}
-		});
-
-		// Also add any subtasks of the filtered todos
-		weekTodos.forEach((todo: Todo) => {
-			todos.forEach((potentialSubtask: Todo) => {
-				if (potentialSubtask.parentId === todo.id) {
-					tasksWithParents.add(potentialSubtask);
-				}
-			});
-		});
-
-		// Convert Set back to array and sort
-		const result = Array.from(tasksWithParents);
-
-		// Debug logging for sorting
-		console.log(`Debug - Sorting ${type} column for week ${formatDate(weekEvent.startDate)}:`, {
-			totalTasks: result.length,
-			tasks: result.map((t) => ({
-				id: t.id,
-				title: t.title,
-				path: t.path,
-				level: t.level,
-				status: t.status,
-				date: type === 'deadline' ? t.deadline : type === 'finishBy' ? t.finishBy : t.todo,
-				priority: t.priority
-			}))
-		});
-
-		result.sort((a: Todo, b: Todo) => {
-			// First sort by path to maintain hierarchy
-			const pathA = a.path || '';
-			const pathB = b.path || '';
-			if (pathA !== pathB) {
-				console.log(`Debug - Path comparison for ${a.title} vs ${b.title}:`, {
-					pathA,
-					pathB,
-					result: pathA.localeCompare(pathB)
-				});
-				return pathA.localeCompare(pathB);
-			}
-
-			// Then sort by level (parent tasks before subtasks)
-			if (a.level !== b.level) {
-				console.log(`Debug - Level comparison for ${a.title} vs ${b.title}:`, {
-					levelA: a.level,
-					levelB: b.level,
-					result: a.level - b.level
-				});
-				return a.level - b.level;
-			}
-
-			// Then sort by completion status
-			if (a.status === 'completed' && b.status !== 'completed') {
-				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
-					statusA: a.status,
-					statusB: b.status,
-					result: -1
-				});
-				return -1;
-			}
-			if (a.status !== 'completed' && b.status === 'completed') {
-				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
-					statusA: a.status,
-					statusB: b.status,
-					result: 1
-				});
-				return 1;
-			}
-
-			// Then sort by date if both tasks have dates
-			const dateA = type === 'deadline' ? a.deadline : type === 'finishBy' ? a.finishBy : a.todo;
-			const dateB = type === 'deadline' ? b.deadline : type === 'finishBy' ? b.finishBy : b.todo;
-
-			// Handle date comparison consistently
-			if (dateA && dateB) {
-				const dateCompare = dateA.getTime() - dateB.getTime();
-				if (dateCompare !== 0) {
-					console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
-						dateA: dateA.toISOString(),
-						dateB: dateB.toISOString(),
-						result: dateCompare
-					});
-					return dateCompare;
-				}
-			} else if (dateA) {
-				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
-					dateA: dateA.toISOString(),
-					dateB: null,
-					result: -1
-				});
-				return -1;
-			} else if (dateB) {
-				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
-					dateA: null,
-					dateB: dateB.toISOString(),
-					result: 1
-				});
-				return 1;
-			}
-
-			// Then sort by ID for stability
-			if (a.id !== b.id) {
-				console.log(`Debug - ID comparison for ${a.title} vs ${b.title}:`, {
-					idA: a.id,
-					idB: b.id,
-					result: a.id.localeCompare(b.id)
-				});
-				return a.id.localeCompare(b.id);
-			}
-
-			// Finally sort alphabetically by title as a last resort
-			const titleCompare = (a.title || '').localeCompare(b.title || '');
-			console.log(`Debug - Title comparison for ${a.title} vs ${b.title}:`, {
-				titleA: a.title,
-				titleB: b.title,
-				result: titleCompare
-			});
-			return titleCompare;
-		});
-
-		// Debug logging for final sorted order
-		console.log(`Debug - Final sorted order for ${type} column:`, {
-			week: formatDate(weekEvent.startDate),
-			tasks: result.map((t) => ({
-				id: t.id,
-				title: t.title,
-				path: t.path,
-				level: t.level,
-				status: t.status,
-				date: type === 'deadline' ? t.deadline : type === 'finishBy' ? t.finishBy : t.todo,
-				priority: t.priority
-			}))
-		});
-
-		return result;
-	}
-
-	function getOpenTodosUpToCurrentWeek(weekEvent: WeekEvent): Todo[] {
-		const today = new Date();
-		const isPastWeek = weekEvent.endDate < today;
-		const isCurrentWeek = today >= weekEvent.startDate && today <= weekEvent.endDate;
-
-		// Create a map of all todos for quick lookup
-		const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
-
-		// Helper function to get a task and all its parents
-		function getTaskWithParents(todo: Todo, tasksSet: Set<Todo>) {
-			tasksSet.add(todo);
-			let currentTodo: Todo = todo;
-			while (currentTodo.parentId) {
-				const parentTodo = todoMap.get(currentTodo.parentId);
-				if (parentTodo) {
-					const typedParentTodo = parentTodo as Todo;
-					tasksSet.add(typedParentTodo);
-					currentTodo = typedParentTodo;
-				} else {
-					break;
-				}
-			}
-		}
-
-		const tasksWithParents = new Set<Todo>();
-
-		if (isPastWeek) {
-			// For past weeks, show tasks completed in this week
-			todos.forEach((todo: Todo) => {
-				if (
-					todo.status === 'completed' &&
-					todo.completed &&
-					todo.completed >= weekEvent.startDate &&
-					todo.completed <= weekEvent.endDate
-				) {
-					getTaskWithParents(todo, tasksWithParents);
-				}
-			});
-		}
-
-		if (isCurrentWeek) {
-			// For current week, show:
-			// 1. All tasks with dates in this week
-			// 2. All open tasks without dates
-			// 3. All open tasks from past weeks
-			// 4. Completed tasks from this week
-			todos.forEach((todo: Todo) => {
-				const hasDateInWeek =
-					(todo.deadline &&
-						todo.deadline >= weekEvent.startDate &&
-						todo.deadline <= weekEvent.endDate) ||
-					(todo.finishBy &&
-						todo.finishBy >= weekEvent.startDate &&
-						todo.finishBy <= weekEvent.endDate) ||
-					(todo.todo && todo.todo >= weekEvent.startDate && todo.todo <= weekEvent.endDate);
-
-				const hasPastDate =
-					(todo.deadline && todo.deadline < weekEvent.startDate) ||
-					(todo.finishBy && todo.finishBy < weekEvent.startDate) ||
-					(todo.todo && todo.todo < weekEvent.startDate);
-
-				const wasCompletedThisWeek =
-					todo.status === 'completed' &&
-					todo.completed &&
-					todo.completed >= weekEvent.startDate &&
-					todo.completed <= weekEvent.endDate;
-
-				const shouldShow =
-					hasDateInWeek ||
-					(!todo.deadline && !todo.finishBy && !todo.todo && todo.status !== 'completed') ||
-					(hasPastDate && todo.status !== 'completed') ||
-					wasCompletedThisWeek;
-
-				if (shouldShow) {
-					getTaskWithParents(todo, tasksWithParents);
-				}
-			});
-		}
-
-		const result = Array.from(tasksWithParents);
-
-		// Remove duplicates based on todo ID
-		const uniqueTodos = new Map(result.map((todo) => [todo.id, todo]));
-		const uniqueResult = Array.from(uniqueTodos.values());
-
-		// Debug logging for sorting
-		console.log(`Debug - Sorting TODO column for week ${formatDate(weekEvent.startDate)}:`, {
-			totalTasks: uniqueResult.length,
-			tasks: uniqueResult.map((t) => ({
-				id: t.id,
-				title: t.title,
-				path: t.path,
-				level: t.level,
-				status: t.status,
-				date: t.todo || t.deadline || t.finishBy,
-				priority: t.priority
-			}))
-		});
-
-		uniqueResult.sort((a: Todo, b: Todo) => {
-			// First sort by path to maintain hierarchy
-			const pathA = a.path || '';
-			const pathB = b.path || '';
-			if (pathA !== pathB) {
-				console.log(`Debug - Path comparison for ${a.title} vs ${b.title}:`, {
-					pathA,
-					pathB,
-					result: pathA.localeCompare(pathB)
-				});
-				return pathA.localeCompare(pathB);
-			}
-
-			// Then sort by level (parent tasks before subtasks)
-			if (a.level !== b.level) {
-				console.log(`Debug - Level comparison for ${a.title} vs ${b.title}:`, {
-					levelA: a.level,
-					levelB: b.level,
-					result: a.level - b.level
-				});
-				return a.level - b.level;
-			}
-
-			// Then sort by completion status
-			if (a.status === 'completed' && b.status !== 'completed') {
-				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
-					statusA: a.status,
-					statusB: b.status,
-					result: -1
-				});
-				return -1;
-			}
-			if (a.status !== 'completed' && b.status === 'completed') {
-				console.log(`Debug - Status comparison for ${a.title} vs ${b.title}:`, {
-					statusA: a.status,
-					statusB: b.status,
-					result: 1
-				});
-				return 1;
-			}
-
-			// Then sort by date if both tasks have dates
-			const dateA = a.todo || a.deadline || a.finishBy;
-			const dateB = b.todo || b.deadline || b.finishBy;
-
-			// Handle date comparison consistently
-			if (dateA && dateB) {
-				const dateCompare = dateA.getTime() - dateB.getTime();
-				if (dateCompare !== 0) {
-					console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
-						dateA: dateA.toISOString(),
-						dateB: dateB.toISOString(),
-						result: dateCompare
-					});
-					return dateCompare;
-				}
-			} else if (dateA) {
-				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
-					dateA: dateA.toISOString(),
-					dateB: null,
-					result: -1
-				});
-				return -1;
-			} else if (dateB) {
-				console.log(`Debug - Date comparison for ${a.title} vs ${b.title}:`, {
-					dateA: null,
-					dateB: dateB.toISOString(),
-					result: 1
-				});
-				return 1;
-			}
-
-			// Then sort by ID for stability
-			if (a.id !== b.id) {
-				console.log(`Debug - ID comparison for ${a.title} vs ${b.title}:`, {
-					idA: a.id,
-					idB: b.id,
-					result: a.id.localeCompare(b.id)
-				});
-				return a.id.localeCompare(b.id);
-			}
-
-			// Finally sort alphabetically by title as a last resort
-			const titleCompare = (a.title || '').localeCompare(b.title || '');
-			console.log(`Debug - Title comparison for ${a.title} vs ${b.title}:`, {
-				titleA: a.title,
-				titleB: b.title,
-				result: titleCompare
-			});
-			return titleCompare;
-		});
-
-		// Debug logging for final sorted order
-		console.log(`Debug - Final sorted order for TODO column:`, {
-			week: formatDate(weekEvent.startDate),
-			tasks: uniqueResult.map((t) => ({
-				id: t.id,
-				title: t.title,
-				path: t.path,
-				level: t.level,
-				status: t.status,
-				date: t.todo || t.deadline || t.finishBy,
-				priority: t.priority
-			}))
-		});
-
-		return uniqueResult;
-	}
-
-	function formatDate(date: Date): string {
-		return date.toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric'
-		});
-	}
-
-	function formatTodoDate(date: Date | null): string {
-		if (!date) return 'No date';
-		return date.toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
-	function isCurrentWeek(weekEvent: WeekEvent): boolean {
-		const today = new Date();
-		return today >= weekEvent.startDate && today <= weekEvent.endDate;
-	}
-
-	function isStartOfMonth(weekEvent: WeekEvent): boolean {
-		const prevDay = new Date(weekEvent.startDate);
-		prevDay.setDate(prevDay.getDate() - 1);
-		return prevDay.getMonth() !== weekEvent.startDate.getMonth();
-	}
-
-	function getMonthYear(date: Date, weekEvent: WeekEvent): string {
-		// If this week contains the 1st of a month, use that date for the header
-		for (let i = 0; i < 7; i++) {
-			const checkDate = new Date(weekEvent.startDate);
-			checkDate.setDate(checkDate.getDate() + i);
-			if (checkDate.getDate() === 1) {
-				return checkDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-			}
-		}
-		// Otherwise use the provided date
-		return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-	}
-
-	function shouldShowMonthHeader(weekEvent: WeekEvent, index: number): boolean {
-		// Check each day in the week for the 1st of a month
-		for (let i = 0; i < 7; i++) {
-			const date = new Date(weekEvent.startDate);
-			date.setDate(date.getDate() + i);
-			if (date.getDate() === 1) {
-				return true;
-			}
-		}
-		return index === 0; // Show header for first week anyway
 	}
 
 	function handleTaskHover(taskId: string | null) {
@@ -906,7 +445,7 @@
 							{#if weekEvent.description}
 								<span
 									class="rounded px-1.5 py-0.5 text-xs text-white"
-									style="background-color: {getColorForId(weekEvent.id)}"
+									style="background-color: #6B7280"
 								>
 									{weekEvent.description}
 								</span>
@@ -918,7 +457,7 @@
 						<!-- Tasks columns with balanced styling -->
 						<td class="px-2 py-1">
 							<div class="space-y-0.5">
-								{#each getTodosForWeek(weekEvent, 'deadline') as todo}
+								{#each getTodosForWeek(todos, weekEvent, 'deadline') as todo (todo.id)}
 									<div
 										class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
 										class:task-highlight={hoveredTaskId === todo.id}
@@ -930,29 +469,19 @@
 											class:text-gray-400={todo.status === 'completed'}
 										>
 											<span
-												class="cursor-pointer text-xs leading-snug"
-												style="padding-left: {todo.level * 0.75}rem"
-												class:line-through={todo.status === 'completed'}
-												style:color={todo.status === 'completed'
-													? '#9CA3AF'
-													: getColorForId(todo.id)}
+												class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
+													? 'line-through'
+													: ''}"
+												style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
 												on:click={(e) => handleToggleStatus(todo, e)}
 											>
 												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
-												class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium"
-												class:text-gray-400={todo.status === 'completed'}
-												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
-												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
-												class:bg-orange-100={todo.priority === 'P1' && todo.status !== 'completed'}
-												class:text-orange-800={todo.priority === 'P1' &&
-													todo.status !== 'completed'}
-												class:bg-yellow-100={todo.priority === 'P2' && todo.status !== 'completed'}
-												class:text-yellow-800={todo.priority === 'P2' &&
-													todo.status !== 'completed'}
-												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
-												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
+												class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
+													todo.priority,
+													todo.status === 'completed'
+												)}"
 												on:click={(e) => handleCyclePriority(todo, e)}
 											>
 												{todo.priority}
@@ -961,20 +490,13 @@
 												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
 													<span
-														class="rounded px-1 py-0.5 text-xs text-white"
-														class:bg-red-500={status.type === 'overdue' &&
-															todo.status !== 'completed'}
-														class:bg-red-100={status.type === 'overdue' &&
-															todo.status === 'completed'}
-														class:text-red-400={status.type === 'overdue' &&
-															todo.status === 'completed'}
-														class:bg-yellow-500={status.type === 'slipped' &&
-															todo.status !== 'completed'}
-														class:bg-yellow-100={status.type === 'slipped' &&
-															todo.status === 'completed'}
-														class:text-yellow-400={status.type === 'slipped' &&
-															todo.status === 'completed'}
-														class:line-through={todo.status === 'completed'}
+														class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
+															status,
+															todo.status === 'completed'
+														)}"
+														on:click={(e) => handleToggleStatus(todo, e)}
+														on:mouseenter={() => handleTaskHover(todo.id)}
+														on:mouseleave={() => handleTaskHover(null)}
 													>
 														{#if status.type === 'overdue'}
 															overdue ({status.daysOverdue}d)
@@ -995,7 +517,7 @@
 						<!-- Finish By Tasks -->
 						<td class="px-2 py-1">
 							<div class="space-y-0.5">
-								{#each getTodosForWeek(weekEvent, 'finishBy') as todo}
+								{#each getTodosForWeek(todos, weekEvent, 'finishBy') as todo (todo.id)}
 									<div
 										class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
 										class:task-highlight={hoveredTaskId === todo.id}
@@ -1007,29 +529,19 @@
 											class:text-gray-400={todo.status === 'completed'}
 										>
 											<span
-												class="cursor-pointer text-xs leading-snug"
-												style="padding-left: {todo.level * 0.75}rem"
-												class:line-through={todo.status === 'completed'}
-												style:color={todo.status === 'completed'
-													? '#9CA3AF'
-													: getColorForId(todo.id)}
+												class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
+													? 'line-through'
+													: ''}"
+												style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
 												on:click={(e) => handleToggleStatus(todo, e)}
 											>
 												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 											</span>
 											<span
-												class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium"
-												class:text-gray-400={todo.status === 'completed'}
-												class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
-												class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
-												class:bg-orange-100={todo.priority === 'P1' && todo.status !== 'completed'}
-												class:text-orange-800={todo.priority === 'P1' &&
-													todo.status !== 'completed'}
-												class:bg-yellow-100={todo.priority === 'P2' && todo.status !== 'completed'}
-												class:text-yellow-800={todo.priority === 'P2' &&
-													todo.status !== 'completed'}
-												class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
-												class:text-gray-800={todo.priority === 'P3' && todo.status !== 'completed'}
+												class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
+													todo.priority,
+													todo.status === 'completed'
+												)}"
 												on:click={(e) => handleCyclePriority(todo, e)}
 											>
 												{todo.priority}
@@ -1038,20 +550,13 @@
 												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
 													<span
-														class="rounded px-1 py-0.5 text-xs text-white"
-														class:bg-red-500={status.type === 'overdue' &&
-															todo.status !== 'completed'}
-														class:bg-red-100={status.type === 'overdue' &&
-															todo.status === 'completed'}
-														class:text-red-400={status.type === 'overdue' &&
-															todo.status === 'completed'}
-														class:bg-yellow-500={status.type === 'slipped' &&
-															todo.status !== 'completed'}
-														class:bg-yellow-100={status.type === 'slipped' &&
-															todo.status === 'completed'}
-														class:text-yellow-400={status.type === 'slipped' &&
-															todo.status === 'completed'}
-														class:line-through={todo.status === 'completed'}
+														class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
+															status,
+															todo.status === 'completed'
+														)}"
+														on:click={(e) => handleToggleStatus(todo, e)}
+														on:mouseenter={() => handleTaskHover(todo.id)}
+														on:mouseleave={() => handleTaskHover(null)}
 													>
 														{#if status.type === 'overdue'}
 															overdue ({status.daysOverdue}d)
@@ -1073,7 +578,7 @@
 						<td class="px-2 py-1">
 							{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 								<div class="space-y-0.5">
-									{#each getOpenTodosUpToCurrentWeek(weekEvent) as todo}
+									{#each getOpenTodosUpToCurrentWeek(todos, weekEvent) as todo (todo.id)}
 										<div
 											class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
 											class:task-highlight={hoveredTaskId === todo.id}
@@ -1085,55 +590,34 @@
 												class:text-gray-400={todo.status === 'completed'}
 											>
 												<span
-													class="cursor-pointer text-xs leading-snug"
-													style="padding-left: {todo.level * 0.75}rem"
-													class:line-through={todo.status === 'completed'}
-													style:color={todo.status === 'completed'
-														? '#9CA3AF'
-														: getColorForId(todo.id)}
+													class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
+														? 'line-through'
+														: ''}"
+													style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
 													on:click={(e) => handleToggleStatus(todo, e)}
 												>
 													{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 												</span>
 												<span
-													class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium"
-													class:text-gray-400={todo.status === 'completed'}
-													class:bg-red-100={todo.priority === 'P0' && todo.status !== 'completed'}
-													class:text-red-800={todo.priority === 'P0' && todo.status !== 'completed'}
-													class:bg-orange-100={todo.priority === 'P1' &&
-														todo.status !== 'completed'}
-													class:text-orange-800={todo.priority === 'P1' &&
-														todo.status !== 'completed'}
-													class:bg-yellow-100={todo.priority === 'P2' &&
-														todo.status !== 'completed'}
-													class:text-yellow-800={todo.priority === 'P2' &&
-														todo.status !== 'completed'}
-													class:bg-gray-100={todo.priority === 'P3' && todo.status !== 'completed'}
-													class:text-gray-800={todo.priority === 'P3' &&
-														todo.status !== 'completed'}
+													class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
+														todo.priority,
+														todo.status === 'completed'
+													)}"
 													on:click={(e) => handleCyclePriority(todo, e)}
 												>
 													{todo.priority}
 												</span>
-												<!-- Visual indicators for task status -->
 												{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 													{@const status = getTaskStatus(todo, weekEvent.startDate)}
 													{#if status}
 														<span
-															class="rounded px-1 py-0.5 text-xs text-white"
-															class:bg-red-500={status.type === 'overdue' &&
-																todo.status !== 'completed'}
-															class:bg-red-100={status.type === 'overdue' &&
-																todo.status === 'completed'}
-															class:text-red-400={status.type === 'overdue' &&
-																todo.status === 'completed'}
-															class:bg-yellow-500={status.type === 'slipped' &&
-																todo.status !== 'completed'}
-															class:bg-yellow-100={status.type === 'slipped' &&
-																todo.status === 'completed'}
-															class:text-yellow-400={status.type === 'slipped' &&
-																todo.status === 'completed'}
-															class:line-through={todo.status === 'completed'}
+															class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
+																status,
+																todo.status === 'completed'
+															)}"
+															on:click={(e) => handleToggleStatus(todo, e)}
+															on:mouseenter={() => handleTaskHover(todo.id)}
+															on:mouseleave={() => handleTaskHover(null)}
 														>
 															{#if status.type === 'overdue'}
 																overdue ({status.daysOverdue}d)

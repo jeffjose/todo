@@ -486,6 +486,28 @@
 											>
 												{todo.priority}
 											</span>
+											{#if todo.deadline && todo.finishBy && todo.deadline.getTime() === todo.finishBy.getTime()}
+												<!-- Show single badge when dates are the same -->
+												<span class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+													{formatTodoDate(todo.deadline)}
+												</span>
+											{:else}
+												{#if todo.deadline}
+													<span class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+														{formatTodoDate(todo.deadline)}
+													</span>
+												{/if}
+												{#if todo.finishBy}
+													<span class="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700">
+														{formatTodoDate(todo.finishBy)}
+													</span>
+												{/if}
+											{/if}
+											{#if todo.todo}
+												<span class="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700">
+													{formatTodoDate(todo.todo)}
+												</span>
+											{/if}
 											{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
@@ -546,6 +568,28 @@
 											>
 												{todo.priority}
 											</span>
+											{#if todo.deadline && todo.finishBy && todo.deadline.getTime() === todo.finishBy.getTime()}
+												<!-- Show single badge when dates are the same -->
+												<span class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+													{formatTodoDate(todo.deadline)}
+												</span>
+											{:else}
+												{#if todo.deadline}
+													<span class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+														{formatTodoDate(todo.deadline)}
+													</span>
+												{/if}
+												{#if todo.finishBy}
+													<span class="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700">
+														{formatTodoDate(todo.finishBy)}
+													</span>
+												{/if}
+											{/if}
+											{#if todo.todo}
+												<span class="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700">
+													{formatTodoDate(todo.todo)}
+												</span>
+											{/if}
 											{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 												{@const status = getTaskStatus(todo, weekEvent.startDate)}
 												{#if status}
@@ -607,6 +651,30 @@
 												>
 													{todo.priority}
 												</span>
+												{#if todo.deadline && todo.finishBy && todo.deadline.getTime() === todo.finishBy.getTime()}
+													<!-- Show single badge when dates are the same -->
+													<span class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+														{formatTodoDate(todo.deadline)}
+													</span>
+												{:else}
+													{#if todo.deadline}
+														<span class="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+															{formatTodoDate(todo.deadline)}
+														</span>
+													{/if}
+													{#if todo.finishBy}
+														<span
+															class="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700"
+														>
+															{formatTodoDate(todo.finishBy)}
+														</span>
+													{/if}
+												{/if}
+												{#if todo.todo}
+													<span class="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700">
+														{formatTodoDate(todo.todo)}
+													</span>
+												{/if}
 												{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 													{@const status = getTaskStatus(todo, weekEvent.startDate)}
 													{#if status}

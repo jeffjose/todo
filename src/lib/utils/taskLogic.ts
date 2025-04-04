@@ -105,9 +105,7 @@ export function formatTodoDate(date: Date | null): string {
   if (!date) return 'No date';
   return date.toLocaleDateString('en-US', {
     month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: 'numeric'
   });
 }
 

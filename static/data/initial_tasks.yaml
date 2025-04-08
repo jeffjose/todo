@@ -57,9 +57,32 @@ tasks:
         tags: [work, task]
         completed: null
 
+  - title: XBR metrics slides
+    status: pending
+    deadline: 2025-04-25 17:00
+    finishBy: 2025-04-11 17:00
+    priority: P1
+    emoji: 📊
+    description: Develop and review dashboard metrics
+    urgency: medium
+    tags: [work, metrics]
+    completed: null
+
+  - title: XBR metrics
+    status: pending
+    deadline: 2025-04-25 17:00
+    finishBy: 2025-04-15 17:00
+    todo: 2025-04-7 17:00
+    priority: P1
+    emoji: 📊
+    description: Develop and review dashboard metrics
+    urgency: medium
+    tags: [work, metrics]
+    completed: null
   - title: dashboard / metrics
     status: pending
-    deadline: 2025-04-11 17:00
+    deadline: 2025-04-25 17:00
+    finishBy: 2025-04-15 17:00
     priority: P1
     emoji: 📊
     description: Develop and review dashboard metrics
@@ -69,7 +92,7 @@ tasks:
 
   - title: TOPS strategy slides
     status: pending
-    deadline: 2025-04-11 17:00
+    deadline: 2025-04-25 17:00
     priority: P1
     emoji: 📑
     description: Prepare TOPS strategy presentation slides

@@ -1,109 +1,108 @@
 tasks:
-  - title: Write expectations
+  - title: XYZ capacity
     status: pending
-    deadline: 2025-03-31 17:00
-    priority: P0
-    emoji: 📝
-    description: Document project expectations and requirements
-    urgency: high
-    tags: [work, documentation]
-    completed: null
-
-  - title: Reach out to x for marketing
-    status: pending
-    deadline: 2025-03-31 17:00
-    priority: P2
-    emoji: 📢
-    description: Contact x for marketing collaboration
+    deadline: 2025-04-11 17:00
+    priority: P1
+    emoji: 📈
+    description: Manage XYZ capacity planning
     urgency: medium
-    tags: [work, marketing, communication]
-    completed: null
-
-  - title: Review Q1 Report
-    status: pending
-    deadline: 2025-03-31 17:00
-    finishBy: 2024-03-15 17:00
-    priority: P1
-    emoji: 📊
-    description: Review and finalize Q1 performance report
-    urgency: high
-    tags: [work, reporting]
-    completed: null
-
-  - title: Pre Review Q1 Report
-    status: completed
-    deadline: 2025-03-31 17:00
-    finishBy: 2025-03-15 17:00
-    priority: P1
-    emoji: 📊
-    description: Review and finalize Q1 performance report
-    urgency: high
-    tags: [work, reporting]
-    completed: 2025-03-20 17:00
-
-  - title: hdr
-    status: pending
-    deadline: 2025-03-31 17:00
-    priority: P1
-    emoji: 📚
-    description: HDR-related tasks
-    urgency: high
-    tags: [work, research]
+    tags: [work, planning]
     completed: null
     subtasks:
-      - title: Read up hdr doc
+      - title: TOPS
         status: pending
-        deadline: 2025-03-31 17:00
+        deadline: 2025-04-11 17:00
         priority: P1
-        emoji: 📚
-        description: Review HDR documentation
-        urgency: high
-        tags: [work, research, documentation]
+        emoji: 📋
+        description: Complete TOPS related tasks
+        urgency: medium
+        tags: [work, task]
         completed: null
-      - title: Catch up on hdr email
+      - title: Pigment
         status: pending
-        deadline: 2025-03-31 17:00
+        deadline: 2025-04-11 17:00
         priority: P1
-        emoji: 📧
-        description: Review and respond to HDR-related emails
-        urgency: high
-        tags: [work, communication]
+        emoji: 🎨
+        description: Complete Pigment related tasks
+        urgency: medium
+        tags: [work, task]
         completed: null
 
-  - title: GDC
+  - title: XYZ pager
     status: pending
-    deadline: 2025-03-17 17:00
+    deadline: 2025-04-11 17:00
     priority: P1
-    emoji: 🎮
-    description: GDC-related tasks and preparations
-    urgency: high
-    tags: [work, conference]
+    emoji: 📟
+    description: Manage XYZ pager duties
+    urgency: medium
+    tags: [work, duty]
     completed: null
     subtasks:
-      - title: Create slides
-        status: completed
-        deadline: 2025-03-20 17:00
-        priority: P1
-        emoji: 📊
-        description: Prepare presentation slides for GDC
-        urgency: high
-        tags: [work, presentation]
-        completed: 2025-03-20 17:00
-      - title: Create slides 2
-        status: completed
-        deadline: 2025-03-20 17:00
-        priority: P1
-        emoji: 📊
-        description: Prepare presentation slides for GDC
-        urgency: high
-        tags: [work, presentation]
-        completed: 2025-03-21 17:00
-      - title: Review booth
+      - title: TOPS
         status: pending
-        deadline: 2025-03-17 17:00
+        deadline: 2025-04-11 17:00
         priority: P1
-        emoji: 🎪
-        description: Review and finalize booth setup for GDC
-        urgency: high
-        tags: [work, conference]
+        emoji: 📋
+        description: Complete TOPS related tasks
+        urgency: medium
+        tags: [work, task]
         completed: null
+      - title: Pigment
+        status: pending
+        deadline: 2025-04-11 17:00
+        priority: P1
+        emoji: 🎨
+        description: Complete Pigment related tasks
+        urgency: medium
+        tags: [work, task]
+        completed: null
+
+  - title: dashboard / metrics
+    status: pending
+    deadline: 2025-04-11 17:00
+    priority: P1
+    emoji: 📊
+    description: Develop and review dashboard metrics
+    urgency: medium
+    tags: [work, metrics]
+    completed: null
+
+  - title: TOPS strategy slides
+    status: pending
+    deadline: 2025-04-11 17:00
+    priority: P1
+    emoji: 📑
+    description: Prepare TOPS strategy presentation slides
+    urgency: medium
+    tags: [work, presentation]
+    completed: null
+
+  - title: Pigment slides
+    status: pending
+    deadline: 2025-04-11 17:00
+    priority: P1
+    emoji: 📑
+    description: Prepare Pigment presentation slides
+    urgency: medium
+    tags: [work, presentation]
+    completed: null
+
+  - title: FR review
+    status: pending
+    deadline: 2025-04-11 17:00
+    priority: P1
+    emoji: 🔍
+    description: Conduct FR review
+    urgency: medium
+    tags: [work, review]
+    completed: null
+
+  - title: followup on email thread
+    status: pending
+    deadline: 2025-04-11 17:00
+    priority: P1
+    emoji: 📧
+    description: Follow up on important email thread
+    urgency: medium
+    tags: [work, communication]
+    completed: null

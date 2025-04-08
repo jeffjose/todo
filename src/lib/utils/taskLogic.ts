@@ -1,7 +1,7 @@
 import type { Todo } from '$lib/client/dexie';
 
 export interface TaskStatus {
-  type: 'overdue' | 'slipped' | 'on-track';
+  type: 'overdue' | 'slipped';
   daysOverdue?: number;
 }
 
@@ -49,23 +49,19 @@ export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | nul
     }
   }
 
-  return { type: 'on-track' };
+  return null;
 }
 
 export function getStatusBadgeClass(status: TaskStatus, isCompleted: boolean): string {
   if (isCompleted) {
     return status.type === 'overdue'
       ? 'bg-red-100 text-red-400'
-      : status.type === 'slipped'
-        ? 'bg-yellow-100 text-yellow-400'
-        : 'bg-gray-100 text-gray-400';
+      : 'bg-yellow-100 text-yellow-400';
   }
 
   return status.type === 'overdue'
     ? 'bg-red-500 text-white'
-    : status.type === 'slipped'
-      ? 'bg-yellow-500 text-white'
-      : 'bg-green-500 text-white';
+    : 'bg-yellow-500 text-white';
 }
 
 export function getPriorityBadgeClass(priority: string, isCompleted: boolean): string {

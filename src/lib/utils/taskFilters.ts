@@ -23,30 +23,64 @@ export function getTodosForWeek(
     const endDate = new Date(weekEvent.endDate);
     endDate.setHours(23, 59, 59, 999);
 
-    if (type === 'finishBy') {
-      // For finishBy column:
-      // 1. Show tasks completed in this week
-      // 2. Show tasks scheduled for this week
-      // 3. For past weeks, only show tasks completed in that week
-      // 4. For current week, also show overdue tasks
-      const wasCompletedInThisWeek =
-        todo.status === 'completed' &&
-        todo.completed &&
-        todo.completed >= startDate &&
-        todo.completed <= endDate;
+    if (type === 'finishBy' && todo.title === 'XBR metrics') {
+      console.log('DEBUG XBR metrics in finishBy column:', {
+        weekStart: startDate.toISOString(),
+        weekEnd: endDate.toISOString(),
+        status: todo.status,
+        finishBy: todo.finishBy?.toISOString(),
+        todo: todo.todo?.toISOString(),
+        completed: todo.completed?.toISOString(),
+        isCurrentWeek: weekEvent.startDate <= new Date() && weekEvent.endDate >= new Date()
+      });
 
+      // For finishBy column:
+      // 1. Show completed tasks in their finishBy week
+      // 2. Show non-completed tasks in their scheduled week
+      // 3. For current week, also show overdue tasks
       const wasScheduledForThisWeek = date >= startDate && date <= endDate;
 
       if (weekEvent.endDate < new Date()) {
-        return wasCompletedInThisWeek;
+        // For past weeks, show completed tasks in their finishBy week
+        const shouldShow = todo.status === 'completed' && wasScheduledForThisWeek;
+        if (todo.title === 'XBR metrics') {
+          console.log('XBR metrics - Past week:', { shouldShow, wasScheduledForThisWeek, status: todo.status });
+        }
+        return shouldShow;
       }
 
       if (weekEvent.startDate <= new Date() && weekEvent.endDate >= new Date()) {
+        // For current week, show tasks if:
+        // 1. They are scheduled for this week (completed or not)
+        // 2. They are overdue (finishBy date in past) and not completed
         const isOverdueFromPastWeek = date < new Date() && todo.status !== 'completed';
-        return wasCompletedInThisWeek || wasScheduledForThisWeek || isOverdueFromPastWeek;
+        // Don't show tasks that have a todo date in a different week
+        const hasTodoInDifferentWeek = todo.todo && (todo.todo < startDate || todo.todo > endDate);
+
+        const shouldShow = (wasScheduledForThisWeek || isOverdueFromPastWeek) && !hasTodoInDifferentWeek;
+
+        if (todo.title === 'XBR metrics') {
+          console.log('XBR metrics - Current week:', {
+            shouldShow,
+            wasScheduledForThisWeek,
+            isOverdueFromPastWeek,
+            hasTodoInDifferentWeek,
+            status: todo.status
+          });
+        }
+        return shouldShow;
       }
 
-      return wasScheduledForThisWeek;
+      // For future weeks, show tasks in their scheduled week
+      const shouldShowInFutureWeek = wasScheduledForThisWeek;
+      if (todo.title === 'XBR metrics') {
+        console.log('XBR metrics - Future week:', {
+          shouldShow: shouldShowInFutureWeek,
+          wasScheduledForThisWeek,
+          status: todo.status
+        });
+      }
+      return shouldShowInFutureWeek;
     }
 
     // For deadline and todo columns, show tasks scheduled for this week
@@ -80,7 +114,25 @@ export function getTodosForWeek(
   });
 
   // Convert Set back to array and sort
-  return Array.from(tasksWithParents).sort(sortTodos);
+  const result = Array.from(tasksWithParents).sort(sortTodos);
+
+  if (type === 'finishBy') {
+    const xbrMetrics = result.filter(t => t.title === 'XBR metrics');
+    if (xbrMetrics.length > 0) {
+      console.log('XBR metrics - Final tasks for week:', {
+        weekStart: weekEvent.startDate.toISOString(),
+        weekEnd: weekEvent.endDate.toISOString(),
+        count: xbrMetrics.length,
+        tasks: xbrMetrics.map(t => ({
+          status: t.status,
+          finishBy: t.finishBy?.toISOString(),
+          todo: t.todo?.toISOString()
+        }))
+      });
+    }
+  }
+
+  return result;
 }
 
 export function getOpenTodosUpToCurrentWeek(todos: Todo[], weekEvent: WeekEvent): Todo[] {

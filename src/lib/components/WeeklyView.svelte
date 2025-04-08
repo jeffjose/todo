@@ -426,7 +426,7 @@
 						</tr>
 					{/if}
 					<tr
-						class:bg-amber-100={isCurrentWeek(weekEvent)}
+						class:bg-amber-50={isCurrentWeek(weekEvent)}
 						class:font-medium={isCurrentWeek(weekEvent)}
 					>
 						<!-- Week -->

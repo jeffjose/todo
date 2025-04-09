@@ -1,4 +1,5 @@
-import type { Todo } from '$lib/client/dexie';
+import { type Todo } from '../client/dexie';
+import { Task } from '../types';
 
 export interface TaskStatus {
   type: 'overdue' | 'slipped';
@@ -14,42 +15,65 @@ export interface WeekEvent {
   updatedAt: Date;
 }
 
-export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | null {
-  const today = new Date();
-  const isPastWeek = weekStartDate < today;
+function isSameDay(d1: Date | undefined | null, d2: Date | undefined | null): boolean {
+  if (!d1 || !d2) return false;
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
 
-  // For completed tasks, only show status if completed after deadline/finishBy
-  if (todo.status === 'completed') {
-    if (todo.deadline && todo.completed && todo.completed > todo.deadline) {
-      const daysOverdue = Math.ceil((todo.completed.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
-      return { type: 'overdue', daysOverdue };
+function isBeforeDay(d1: Date | undefined | null, d2: Date | undefined | null): boolean {
+  if (!d1 || !d2) return false;
+  const d1Start = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+  const d2Start = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  return d1Start.getTime() < d2Start.getTime();
+}
+
+function getDaysOverdue(date: Date | undefined | null, now: Date): number {
+  if (!date) return 0;
+  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor((nowStart.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+export function getTaskStatus(task: Task, now: Date): TaskStatus | undefined {
+  // If task is completed, only show status if completed after deadline/finishBy
+  if (task.completed) {
+    const completedDate = task.completedAt ? new Date(task.completedAt) : undefined;
+    if (!completedDate) return undefined;
+
+    if (task.deadline && isBeforeDay(task.deadline, completedDate)) {
+      return { type: 'overdue', daysOverdue: getDaysOverdue(task.deadline, completedDate) };
     }
-    if (todo.finishBy && todo.completed && todo.completed > todo.finishBy) {
+    if (task.finishBy && isBeforeDay(task.finishBy, completedDate)) {
       return { type: 'slipped' };
     }
-    return null;
+    return undefined;
   }
 
-  if (todo.deadline) {
-    if (todo.deadline < today) {
-      const daysOverdue = Math.ceil((today.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
-      return { type: 'overdue', daysOverdue };
+  // For pending tasks, check dates against now
+  // Priority: deadline (overdue) > finishBy (slipped) > todo (slipped)
+  if (task.deadline) {
+    if (isBeforeDay(task.deadline, now)) {
+      return { type: 'overdue', daysOverdue: getDaysOverdue(task.deadline, now) };
     }
   }
 
-  if (todo.finishBy) {
-    if (todo.finishBy < today) {
+  if (task.finishBy) {
+    if (isBeforeDay(task.finishBy, now)) {
       return { type: 'slipped' };
     }
   }
 
-  if (todo.todo) {
-    if (todo.todo < today) {
+  if (task.todo) {
+    if (isBeforeDay(task.todo, now)) {
       return { type: 'slipped' };
     }
   }
 
-  return null;
+  return undefined;
 }
 
 export function getStatusBadgeClass(status: TaskStatus, isCompleted: boolean): string {

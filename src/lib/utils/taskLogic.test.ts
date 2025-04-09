@@ -1,9 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
 import { getTaskStatus } from './taskLogic';
+import type { Task } from '../types';
 import type { Todo } from '$lib/client/dexie';
 
 describe('Task Status Logic', () => {
-  // Helper function to create a basic todo
+  // Helper function to create a basic task for status tests
+  const createTaskForStatus = (overrides: Partial<Task> = {}): Task => ({
+    completed: false,
+    completedAt: undefined,
+    deadline: null,
+    finishBy: null,
+    todo: null,
+    ...overrides
+  });
+
+  // Helper function to create a basic todo for other tests
   const createTodo = (overrides: Partial<Todo> = {}): Todo => ({
     id: 'test-id',
     title: 'Test Task',
@@ -34,9 +45,9 @@ describe('Task Status Logic', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      const task = createTodo({
+      const task = createTaskForStatus({
         deadline: new Date('2024-03-17T00:00:00Z'),
-        status: 'pending'
+        completed: false
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
@@ -51,10 +62,10 @@ describe('Task Status Logic', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      const task = createTodo({
+      const task = createTaskForStatus({
         deadline: new Date('2024-03-17T00:00:00Z'),
-        status: 'completed',
-        completed: new Date('2024-03-18T00:00:00Z')
+        completed: true,
+        completedAt: new Date('2024-03-18T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
@@ -66,17 +77,14 @@ describe('Task Status Logic', () => {
     });
 
     it('should not mark completed task as overdue if completed before deadline', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        deadline: new Date('2024-03-17T00:00:00Z'),
-        status: 'completed',
-        completed: new Date('2024-03-16T00:00:00Z')
+      const task = createTaskForStatus({
+        deadline: new Date('2024-03-12T00:00:00Z'),
+        completed: true,
+        completedAt: new Date('2024-03-11T23:59:59Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeNull();
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
@@ -87,9 +95,9 @@ describe('Task Status Logic', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      const task = createTodo({
+      const task = createTaskForStatus({
         finishBy: new Date('2024-03-17T00:00:00Z'),
-        status: 'pending'
+        completed: false
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
@@ -103,9 +111,9 @@ describe('Task Status Logic', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      const task = createTodo({
+      const task = createTaskForStatus({
         todo: new Date('2024-03-17T00:00:00Z'),
-        status: 'pending'
+        completed: false
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
@@ -119,10 +127,10 @@ describe('Task Status Logic', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      const task = createTodo({
+      const task = createTaskForStatus({
         finishBy: new Date('2024-03-17T00:00:00Z'),
-        status: 'completed',
-        completed: new Date('2024-03-18T00:00:00Z')
+        completed: true,
+        completedAt: new Date('2024-03-18T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
@@ -133,52 +141,38 @@ describe('Task Status Logic', () => {
     });
 
     it('should not mark completed task as slipped if completed before finishBy', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        finishBy: new Date('2024-03-17T00:00:00Z'),
-        status: 'completed',
-        completed: new Date('2024-03-16T00:00:00Z')
+      const task = createTaskForStatus({
+        finishBy: new Date('2024-03-12T00:00:00Z'),
+        completed: true,
+        completedAt: new Date('2024-03-11T23:59:59Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeNull();
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
   });
 
-  describe('On Track Tasks', () => {
-    it('should mark task as on-track when all dates are in the future', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        deadline: new Date('2024-03-20T00:00:00Z'),
-        finishBy: new Date('2024-03-19T00:00:00Z'),
-        todo: new Date('2024-03-19T00:00:00Z'),
-        status: 'pending'
+  describe('Tasks with no status', () => {
+    it('should return undefined when all dates are in the future', () => {
+      const task = createTaskForStatus({
+        deadline: new Date('2024-03-13T00:00:00Z'),
+        finishBy: new Date('2024-03-13T00:00:00Z'),
+        todo: new Date('2024-03-13T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
-      expect(status?.type).toBe('on-track');
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
 
-    it('should mark task as on-track when it has no dates', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        status: 'pending'
-      });
+    it('should return undefined when it has no dates', () => {
+      const task = createTaskForStatus();
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
-      expect(status?.type).toBe('on-track');
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
@@ -189,10 +183,10 @@ describe('Task Status Logic', () => {
       const mockDate = new Date('2024-03-18T00:00:00Z');
       vi.setSystemTime(mockDate);
 
-      const task = createTodo({
+      const task = createTaskForStatus({
         deadline: new Date('2024-03-17T00:00:00Z'),
         finishBy: new Date('2024-03-16T00:00:00Z'),
-        status: 'pending'
+        completed: false
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
@@ -203,18 +197,13 @@ describe('Task Status Logic', () => {
       vi.setSystemTime(new Date());
     });
 
-    it('should prioritize slipped over on-track when both conditions are met', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        finishBy: new Date('2024-03-17T00:00:00Z'),
-        todo: new Date('2024-03-19T00:00:00Z'),
-        status: 'pending'
+    it('should prioritize slipped over undefined when both conditions are met', () => {
+      const task = createTaskForStatus({
+        deadline: new Date('2024-03-13T00:00:00Z'),
+        finishBy: new Date('2024-03-10T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
       expect(status?.type).toBe('slipped');
 
       vi.setSystemTime(new Date());
@@ -222,68 +211,48 @@ describe('Task Status Logic', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should mark task as on-track when deadline is same day', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        deadline: new Date('2024-03-18T00:00:00Z'),
-        status: 'pending'
+    it('should return undefined when deadline is same day', () => {
+      const task = createTaskForStatus({
+        deadline: new Date('2024-03-11T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
-      expect(status?.type).toBe('on-track');
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
 
-    it('should mark task as on-track when finishBy is same day', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        finishBy: new Date('2024-03-18T00:00:00Z'),
-        status: 'pending'
+    it('should return undefined when finishBy is same day', () => {
+      const task = createTaskForStatus({
+        finishBy: new Date('2024-03-11T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
-      expect(status?.type).toBe('on-track');
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
 
-    it('should mark task as on-track when todo is same day', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
-        todo: new Date('2024-03-18T00:00:00Z'),
-        status: 'pending'
+    it('should return undefined when todo is same day', () => {
+      const task = createTaskForStatus({
+        todo: new Date('2024-03-11T00:00:00Z')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
-      expect(status?.type).toBe('on-track');
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });
 
-    it('should mark task as on-track when dates are invalid', () => {
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
-      const task = createTodo({
+    it('should return undefined when dates are invalid', () => {
+      const task = createTaskForStatus({
         deadline: new Date('invalid'),
         finishBy: new Date('invalid'),
-        todo: new Date('invalid'),
-        status: 'pending'
+        todo: new Date('invalid')
       });
 
       const status = getTaskStatus(task, new Date('2024-03-11T00:00:00Z'));
-      expect(status).toBeDefined();
-      expect(status?.type).toBe('on-track');
+      expect(status).toBeUndefined();
 
       vi.setSystemTime(new Date());
     });

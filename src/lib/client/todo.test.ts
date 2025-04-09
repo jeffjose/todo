@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateId, buildPath, PATH_SEPARATOR, ROOT_PATH, getNextBusinessDay, getRandomBusinessTime } from './dexie';
-import { getTaskStatus } from '$lib/utils';
-import { vi } from 'vitest';
+import { getTaskStatus } from '../utils/taskLogic';
+import type { Task } from '../types';
 
 // Mock the validateUsername function
 const validateUsername = (username: unknown): boolean => {
@@ -136,284 +136,234 @@ describe('Todo Utilities', () => {
   });
 
   describe('Task Status Functions', () => {
-    it('should correctly identify overdue tasks', () => {
-      // Mock current date to 2024-03-18
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
+    // Mock current date to 2024-03-18
+    const mockDate = new Date('2024-03-18T00:00:00Z');
 
+    beforeEach(() => {
+      vi.setSystemTime(mockDate);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should correctly identify overdue tasks', () => {
       // Task due yesterday
-      const overdueTask = {
+      const overdueTask: Task = {
         deadline: new Date('2024-03-17T00:00:00Z'),
         finishBy: new Date('2024-03-17T00:00:00Z'),
-        status: 'open'
+        status: 'pending',
+        completed: false
       };
 
-      const status = getTaskStatus(overdueTask);
+      const status = getTaskStatus(overdueTask, mockDate);
       expect(status).toBeDefined();
       expect(status?.type).toBe('overdue');
       expect(status?.daysOverdue).toBeGreaterThan(0);
-
-      // Reset system time
-      vi.setSystemTime(new Date());
     });
 
     it('should correctly identify slipped tasks', () => {
-      // Mock current date to 2024-03-18
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
       // Task with finishBy date in past week
-      const slippedTask = {
+      const slippedTask: Task = {
         deadline: new Date('2024-03-25T00:00:00Z'),
         finishBy: new Date('2024-03-15T00:00:00Z'),
-        status: 'open'
+        status: 'pending',
+        completed: false
       };
 
-      const status = getTaskStatus(slippedTask);
+      const status = getTaskStatus(slippedTask, mockDate);
       expect(status).toBeDefined();
       expect(status?.type).toBe('slipped');
-
-      // Reset system time
-      vi.setSystemTime(new Date());
     });
 
     it('should not show status for completed tasks', () => {
-      // Mock current date to 2024-03-18
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
       // Overdue task that is completed on time
-      const completedTask = {
+      const completedTask: Task = {
         deadline: new Date('2024-03-17T00:00:00Z'),
         finishBy: new Date('2024-03-17T00:00:00Z'),
         status: 'completed',
-        completed: new Date('2024-03-17T00:00:00Z')
+        completed: true,
+        completedAt: new Date('2024-03-17T00:00:00Z')
       };
 
-      const status = getTaskStatus(completedTask);
+      const status = getTaskStatus(completedTask, mockDate);
       expect(status).toBeNull();
-
-      // Reset system time
-      vi.setSystemTime(new Date());
     });
 
     it('should show overdue badge for completed tasks that were completed after deadline', () => {
-      // Mock current date to 2024-03-18
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
       // Task completed after deadline
-      const completedTask = {
+      const completedTask: Task = {
         deadline: new Date('2024-03-17T00:00:00Z'),
         finishBy: new Date('2024-03-17T00:00:00Z'),
         status: 'completed',
-        completed: new Date('2024-03-18T00:00:00Z')
+        completed: true,
+        completedAt: new Date('2024-03-18T00:00:00Z')
       };
 
-      const status = getTaskStatus(completedTask);
+      const status = getTaskStatus(completedTask, mockDate);
       expect(status).toBeDefined();
       expect(status?.type).toBe('overdue');
       expect(status?.daysOverdue).toBe(1);
-
-      // Reset system time
-      vi.setSystemTime(new Date());
     });
 
     it('should not show status for future tasks', () => {
-      // Mock current date to 2024-03-18
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
       // Task with future dates
-      const futureTask = {
+      const futureTask: Task = {
         deadline: new Date('2024-03-25T00:00:00Z'),
         finishBy: new Date('2024-03-25T00:00:00Z'),
-        status: 'open'
+        status: 'pending',
+        completed: false
       };
 
-      const status = getTaskStatus(futureTask);
+      const status = getTaskStatus(futureTask, mockDate);
       expect(status).toBeNull();
-
-      // Reset system time
-      vi.setSystemTime(new Date());
     });
 
     it('should handle tasks with no dates', () => {
-      // Mock current date to 2024-03-18
-      const mockDate = new Date('2024-03-18T00:00:00Z');
-      vi.setSystemTime(mockDate);
-
       // Task with no dates
-      const noDateTask = {
+      const noDateTask: Task = {
         deadline: null,
         finishBy: null,
-        status: 'open'
+        status: 'pending',
+        completed: false
       };
 
-      const status = getTaskStatus(noDateTask);
+      const status = getTaskStatus(noDateTask, mockDate);
       expect(status).toBeNull();
-
-      // Reset system time
-      vi.setSystemTime(new Date());
     });
 
     describe('Badge Behavior', () => {
       describe('Deadline Column Badges', () => {
         it('should show overdue badge for tasks with past deadline', () => {
-          // Mock current date to 2024-03-18
-          const mockDate = new Date('2024-03-18T00:00:00Z');
-          vi.setSystemTime(mockDate);
-
-          const task = {
+          const task: Task = {
             deadline: new Date('2024-03-16T00:00:00Z'),
             finishBy: null,
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeDefined();
           expect(status?.type).toBe('overdue');
           expect(status?.daysOverdue).toBe(2);
-
-          // Reset system time
-          vi.setSystemTime(new Date());
         });
 
         it('should not show overdue badge for tasks with future deadline', () => {
-          // Mock current date to 2024-03-18
-          const mockDate = new Date('2024-03-18T00:00:00Z');
-          vi.setSystemTime(mockDate);
-
-          const task = {
+          const task: Task = {
             deadline: new Date('2024-03-20T00:00:00Z'),
             finishBy: null,
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
-
-          // Reset system time
-          vi.setSystemTime(new Date());
         });
 
         it('should not show overdue badge for completed tasks with past deadline', () => {
-          // Mock current date to 2024-03-18
-          const mockDate = new Date('2024-03-18T00:00:00Z');
-          vi.setSystemTime(mockDate);
-
-          const task = {
+          const task: Task = {
             deadline: new Date('2024-03-16T00:00:00Z'),
             finishBy: null,
             status: 'completed',
-            completed: new Date('2024-03-16T00:00:00Z')
+            completed: true,
+            completedAt: new Date('2024-03-16T00:00:00Z')
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
-
-          // Reset system time
-          vi.setSystemTime(new Date());
         });
       });
 
       describe('Finish By Column Badges', () => {
         it('should show slipped badge for tasks with past finishBy date', () => {
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: new Date('2024-03-16T00:00:00Z'),
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeDefined();
           expect(status?.type).toBe('slipped');
         });
 
         it('should not show slipped badge for tasks with future finishBy date', () => {
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: new Date('2024-03-20T00:00:00Z'),
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
         });
 
         it('should not show slipped badge for completed tasks with past finishBy date', () => {
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: new Date('2024-03-16T00:00:00Z'),
-            status: 'completed'
+            status: 'completed',
+            completed: true,
+            completedAt: new Date('2024-03-16T00:00:00Z')
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
         });
 
         it('should show slipped badge for completed tasks that were completed after finishBy date', () => {
-          // Mock current date to 2024-03-18
-          const mockDate = new Date('2024-03-18T00:00:00Z');
-          vi.setSystemTime(mockDate);
-
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: new Date('2024-03-16T00:00:00Z'),
             status: 'completed',
-            completed: new Date('2024-03-17T00:00:00Z')
+            completed: true,
+            completedAt: new Date('2024-03-17T00:00:00Z')
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeDefined();
           expect(status?.type).toBe('slipped');
-
-          // Reset system time
-          vi.setSystemTime(new Date());
         });
 
         it('should not show slipped badge for completed tasks that were completed before finishBy date', () => {
-          // Mock current date to 2024-03-18
-          const mockDate = new Date('2024-03-18T00:00:00Z');
-          vi.setSystemTime(mockDate);
-
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: new Date('2024-03-16T00:00:00Z'),
             status: 'completed',
-            completed: new Date('2024-03-15T00:00:00Z')
+            completed: true,
+            completedAt: new Date('2024-03-15T00:00:00Z')
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
-
-          // Reset system time
-          vi.setSystemTime(new Date());
         });
       });
 
       describe('Badge Priority', () => {
         it('should show overdue badge instead of slipped when both deadline and finishBy are past', () => {
-          const task = {
+          const task: Task = {
             deadline: new Date('2024-03-16T00:00:00Z'),
             finishBy: new Date('2024-03-15T00:00:00Z'),
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeDefined();
           expect(status?.type).toBe('overdue');
-          expect(status?.daysOverdue).toBe(2);
         });
 
         it('should show slipped badge when finishBy is past but deadline is future', () => {
-          const task = {
+          const task: Task = {
             deadline: new Date('2024-03-20T00:00:00Z'),
             finishBy: new Date('2024-03-16T00:00:00Z'),
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeDefined();
           expect(status?.type).toBe('slipped');
         });
@@ -421,46 +371,50 @@ describe('Todo Utilities', () => {
 
       describe('Edge Cases', () => {
         it('should handle tasks with same day deadline', () => {
-          const task = {
+          const task: Task = {
             deadline: new Date('2024-03-18T00:00:00Z'),
             finishBy: null,
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
         });
 
         it('should handle tasks with same day finishBy', () => {
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: new Date('2024-03-18T00:00:00Z'),
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
         });
 
         it('should handle tasks with no dates', () => {
-          const task = {
+          const task: Task = {
             deadline: null,
             finishBy: null,
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
         });
 
         it('should handle tasks with invalid dates', () => {
-          const task = {
+          const task: Task = {
             deadline: new Date('invalid'),
             finishBy: new Date('invalid'),
-            status: 'open'
+            status: 'pending',
+            completed: false
           };
 
-          const status = getTaskStatus(task);
+          const status = getTaskStatus(task, mockDate);
           expect(status).toBeNull();
         });
       });

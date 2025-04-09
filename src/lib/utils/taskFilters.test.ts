@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getTodosForWeek } from './taskFilters';
 import type { Todo } from '$lib/client/dexie';
 import type { WeekEvent } from './taskLogic';

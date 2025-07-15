@@ -20,6 +20,8 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import AddEventDialog from '$lib/components/AddEventDialog.svelte';
 	import EventCell from '$lib/components/EventCell.svelte';
+	import ExportImportDialog from '$lib/components/ExportImportDialog.svelte';
+	import { FileDown } from 'lucide-svelte';
 	import {
 		getTaskStatus,
 		getStatusBadgeClass,
@@ -62,6 +64,7 @@
 	let selectedWeekForEvent = $state<WeekEvent | null>(null);
 	let events = $state<any[]>([]);
 	let eventsMap = $state<Map<string, any>>(new Map());
+	let showExportImportDialog = $state<boolean>(false);
 
 	onMount(async () => {
 		weekEvents = await loadData();
@@ -496,6 +499,10 @@
 	<div class="mb-3 flex items-center justify-between">
 		<h1 class="text-xl font-bold">Weekly View ({todos.length})</h1>
 		<div class="flex items-center gap-2">
+			<Button onclick={() => showExportImportDialog = true} variant="outline" size="sm">
+				<FileDown class="w-4 h-4 mr-2" />
+				Export/Import
+			</Button>
 			<ThemeToggle />
 			<Button onclick={handleResetDatabase} variant="destructive" size="sm" disabled={isResetting}>
 				{isResetting ? 'Resetting...' : 'Reset Database'}
@@ -780,5 +787,16 @@
 	bind:open={showAddEventDialog} 
 	weekEvent={selectedWeekForEvent} 
 	onSuccess={handleEventAdded} 
+/>
+<ExportImportDialog 
+	bind:open={showExportImportDialog}
+	onSuccess={(message) => {
+		notification = { message, type: 'success' };
+		setTimeout(() => { notification = null; }, 3000);
+	}}
+	onError={(message) => {
+		notification = { message, type: 'error' };
+		setTimeout(() => { notification = null; }, 3000);
+	}}
 />
 

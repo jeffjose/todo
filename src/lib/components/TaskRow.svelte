@@ -10,7 +10,6 @@
 		isCurrentWeek
 	} from '$lib/utils/taskLogic';
 	import { Badge } from '$lib/components/ui/badge';
-	import * as Tooltip from '$lib/components/ui/tooltip';
 	
 	interface Props {
 		todo: Todo;
@@ -37,16 +36,13 @@
 	}: Props = $props();
 </script>
 
-<Tooltip.Root>
-	<Tooltip.Trigger asChild let:trigger>
-		<div
-			{...trigger}
-			use:trigger.action
-			class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
-			class:task-highlight={hoveredTaskId === todo.id}
-			on:mouseenter={() => onTaskHover(todo.id)}
-			on:mouseleave={() => onTaskHover(null)}
-		>
+<div
+	class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
+	class:task-highlight={hoveredTaskId === todo.id}
+	on:mouseenter={() => onTaskHover(todo.id)}
+	on:mouseleave={() => onTaskHover(null)}
+	title="ID: {todo.id}"
+>
 	<div
 		class="flex items-center gap-1 flex-1"
 		class:text-gray-400={todo.status === 'completed'}
@@ -109,9 +105,4 @@
 			<Trash2 class="w-3 h-3" />
 		</button>
 	</div>
-		</div>
-	</Tooltip.Trigger>
-	<Tooltip.Content>
-		<p class="text-xs font-mono">ID: {todo.id}</p>
-	</Tooltip.Content>
-</Tooltip.Root>
+</div>

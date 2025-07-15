@@ -71,7 +71,39 @@
 	}
 
 	async function handleAddNewTodo() {
+		prefilledDeadline = "";
+		prefilledFinishBy = "";
+		prefilledTodo = "";
 		showAddTaskDialog = true;
+	}
+	
+	function handleQuickAddTask(weekEvent: WeekEvent, taskType: 'deadline' | 'finishBy' | 'todo') {
+		// Format date for input field (YYYY-MM-DD)
+		const dateStr = formatDateForInput(weekEvent.startDate);
+		
+		// Clear all prefilled dates first
+		prefilledDeadline = "";
+		prefilledFinishBy = "";
+		prefilledTodo = "";
+		
+		// Set the appropriate date based on task type
+		if (taskType === 'deadline') {
+			prefilledDeadline = dateStr;
+		} else if (taskType === 'finishBy') {
+			prefilledFinishBy = dateStr;
+		} else if (taskType === 'todo') {
+			prefilledTodo = dateStr;
+		}
+		
+		showAddTaskDialog = true;
+	}
+	
+	function formatDateForInput(date: Date): string {
+		const d = new Date(date);
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
 	}
 
 	async function handleTaskAdded(todo: Todo) {
@@ -527,7 +559,7 @@
 										onDeleteTask={handleDeleteTask}
 									/>
 								{:else}
-									<span class="text-xs text-gray-400">-</span>
+									<EmptyTaskCell {weekEvent} taskType="deadline" onAddTask={handleQuickAddTask} />
 								{/each}
 							</div>
 						</td>
@@ -547,7 +579,7 @@
 										onDeleteTask={handleDeleteTask}
 									/>
 								{:else}
-									<span class="text-xs text-gray-400">-</span>
+									<EmptyTaskCell {weekEvent} taskType="deadline" onAddTask={handleQuickAddTask} />
 								{/each}
 							</div>
 						</td>
@@ -581,7 +613,13 @@
 	</div>
 </div>
 
-<AddTaskDialog bind:open={showAddTaskDialog} onSuccess={handleTaskAdded} />
+<AddTaskDialog 
+	bind:open={showAddTaskDialog} 
+	onSuccess={handleTaskAdded}
+	initialDeadline={prefilledDeadline}
+	initialFinishBy={prefilledFinishBy}
+	initialTodo={prefilledTodo}
+/>
 <EditTaskDialog bind:open={showEditTaskDialog} todo={selectedTaskForEdit} onSuccess={handleTaskUpdated} />
 <DeleteConfirmDialog 
 	bind:open={showDeleteConfirm} 

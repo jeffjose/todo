@@ -29,6 +29,7 @@
 		isStartOfMonth,
 		getMonthYear,
 		shouldShowMonthHeader,
+		calculateWorkOrder,
 		type WeekEvent
 	} from '$lib/utils/taskLogic';
 	import { getTodosForWeek, getOpenTodosUpToCurrentWeek } from '$lib/utils/taskFilters';
@@ -53,9 +54,15 @@
 	let prefilledDeadline = $state<string>("");
 	let prefilledFinishBy = $state<string>("");
 	let prefilledTodo = $state<string>("");
+	let workOrderMap = $state<Map<string, number>>(new Map());
 
 	onMount(async () => {
 		weekEvents = await loadData();
+	});
+	
+	// Calculate work order whenever todos change
+	$effect(() => {
+		workOrderMap = calculateWorkOrder(todos);
 	});
 	
 
@@ -596,6 +603,7 @@
 										{todo}
 										{weekEvent}
 										{hoveredTaskId}
+										workOrder={workOrderMap.get(todo.id)}
 										onTaskHover={handleTaskHover}
 										onToggleStatus={handleToggleStatus}
 										onCyclePriority={handleCyclePriority}
@@ -621,6 +629,7 @@
 										{todo}
 										{weekEvent}
 										{hoveredTaskId}
+										workOrder={workOrderMap.get(todo.id)}
 										onTaskHover={handleTaskHover}
 										onToggleStatus={handleToggleStatus}
 										onCyclePriority={handleCyclePriority}

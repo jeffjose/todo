@@ -5,6 +5,10 @@ export interface TaskStatus {
   daysOverdue?: number;
 }
 
+export interface TaskWithOrder extends Todo {
+  workOrder?: number;
+}
+
 export interface WeekEvent {
   id: string;
   startDate: Date;
@@ -188,6 +192,35 @@ export function getMonthYear(date: Date, weekEvent: WeekEvent): string {
   }
   // Otherwise use the provided date
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+export function calculateWorkOrder(todos: Todo[]): Map<string, number> {
+  const workOrderMap = new Map<string, number>();
+  
+  // Filter to incomplete tasks with deadlines
+  const tasksWithDeadlines = todos.filter(todo => 
+    todo.status !== 'completed' && 
+    todo.deadline !== null
+  );
+  
+  // Sort by deadline (earliest first), then by priority
+  tasksWithDeadlines.sort((a, b) => {
+    const dateCompare = (a.deadline?.getTime() || 0) - (b.deadline?.getTime() || 0);
+    if (dateCompare !== 0) return dateCompare;
+    
+    // If same deadline, sort by priority (P0 > P1 > P2 > P3)
+    const priorityOrder = { 'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3 };
+    const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 3;
+    const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 3;
+    return aPriority - bPriority;
+  });
+  
+  // Assign work order numbers
+  tasksWithDeadlines.forEach((todo, index) => {
+    workOrderMap.set(todo.id, index + 1);
+  });
+  
+  return workOrderMap;
 }
 
 export function shouldShowMonthHeader(weekEvent: WeekEvent, index: number): boolean {

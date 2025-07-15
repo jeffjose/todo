@@ -9,6 +9,8 @@
 		getTaskColor,
 		isCurrentWeek
 	} from '$lib/utils/taskLogic';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	
 	interface Props {
 		todo: Todo;
@@ -35,21 +37,24 @@
 	}: Props = $props();
 </script>
 
-<div
-	class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
-	class:task-highlight={hoveredTaskId === todo.id}
-	on:mouseenter={() => onTaskHover(todo.id)}
-	on:mouseleave={() => onTaskHover(null)}
-	title="ID: {todo.id}"
->
+<Tooltip.Root>
+	<Tooltip.Trigger asChild let:trigger>
+		<div
+			{...trigger}
+			use:trigger.action
+			class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
+			class:task-highlight={hoveredTaskId === todo.id}
+			on:mouseenter={() => onTaskHover(todo.id)}
+			on:mouseleave={() => onTaskHover(null)}
+		>
 	<div
 		class="flex items-center gap-1 flex-1"
 		class:text-gray-400={todo.status === 'completed'}
 	>
 		{#if workOrder && todo.status !== 'completed'}
-			<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-blue-600 dark:bg-blue-500 text-white rounded-full">
+			<Badge variant="default" class="h-5 w-5 rounded-full p-0 flex items-center justify-center">
 				{workOrder}
-			</span>
+			</Badge>
 		{/if}
 		<span
 			class="cursor-pointer text-xs leading-snug font-semibold {todo.status === 'completed'
@@ -60,33 +65,29 @@
 		>
 			{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
 		</span>
-		<span
-			class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
-				todo.priority,
-				todo.status === 'completed'
-			)}"
-			on:click={(e) => onCyclePriority(todo, e)}
+		<Badge 
+			variant={todo.priority === 'P0' ? 'destructive' : todo.priority === 'P1' ? 'secondary' : 'outline'} 
+			class="cursor-pointer h-5 text-xs {todo.status === 'completed' ? 'opacity-50' : ''}"
+			onclick={(e) => onCyclePriority(todo, e)}
 		>
 			{todo.priority}
-		</span>
+		</Badge>
 		{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 			{@const status = getTaskStatus(todo, weekEvent.startDate)}
 			{#if status}
-				<span
-					class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
-						status,
-						todo.status === 'completed'
-					)} {todo.status === 'completed' ? 'line-through' : ''}"
-					on:click={(e) => onToggleStatus(todo, e)}
-					on:mouseenter={() => onTaskHover(todo.id)}
-					on:mouseleave={() => onTaskHover(null)}
+				<Badge 
+					variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
+					class="cursor-pointer text-xs {todo.status === 'completed' ? 'opacity-50 line-through' : ''}"
+					onclick={(e) => onToggleStatus(todo, e)}
+					onmouseenter={() => onTaskHover(todo.id)}
+					onmouseleave={() => onTaskHover(null)}
 				>
 					{#if status.type === 'overdue'}
 						overdue ({status.daysOverdue}d)
 					{:else}
 						{status.type}
 					{/if}
-				</span>
+				</Badge>
 			{/if}
 		{/if}
 	</div>
@@ -108,4 +109,9 @@
 			<Trash2 class="w-3 h-3" />
 		</button>
 	</div>
-</div>
+		</div>
+	</Tooltip.Trigger>
+	<Tooltip.Content>
+		<p class="text-xs font-mono">ID: {todo.id}</p>
+	</Tooltip.Content>
+</Tooltip.Root>

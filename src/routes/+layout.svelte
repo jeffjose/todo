@@ -3,6 +3,7 @@
 	import { createRandomTodo } from '$lib/client/dexie';
 	import { onMount } from 'svelte';
 	import { theme } from '$lib/stores/theme';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 
 	let { children } = $props();
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -31,14 +32,16 @@
 	}
 </script>
 
-{#if notification}
-	<div
-		class="fixed right-4 top-4 rounded px-4 py-2 text-white transition-opacity"
-		class:bg-green-500={notification.type === 'success'}
-		class:bg-red-500={notification.type === 'error'}
-	>
-		{notification.message}
-	</div>
-{/if}
+<Tooltip.Provider>
+	{#if notification}
+		<div
+			class="fixed right-4 top-4 rounded px-4 py-2 text-white transition-opacity"
+			class:bg-green-500={notification.type === 'success'}
+			class:bg-red-500={notification.type === 'error'}
+		>
+			{notification.message}
+		</div>
+	{/if}
 
-{@render children()}
+	{@render children()}
+</Tooltip.Provider>

@@ -638,10 +638,28 @@ export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<T
     throw new Error(`Todo with id ${id} not found`);
   }
 
+  // Create a clean object with only serializable data
   const updatedTodo: Todo = {
-    ...todo,
-    ...todoData,
-    id, // Ensure ID doesn't change
+    id: todo.id,
+    title: todoData.title !== undefined ? todoData.title : todo.title,
+    description: todoData.description !== undefined ? todoData.description : todo.description,
+    emoji: todoData.emoji !== undefined ? todoData.emoji : todo.emoji,
+    deadline: todoData.deadline !== undefined ? todoData.deadline : todo.deadline,
+    finishBy: todoData.finishBy !== undefined ? todoData.finishBy : todo.finishBy,
+    todo: todoData.todo !== undefined ? todoData.todo : todo.todo,
+    status: todoData.status !== undefined ? todoData.status : todo.status,
+    priority: todoData.priority !== undefined ? todoData.priority : todo.priority,
+    urgency: todoData.urgency !== undefined ? todoData.urgency : todo.urgency,
+    tags: todoData.tags !== undefined ? todoData.tags : todo.tags,
+    attachments: todoData.attachments !== undefined ? todoData.attachments : todo.attachments,
+    urls: todoData.urls !== undefined ? todoData.urls : todo.urls,
+    comments: todoData.comments !== undefined ? todoData.comments : todo.comments,
+    subtasks: todoData.subtasks !== undefined ? todoData.subtasks : todo.subtasks,
+    path: todoData.path !== undefined ? todoData.path : todo.path,
+    level: todoData.level !== undefined ? todoData.level : todo.level,
+    parentId: todoData.parentId !== undefined ? todoData.parentId : todo.parentId,
+    completed: todoData.completed !== undefined ? todoData.completed : todo.completed,
+    createdAt: todo.createdAt,
     updatedAt: new Date()
   };
 

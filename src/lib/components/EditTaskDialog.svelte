@@ -63,8 +63,7 @@
 		isSubmitting = true;
 		
 		try {
-			const updatedTodo: Todo = {
-				...todo,
+			const updatedTodo: Partial<Todo> = {
 				title: title.trim(),
 				description: description.trim() || null,
 				emoji: emoji || null,
@@ -83,9 +82,9 @@
 				updatedAt: new Date()
 			};
 			
-			await updateTodo(updatedTodo.id, updatedTodo);
+			const result = await updateTodo(todo.id, updatedTodo);
 			
-			onSuccess?.(updatedTodo);
+			onSuccess?.(result);
 			open = false;
 		} catch (error) {
 			console.error("Failed to update todo:", error);

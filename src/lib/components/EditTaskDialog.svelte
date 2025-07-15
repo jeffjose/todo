@@ -35,12 +35,6 @@
 	// Update form when todo changes
 	$effect(() => {
 		if (todo && open) {
-			console.log("EditTaskDialog: Loading todo into form:", {
-				id: todo.id,
-				title: todo.title,
-				deadline: todo.deadline,
-				formattedDeadline: todo.deadline ? formatDateForInput(todo.deadline) : ""
-			});
 			title = todo.title || "";
 			description = todo.description || "";
 			emoji = todo.emoji || "";
@@ -55,11 +49,6 @@
 		}
 	});
 	
-	// Track deadline changes
-	$effect(() => {
-		console.log("EditTaskDialog: deadline state changed to:", deadline);
-	});
-	
 	function formatDateForInput(date: Date): string {
 		const d = new Date(date);
 		const year = d.getFullYear();
@@ -69,31 +58,28 @@
 	}
 	
 	async function handleSubmit() {
-		console.log("EditTaskDialog: handleSubmit called");
-		console.log("EditTaskDialog: Form values:", {
-			deadline,
-			finishBy,
-			todoDate,
-			title,
-			status,
-			priority
-		});
-		
 		if (!title.trim() || !todo) {
-			console.log("EditTaskDialog: Validation failed - title or todo missing");
 			return;
 		}
 		
 		isSubmitting = true;
 		
 		try {
+			// Parse dates as local dates, not UTC
+			const parseLocalDate = (dateStr: string): Date | null => {
+				if (!dateStr) return null;
+				// Parse as YYYY-MM-DD and create date in local timezone
+				const [year, month, day] = dateStr.split('-').map(Number);
+				return new Date(year, month - 1, day);
+			};
+			
 			const updatedTodo: Partial<Todo> = {
 				title: title.trim(),
 				description: description.trim() || null,
 				emoji: emoji || null,
-				deadline: deadline ? new Date(deadline) : null,
-				finishBy: finishBy ? new Date(finishBy) : null,
-				todo: todoDate ? new Date(todoDate) : null,
+				deadline: parseLocalDate(deadline),
+				finishBy: parseLocalDate(finishBy),
+				todo: parseLocalDate(todoDate),
 				status,
 				priority,
 				urgency,
@@ -106,23 +92,12 @@
 				updatedAt: new Date()
 			};
 			
-			console.log("EditTaskDialog: Updating todo with id:", todo.id);
-			console.log("EditTaskDialog: Update data:", updatedTodo);
-			console.log("EditTaskDialog: Date strings vs Date objects:", {
-				deadlineString: deadline,
-				deadlineDate: deadline ? new Date(deadline) : null,
-				finishByString: finishBy,
-				finishByDate: finishBy ? new Date(finishBy) : null
-			});
-			
 			const result = await updateTodo(todo.id, updatedTodo);
-			
-			console.log("EditTaskDialog: Update successful, result:", result);
 			
 			onSuccess?.(result);
 			open = false;
 		} catch (error) {
-			console.error("EditTaskDialog: Failed to update todo:", error);
+			console.error("Failed to update todo:", error);
 		} finally {
 			isSubmitting = false;
 		}
@@ -196,9 +171,6 @@
 						id="edit-deadline"
 						type="date"
 						bind:value={deadline}
-						oninput={(e) => {
-							console.log("EditTaskDialog: Deadline input event:", e.currentTarget.value);
-						}}
 					/>
 				</div>
 				
@@ -208,9 +180,6 @@
 						id="edit-finishBy"
 						type="date"
 						bind:value={finishBy}
-						oninput={(e) => {
-							console.log("EditTaskDialog: FinishBy input event:", e.currentTarget.value);
-						}}
 					/>
 				</div>
 				
@@ -220,9 +189,6 @@
 						id="edit-todo"
 						type="date"
 						bind:value={todoDate}
-						oninput={(e) => {
-							console.log("EditTaskDialog: Todo date input event:", e.currentTarget.value);
-						}}
 					/>
 				</div>
 			</div>

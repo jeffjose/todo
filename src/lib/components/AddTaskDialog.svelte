@@ -56,14 +56,22 @@
 		isSubmitting = true;
 		
 		try {
+			// Parse dates as local dates, not UTC
+			const parseLocalDate = (dateStr: string): Date | null => {
+				if (!dateStr) return null;
+				// Parse as YYYY-MM-DD and create date in local timezone
+				const [year, month, day] = dateStr.split('-').map(Number);
+				return new Date(year, month - 1, day);
+			};
+			
 			const newTodo: Partial<Todo> = {
 				id: generateId(12),
 				title: title.trim(),
 				description: description.trim() || null,
 				emoji: emoji || null,
-				deadline: deadline ? new Date(deadline) : null,
-				finishBy: finishBy ? new Date(finishBy) : null,
-				todo: todo ? new Date(todo) : null,
+				deadline: parseLocalDate(deadline),
+				finishBy: parseLocalDate(finishBy),
+				todo: parseLocalDate(todo),
 				status,
 				priority,
 				urgency,

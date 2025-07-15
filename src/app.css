@@ -73,3 +73,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Task hover and highlight styles */
+.task-highlight {
+  @apply bg-blue-100/50 dark:bg-blue-900/20;
+}

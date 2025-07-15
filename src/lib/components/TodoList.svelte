@@ -281,12 +281,12 @@
 		<h1 class="text-2xl font-bold">
 			Todo Management ({todos.length} items)
 			{#if lastLoadTime > 0}
-				<span class="ml-2 text-sm font-normal text-gray-500">
+				<span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
 					(loaded in {formatLoadTime(lastLoadTime)})
 				</span>
 			{/if}
 			<button
-				class="ml-3 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+				class="ml-3 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
 				on:click={onTogglePerformanceStats}
 				aria-label="Toggle performance stats"
 				title="Toggle performance stats"
@@ -318,13 +318,13 @@
 	</div>
 
 	{#if showPerformanceStats}
-		<div class="mb-4 rounded bg-gray-50 p-3 shadow-sm">
-			<h3 class="mb-2 text-sm font-semibold text-gray-700">Performance Stats</h3>
+		<div class="mb-4 rounded bg-gray-50 dark:bg-gray-800/50 p-3 shadow-sm">
+			<h3 class="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Performance Stats</h3>
 			{#if performanceHistory.length === 0}
-				<p class="text-xs text-gray-500">No performance data available yet</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400">No performance data available yet</p>
 			{:else}
 				<table class="w-full text-xs">
-					<thead class="border-b text-gray-500">
+					<thead class="border-b text-gray-500 dark:text-gray-400">
 						<tr>
 							<th class="pb-1 text-left">Operation</th>
 							<th class="pb-1 text-left">Items</th>
@@ -342,7 +342,7 @@
 								<td class="py-1 pr-2">
 									{stat.time > 0 ? Math.round((stat.count / stat.time) * 1000) : 'N/A'}
 								</td>
-								<td class="py-1 pr-2 text-gray-500">
+								<td class="py-1 pr-2 text-gray-500 dark:text-gray-400">
 									{stat.timestamp.toLocaleTimeString()}
 								</td>
 							</tr>
@@ -357,7 +357,7 @@
 		<Button onclick={handleAddNewTodo} disabled={isLoading}>Add New Item</Button>
 
 		<div class="ml-4 flex items-center gap-2">
-			<span class="text-sm font-medium text-gray-700">Bulk add:</span>
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Bulk add:</span>
 			<Button
 				onclick={() => handleAddMultipleTodos(5)}
 				variant="outline"
@@ -428,7 +428,7 @@
 
 				{#if showClearConfirm}
 					<div class="flex items-center gap-2">
-						<span class="text-sm text-red-600">Are you sure?</span>
+						<span class="text-sm text-red-600 dark:text-red-400">Are you sure?</span>
 						<Button
 							onclick={handleClearAllTodos}
 							variant="destructive"
@@ -452,7 +452,7 @@
 						variant="outline"
 						size="sm"
 						disabled={isLoading}
-						class="text-red-600 hover:bg-red-50 hover:text-red-700"
+						class="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
 					>
 						Clear All
 					</Button>
@@ -486,7 +486,7 @@
 				<div
 					class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
 				></div>
-				<span class="text-sm text-gray-600">Processing...</span>
+				<span class="text-sm text-gray-600 dark:text-gray-400">Processing...</span>
 			</div>
 		{/if}
 	</div>
@@ -508,13 +508,13 @@
 				<h2 class="text-xl font-semibold">
 					Todo Items ({todos.length})
 					{#if lastLoadTime > 0}
-						<span class="ml-2 text-sm font-normal text-gray-500">
+						<span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
 							({formatLoadTime(lastLoadTime)})
 						</span>
 					{/if}
 				</h2>
 				<button
-					class="ml-2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+					class="ml-2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
 					on:click={onTodosChange}
 					aria-label="Refresh todos"
 					title="Refresh todos"
@@ -538,7 +538,7 @@
 					</svg>
 				</button>
 			</div>
-			<span class="text-sm text-gray-500">
+			<span class="text-sm text-gray-500 dark:text-gray-400">
 				{#if todos.length > 0}
 					Showing all items
 				{:else}
@@ -548,10 +548,11 @@
 		</div>
 
 		{#if todos.length === 0}
-			<p class="text-gray-600">No todo items found</p>
+			<p class="text-gray-600 dark:text-gray-400">No todo items found</p>
 		{:else}
+			<div class="overflow-x-auto rounded-lg bg-white dark:bg-gray-900 shadow">
 			<table class="w-full min-w-full table-auto">
-				<thead class="bg-gray-50 text-xs font-medium uppercase text-gray-500">
+				<thead class="bg-gray-50 dark:bg-gray-800 text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
 					<tr>
 						<th class="px-2 py-1 text-left">ID</th>
 						<th class="px-2 py-1 text-left">Status</th>
@@ -566,12 +567,12 @@
 						<th class="px-2 py-1 text-center">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-200">
+				<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 					{#each todos as todo}
-						<tr class="hover:bg-gray-50">
+						<tr class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50">
 							<!-- ID -->
 							<td class="whitespace-nowrap px-2 py-2">
-								<span class="font-mono text-xs text-gray-500" title={todo.id}>
+								<span class="font-mono text-xs text-gray-500 dark:text-gray-400" title={todo.id}>
 									{todo.id.substring(0, 8)}...
 								</span>
 							</td>
@@ -605,15 +606,11 @@
 							<!-- Priority -->
 							<td class="whitespace-nowrap px-2 py-2">
 								<span
-									class="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
-									class:bg-red-100={todo.priority === 'P0'}
-									class:text-red-800={todo.priority === 'P0'}
-									class:bg-orange-100={todo.priority === 'P1'}
-									class:text-orange-800={todo.priority === 'P1'}
-									class:bg-yellow-100={todo.priority === 'P2'}
-									class:text-yellow-800={todo.priority === 'P2'}
-									class:bg-gray-100={todo.priority === 'P3'}
-									class:text-gray-800={todo.priority === 'P3'}
+									class="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-white"
+									class:bg-red-500={todo.priority === 'P0'}
+									class:bg-orange-500={todo.priority === 'P1'}
+									class:bg-yellow-500={todo.priority === 'P2'}
+									class:bg-gray-500={todo.priority === 'P3'}
 									on:click={(e) => handleCyclePriority(todo, e)}
 								>
 									{todo.priority}
@@ -656,12 +653,12 @@
 								{#if todo.tags && todo.tags.length > 0}
 									<div class="flex flex-wrap gap-1">
 										{#each todo.tags.slice(0, 2) as tag}
-											<span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600"
+											<span class="rounded-full bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-xs text-gray-600 dark:text-gray-300"
 												>{tag}</span
 											>
 										{/each}
 										{#if todo.tags.length > 2}
-											<span class="text-xs text-gray-500">+{todo.tags.length - 2}</span>
+											<span class="text-xs text-gray-500 dark:text-gray-400">+{todo.tags.length - 2}</span>
 										{/if}
 									</div>
 								{:else}
@@ -672,11 +669,11 @@
 							<!-- Deadline -->
 							<td class="whitespace-nowrap px-2 py-2">
 								{#if todo.deadline}
-									<span class="text-xs text-gray-500"
+									<span class="text-xs text-gray-500 dark:text-gray-400"
 										>{new Date(todo.deadline).toLocaleString()}</span
 									>
 								{:else}
-									<span class="text-xs text-gray-500"
+									<span class="text-xs text-gray-500 dark:text-gray-400"
 										>{new Date(
 											new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
 										).toLocaleString()}</span
@@ -687,11 +684,11 @@
 							<!-- Finish By -->
 							<td class="whitespace-nowrap px-2 py-2">
 								{#if todo.finishBy}
-									<span class="text-xs text-gray-500"
+									<span class="text-xs text-gray-500 dark:text-gray-400"
 										>{new Date(todo.finishBy).toLocaleString()}</span
 									>
 								{:else}
-									<span class="text-xs text-gray-500"
+									<span class="text-xs text-gray-500 dark:text-gray-400"
 										>{new Date(
 											new Date(todo.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000
 										).toLocaleString()}</span
@@ -702,7 +699,7 @@
 							<!-- Todo Date -->
 							<td class="whitespace-nowrap px-2 py-2">
 								{#if todo.todo}
-									<span class="text-xs text-gray-500">{new Date(todo.todo).toLocaleString()}</span>
+									<span class="text-xs text-gray-500 dark:text-gray-400">{new Date(todo.todo).toLocaleString()}</span>
 								{:else}
 									<span class="text-xs text-gray-400">-</span>
 								{/if}
@@ -710,7 +707,7 @@
 
 							<!-- Created At -->
 							<td class="whitespace-nowrap px-2 py-2">
-								<span class="text-xs text-gray-500"
+								<span class="text-xs text-gray-500 dark:text-gray-400"
 									>{new Date(todo.createdAt).toLocaleString()}</span
 								>
 							</td>
@@ -718,7 +715,7 @@
 							<!-- Actions -->
 							<td class="whitespace-nowrap px-2 py-2 text-center">
 								<button
-									class="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+									class="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
 									on:click={() => toggleExpand(todo.id)}
 									aria-label={expandedTodoId === todo.id ? 'Collapse details' : 'Expand details'}
 								>
@@ -753,21 +750,21 @@
 
 						<!-- Expanded details row -->
 						{#if expandedTodoId === todo.id}
-							<tr class="bg-gray-50">
+							<tr class="bg-gray-50 dark:bg-gray-800/50">
 								<td colspan="8" class="px-4 py-2">
 									<div class="text-sm">
 										{#if todo.description}
-											<p class="mb-2 text-gray-600">{todo.description}</p>
+											<p class="mb-2 text-gray-600 dark:text-gray-400">{todo.description}</p>
 										{/if}
 
 										<div class="mb-2">
 											<span class="font-medium text-gray-700">Path: </span>
-											<span class="font-mono text-xs text-gray-600">{todo.path}</span>
+											<span class="font-mono text-xs text-gray-600 dark:text-gray-400">{todo.path}</span>
 										</div>
 
 										<div class="mb-2">
 											<span class="font-medium text-gray-700">Deadline: </span>
-											<span class="text-gray-600">
+											<span class="text-gray-600 dark:text-gray-400">
 												{#if todo.deadline}
 													{new Date(todo.deadline).toLocaleString()}
 												{:else}
@@ -780,7 +777,7 @@
 
 										<div class="mb-2">
 											<span class="font-medium text-gray-700">Finish By: </span>
-											<span class="text-gray-600">
+											<span class="text-gray-600 dark:text-gray-400">
 												{#if todo.finishBy}
 													{new Date(todo.finishBy).toLocaleString()}
 												{:else}
@@ -799,7 +796,7 @@
 														>{todos.find((t) => t.id === todo.parentId)?.title}</span
 													>
 												{:else}
-													<span class="italic text-gray-500">Parent task not found</span>
+													<span class="italic text-gray-500 dark:text-gray-400">Parent task not found</span>
 												{/if}
 											</div>
 										{/if}
@@ -890,7 +887,7 @@
 											</div>
 										{/if}
 
-										<div class="text-xs text-gray-500">
+										<div class="text-xs text-gray-500 dark:text-gray-400">
 											<span>ID: <span class="font-mono">{todo.id}</span></span>
 											<span class="ml-3">Created: {new Date(todo.createdAt).toLocaleString()}</span>
 											<span class="ml-3">Updated: {new Date(todo.updatedAt).toLocaleString()}</span>
@@ -902,6 +899,7 @@
 					{/each}
 				</tbody>
 			</table>
+			</div>
 		{/if}
 	</div>
 </div>

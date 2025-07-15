@@ -106,11 +106,11 @@ export function getPriorityBadgeClass(priority: string, isCompleted: boolean): s
   if (isCompleted) return 'text-muted-foreground/50';
 
   switch (priority) {
-    case 'P0': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
-    case 'P1': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200';
-    case 'P2': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200';
-    case 'P3': return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
-    default: return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
+    case 'P0': return 'bg-red-500 text-white';
+    case 'P1': return 'bg-orange-500 text-white';
+    case 'P2': return 'bg-yellow-500 text-white';
+    case 'P3': return 'bg-gray-500 text-white';
+    default: return 'bg-gray-500 text-white';
   }
 }
 

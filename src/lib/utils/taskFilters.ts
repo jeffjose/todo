@@ -6,16 +6,19 @@ export function getTodosForWeek(
   weekEvent: WeekEvent,
   type: 'deadline' | 'finishBy' | 'todo'
 ): Todo[] {
-  console.log('taskFilters.getTodosForWeek called:', {
-    todosCount: todos.length,
-    weekEvent: {
-      id: weekEvent.id,
-      startDate: weekEvent.startDate,
-      endDate: weekEvent.endDate,
-      isDay: weekEvent.isDay
-    },
-    type
-  });
+  // Only log for the specific week we're debugging
+  if (type === 'finishBy' && weekEvent.startDate.getDate() === 7 && weekEvent.startDate.getMonth() === 6) {
+    console.log('taskFilters.getTodosForWeek for Jul 7-13 week:', {
+      todosCount: todos.length,
+      weekEvent: {
+        id: weekEvent.id,
+        startDate: weekEvent.startDate,
+        endDate: weekEvent.endDate,
+        isDay: weekEvent.isDay
+      },
+      type
+    });
+  }
   
   // Create a map of all todos for quick lookup
   const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
@@ -106,7 +109,18 @@ export function getTodosForWeek(
   });
 
   // Convert Set back to array and sort
-  return Array.from(tasksWithParents).sort(sortTodos);
+  const result = Array.from(tasksWithParents).sort(sortTodos);
+  
+  // Debug log for Jul 7-13 week
+  if (type === 'finishBy' && weekEvent.startDate.getDate() === 7 && weekEvent.startDate.getMonth() === 6) {
+    console.log('taskFilters: Returning tasks for Jul 7-13 finishBy:', result.map(t => ({
+      id: t.id,
+      title: t.title,
+      finishBy: t.finishBy
+    })));
+  }
+  
+  return result;
 }
 
 export function getOpenTodosUpToCurrentWeek(todos: Todo[], weekEvent: WeekEvent): Todo[] {

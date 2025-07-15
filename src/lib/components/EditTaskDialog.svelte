@@ -4,6 +4,7 @@
 	import { Input } from "$lib/components/ui/input";
 	import { Label } from "$lib/components/ui/label";
 	import { Textarea } from "$lib/components/ui/textarea";
+	import * as ToggleGroup from "$lib/components/ui/toggle-group";
 	import { updateTodo, type Todo } from "$lib/client/dexie";
 	
 	interface Props {
@@ -112,12 +113,11 @@
 
 {#if todo}
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-[500px]" onkeydown={handleKeydown}>
+	<Dialog.Content class="sm:max-w-[600px]" onkeydown={handleKeydown}>
 		<Dialog.Header>
 			<Dialog.Title>Edit Task</Dialog.Title>
 			<Dialog.Description>
 				Update task details including dates, status, and priority.
-				<span class="block mt-1 text-xs text-muted-foreground font-mono">ID: {todo.id}</span>
 			</Dialog.Description>
 		</Dialog.Header>
 		
@@ -194,46 +194,56 @@
 				</div>
 			</div>
 			
-			<div class="grid grid-cols-3 gap-4">
+			<div class="space-y-4">
 				<div class="grid gap-2">
-					<Label for="edit-status">Status</Label>
-					<select
-						id="edit-status"
-						bind:value={status}
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					>
-						<option value="pending">Pending</option>
-						<option value="in-progress">In Progress</option>
-						<option value="completed">Completed</option>
-						<option value="blocked">Blocked</option>
-					</select>
+					<Label>Status</Label>
+					<ToggleGroup.Root type="single" bind:value={status} class="grid grid-cols-4 gap-2">
+						<ToggleGroup.Item value="pending" class="data-[state=on]:bg-blue-500 data-[state=on]:text-white">
+							Pending
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="in-progress" class="data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+							In Progress
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="completed" class="data-[state=on]:bg-green-500 data-[state=on]:text-white">
+							Completed
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="blocked" class="data-[state=on]:bg-red-500 data-[state=on]:text-white">
+							Blocked
+						</ToggleGroup.Item>
+					</ToggleGroup.Root>
 				</div>
 				
 				<div class="grid gap-2">
-					<Label for="edit-priority">Priority</Label>
-					<select
-						id="edit-priority"
-						bind:value={priority}
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					>
-						<option value="P0">P0</option>
-						<option value="P1">P1</option>
-						<option value="P2">P2</option>
-						<option value="P3">P3</option>
-					</select>
+					<Label>Priority</Label>
+					<ToggleGroup.Root type="single" bind:value={priority} class="grid grid-cols-4 gap-2">
+						<ToggleGroup.Item value="P0" class="data-[state=on]:bg-red-600 data-[state=on]:text-white">
+							P0
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="P1" class="data-[state=on]:bg-orange-500 data-[state=on]:text-white">
+							P1
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="P2" class="data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+							P2
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="P3" class="data-[state=on]:bg-gray-500 data-[state=on]:text-white">
+							P3
+						</ToggleGroup.Item>
+					</ToggleGroup.Root>
 				</div>
 				
 				<div class="grid gap-2">
-					<Label for="edit-urgency">Urgency</Label>
-					<select
-						id="edit-urgency"
-						bind:value={urgency}
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					>
-						<option value="high">High</option>
-						<option value="medium">Medium</option>
-						<option value="low">Low</option>
-					</select>
+					<Label>Urgency</Label>
+					<ToggleGroup.Root type="single" bind:value={urgency} class="grid grid-cols-3 gap-2">
+						<ToggleGroup.Item value="high" class="data-[state=on]:bg-red-500 data-[state=on]:text-white">
+							High
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="medium" class="data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+							Medium
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="low" class="data-[state=on]:bg-green-500 data-[state=on]:text-white">
+							Low
+						</ToggleGroup.Item>
+					</ToggleGroup.Root>
 				</div>
 			</div>
 			

@@ -562,11 +562,17 @@
 						</tr>
 					{/if}
 					<tr
-						class="border-b border-border/30 transition-colors hover:bg-muted/5 {isCurrentWeek(weekEvent) && !weekEvent.isDay ? 'bg-amber-50/70 dark:bg-amber-950/20' : ''} {weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent) ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''} {isToday(weekEvent) ? 'bg-blue-50/70 dark:bg-blue-950/20' : ''}"
+						class="border-b border-border/30 transition-colors {isCurrentWeek(weekEvent) && !weekEvent.isDay ? 'bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-100/80 dark:hover:bg-amber-500/25' : 'hover:bg-muted/5'} {weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent) ? 'bg-amber-50 dark:bg-amber-500/10' : ''} {isToday(weekEvent) ? 'bg-blue-100 dark:bg-blue-500/20 ring-2 ring-blue-300 dark:ring-blue-700' : ''}"
 						class:font-medium={isCurrentWeek(weekEvent) || isToday(weekEvent)}
 					>
 						<!-- Week -->
-						<td class="whitespace-nowrap px-2 py-1">
+						<td class="whitespace-nowrap px-2 py-1 relative">
+							{#if isCurrentWeek(weekEvent) && !weekEvent.isDay}
+								<div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 dark:bg-amber-400"></div>
+							{/if}
+							{#if isToday(weekEvent)}
+								<div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 dark:bg-blue-400"></div>
+							{/if}
 							<div
 								class="text-xs"
 								class:text-amber-700={isCurrentWeek(weekEvent) && !weekEvent.isDay}

@@ -35,14 +35,12 @@
 	});
 
 	async function loadTodosWithTiming() {
-		console.log("+page.svelte: loadTodosWithTiming called");
-		const startTime = performance.now();
+			const startTime = performance.now();
 		const newTodos = await getAllTodos();
 		const endTime = performance.now();
 		lastLoadTime = endTime - startTime;
 
-		console.log("+page.svelte: Loaded", newTodos.length, "todos in", lastLoadTime, "ms");
-		
+			
 		// Force a new array reference to trigger reactivity
 		todos = [...newTodos];
 
@@ -52,8 +50,7 @@
 		// Update the document title with the count
 		document.title = `Todo (${todos.length})`;
 		
-		console.log("+page.svelte: Todos array updated with new reference");
-	}
+		}
 
 	function addPerformanceStat(
 		operation: string,

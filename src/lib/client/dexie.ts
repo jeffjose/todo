@@ -632,8 +632,6 @@ export async function getTodoById(id: string): Promise<Todo | undefined> {
 }
 
 export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<Todo> {
-  console.log("dexie.updateTodo: Called with id:", id);
-  console.log("dexie.updateTodo: Update data:", todoData);
   
   const db = await getDB();
   const todo = await getTodoById(id);
@@ -641,7 +639,6 @@ export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<T
     throw new Error(`Todo with id ${id} not found`);
   }
   
-  console.log("dexie.updateTodo: Found existing todo:", todo);
 
   // Create a clean object with only serializable data
   const updatedTodo: Todo = {
@@ -668,11 +665,9 @@ export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<T
     updatedAt: new Date()
   };
 
-  console.log("dexie.updateTodo: About to save updated todo:", updatedTodo);
   
   await db.todos.put(updatedTodo);
   
-  console.log("dexie.updateTodo: Save successful");
   return updatedTodo;
 }
 
@@ -936,11 +931,8 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
     const yamlResponse = await fetch('/data/initial_tasks.yaml');
     if (yamlResponse.ok) {
       const yamlText = await yamlResponse.text();
-      console.log('DEBUG - Raw YAML text:', yamlText);
       const data = load(yamlText);
-      console.log('DEBUG - Parsed YAML data:', data);
       const tasks = data.tasks;
-      console.log('DEBUG - Parsed YAML tasks:', tasks);
 
       // Process YAML tasks
       const allTodos: Todo[] = [];
@@ -983,7 +975,6 @@ export async function loadInitialTasks(): Promise<{ success: boolean; message: s
           createdAt: now,
           updatedAt: now
         };
-        console.log('DEBUG - Processed YAML task:', todo);
         allTodos.push(todo);
       }
 

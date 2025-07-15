@@ -38,6 +38,7 @@
 	class:task-highlight={hoveredTaskId === todo.id}
 	on:mouseenter={() => onTaskHover(todo.id)}
 	on:mouseleave={() => onTaskHover(null)}
+	title="ID: {todo.id}"
 >
 	<div
 		class="flex items-center gap-1 flex-1"

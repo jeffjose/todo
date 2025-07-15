@@ -58,13 +58,6 @@
 		weekEvents = await loadData();
 	});
 	
-	// React to todos changes
-	$effect(() => {
-		console.log("WeeklyView: todos prop changed, count:", todos.length);
-		if (todos.length > 0) {
-			console.log("WeeklyView: First todo:", todos[0]);
-		}
-	});
 
 	// Function to generate a consistent color based on an ID
 	function getColorForId(id: string): string {
@@ -134,8 +127,6 @@
 	}
 
 	async function handleTaskUpdated(todo: Todo) {
-		console.log("WeeklyView: handleTaskUpdated called with:", todo);
-		
 		await onTodosChange();
 		await loadData();
 		
@@ -146,8 +137,6 @@
 		setTimeout(() => {
 			notification = null;
 		}, 3000);
-		
-		console.log("WeeklyView: Task update complete");
 	}
 
 	function handleDeleteTask(todo: Todo, e: Event) {

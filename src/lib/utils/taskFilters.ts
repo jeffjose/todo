@@ -6,19 +6,6 @@ export function getTodosForWeek(
   weekEvent: WeekEvent,
   type: 'deadline' | 'finishBy' | 'todo'
 ): Todo[] {
-  // Only log for the specific week we're debugging
-  if (type === 'finishBy' && weekEvent.startDate.getDate() === 7 && weekEvent.startDate.getMonth() === 6) {
-    console.log('taskFilters.getTodosForWeek for Jul 7-13 week:', {
-      todosCount: todos.length,
-      weekEvent: {
-        id: weekEvent.id,
-        startDate: weekEvent.startDate,
-        endDate: weekEvent.endDate,
-        isDay: weekEvent.isDay
-      },
-      type
-    });
-  }
   
   // Create a map of all todos for quick lookup
   const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
@@ -54,17 +41,6 @@ export function getTodosForWeek(
         todo.completed <= endDate;
 
       const wasScheduledForThisWeek = taskDate >= startDate && taskDate <= endDate;
-      
-      if (todo.id === '8z71gdpae4wy') {
-        console.log('taskFilters: Checking todo 8z71gdpae4wy:', {
-          todoFinishBy: date,
-          taskDate: taskDate,
-          weekStart: startDate,
-          weekEnd: endDate,
-          wasScheduledForThisWeek,
-          isInRange: taskDate >= startDate && taskDate <= endDate
-        });
-      }
 
       if (weekEvent.endDate < new Date()) {
         return wasCompletedInThisWeek;
@@ -110,15 +86,6 @@ export function getTodosForWeek(
 
   // Convert Set back to array and sort
   const result = Array.from(tasksWithParents).sort(sortTodos);
-  
-  // Debug log for Jul 7-13 week
-  if (type === 'finishBy' && weekEvent.startDate.getDate() === 7 && weekEvent.startDate.getMonth() === 6) {
-    console.log('taskFilters: Returning tasks for Jul 7-13 finishBy:', result.map(t => ({
-      id: t.id,
-      title: t.title,
-      finishBy: t.finishBy
-    })));
-  }
   
   return result;
 }

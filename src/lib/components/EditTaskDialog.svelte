@@ -117,6 +117,7 @@
 			<Dialog.Title>Edit Task</Dialog.Title>
 			<Dialog.Description>
 				Update task details including dates, status, and priority.
+				<span class="block mt-1 text-xs text-muted-foreground font-mono">ID: {todo.id}</span>
 			</Dialog.Description>
 		</Dialog.Header>
 		

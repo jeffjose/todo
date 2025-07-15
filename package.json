@@ -24,6 +24,7 @@
 		"@oslojs/encoding": "^1.1.0",
 		"dexie": "^4.0.11",
 		"js-yaml": "^4.1.0",
+		"lucide-svelte": "^0.525.0",
 		"nanoid": "^5.1.2",
 		"yaml": "^2.7.0"
 	},

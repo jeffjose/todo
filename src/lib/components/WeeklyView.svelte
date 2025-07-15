@@ -8,9 +8,15 @@
 		loadTestData,
 		type Todo,
 		toggleTodoStatus,
-		cycleTodoPriority
+		cycleTodoPriority,
+		deleteTodo
 	} from '$lib/client/dexie';
 	import { Button } from '$lib/components/ui/button';
+	import AddTaskDialog from '$lib/components/AddTaskDialog.svelte';
+	import EditTaskDialog from '$lib/components/EditTaskDialog.svelte';
+	import DeleteConfirmDialog from '$lib/components/DeleteConfirmDialog.svelte';
+	import TaskRow from '$lib/components/TaskRow.svelte';
+	import EmptyTaskCell from '$lib/components/EmptyTaskCell.svelte';
 	import {
 		getTaskStatus,
 		getStatusBadgeClass,
@@ -38,6 +44,14 @@
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let isResetting = $state<boolean>(false);
 	let hoveredTaskId = $state<string | null>(null);
+	let showAddTaskDialog = $state<boolean>(false);
+	let showEditTaskDialog = $state<boolean>(false);
+	let selectedTaskForEdit = $state<Todo | null>(null);
+	let showDeleteConfirm = $state<boolean>(false);
+	let selectedTaskForDelete = $state<Todo | null>(null);
+	let prefilledDeadline = $state<string>("");
+	let prefilledFinishBy = $state<string>("");
+	let prefilledTodo = $state<string>("");
 
 	onMount(async () => {
 		weekEvents = await loadData();
@@ -57,24 +71,68 @@
 	}
 
 	async function handleAddNewTodo() {
-		if (!viewStartDate || !viewEndDate) return;
+		showAddTaskDialog = true;
+	}
+
+	async function handleTaskAdded(todo: Todo) {
+		await onTodosChange();
+		await loadData();
+		notification = {
+			message: `New todo "${todo.title}" added successfully`,
+			type: 'success'
+		};
+		setTimeout(() => {
+			notification = null;
+		}, 3000);
+	}
+
+	function handleEditTask(todo: Todo, e: Event) {
+		e.stopPropagation();
+		selectedTaskForEdit = todo;
+		showEditTaskDialog = true;
+	}
+
+	async function handleTaskUpdated(todo: Todo) {
+		await onTodosChange();
+		await loadData();
+		notification = {
+			message: `Todo "${todo.title}" updated successfully`,
+			type: 'success'
+		};
+		setTimeout(() => {
+			notification = null;
+		}, 3000);
+	}
+
+	function handleDeleteTask(todo: Todo, e: Event) {
+		e.stopPropagation();
+		selectedTaskForDelete = todo;
+		showDeleteConfirm = true;
+	}
+
+	async function confirmDeleteTask() {
+		if (!selectedTaskForDelete) return;
+		
 		try {
-			const newTodo = await createRandomTodo(viewStartDate, viewEndDate);
+			await deleteTodo(selectedTaskForDelete.id);
 			await onTodosChange();
 			await loadData();
 			notification = {
-				message: `New todo "${newTodo.title}" added successfully`,
+				message: `Todo "${selectedTaskForDelete.title}" deleted successfully`,
 				type: 'success'
 			};
 			setTimeout(() => {
 				notification = null;
 			}, 3000);
 		} catch (error) {
-			console.error('Failed to add todo:', error);
+			console.error('Failed to delete todo:', error);
 			notification = {
-				message: error instanceof Error ? error.message : 'Failed to add todo',
+				message: 'Failed to delete todo',
 				type: 'error'
 			};
+		} finally {
+			showDeleteConfirm = false;
+			selectedTaskForDelete = null;
 		}
 	}
 
@@ -458,56 +516,16 @@
 						<td class="px-2 py-1">
 							<div class="space-y-0.5">
 								{#each getTodosForWeek(todos, weekEvent, 'deadline') as todo (todo.id)}
-									<div
-										class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
-										class:task-highlight={hoveredTaskId === todo.id}
-										on:mouseenter={() => handleTaskHover(todo.id)}
-										on:mouseleave={() => handleTaskHover(null)}
-									>
-										<div
-											class="flex items-center gap-1"
-											class:text-gray-400={todo.status === 'completed'}
-										>
-											<span
-												class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-													? 'text-gray-400 line-through'
-													: ''}"
-												style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
-												on:click={(e) => handleToggleStatus(todo, e)}
-											>
-												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
-											</span>
-											<span
-												class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
-													todo.priority,
-													todo.status === 'completed'
-												)}"
-												on:click={(e) => handleCyclePriority(todo, e)}
-											>
-												{todo.priority}
-											</span>
-											{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
-												{@const status = getTaskStatus(todo, weekEvent.startDate)}
-												{#if status}
-													<span
-														class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
-															status,
-															todo.status === 'completed'
-														)} {todo.status === 'completed' ? 'line-through' : ''}"
-														on:click={(e) => handleToggleStatus(todo, e)}
-														on:mouseenter={() => handleTaskHover(todo.id)}
-														on:mouseleave={() => handleTaskHover(null)}
-													>
-														{#if status.type === 'overdue'}
-															overdue ({status.daysOverdue}d)
-														{:else}
-															{status.type}
-														{/if}
-													</span>
-												{/if}
-											{/if}
-										</div>
-									</div>
+									<TaskRow
+										{todo}
+										{weekEvent}
+										{hoveredTaskId}
+										onTaskHover={handleTaskHover}
+										onToggleStatus={handleToggleStatus}
+										onCyclePriority={handleCyclePriority}
+										onEditTask={handleEditTask}
+										onDeleteTask={handleDeleteTask}
+									/>
 								{:else}
 									<span class="text-xs text-gray-400">-</span>
 								{/each}
@@ -518,56 +536,16 @@
 						<td class="px-2 py-1">
 							<div class="space-y-0.5">
 								{#each getTodosForWeek(todos, weekEvent, 'finishBy') as todo (todo.id)}
-									<div
-										class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
-										class:task-highlight={hoveredTaskId === todo.id}
-										on:mouseenter={() => handleTaskHover(todo.id)}
-										on:mouseleave={() => handleTaskHover(null)}
-									>
-										<div
-											class="flex items-center gap-1"
-											class:text-gray-400={todo.status === 'completed'}
-										>
-											<span
-												class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-													? 'text-gray-400 line-through'
-													: ''}"
-												style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
-												on:click={(e) => handleToggleStatus(todo, e)}
-											>
-												{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
-											</span>
-											<span
-												class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
-													todo.priority,
-													todo.status === 'completed'
-												)}"
-												on:click={(e) => handleCyclePriority(todo, e)}
-											>
-												{todo.priority}
-											</span>
-											{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
-												{@const status = getTaskStatus(todo, weekEvent.startDate)}
-												{#if status}
-													<span
-														class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
-															status,
-															todo.status === 'completed'
-														)} {todo.status === 'completed' ? 'line-through' : ''}"
-														on:click={(e) => handleToggleStatus(todo, e)}
-														on:mouseenter={() => handleTaskHover(todo.id)}
-														on:mouseleave={() => handleTaskHover(null)}
-													>
-														{#if status.type === 'overdue'}
-															overdue ({status.daysOverdue}d)
-														{:else}
-															{status.type}
-														{/if}
-													</span>
-												{/if}
-											{/if}
-										</div>
-									</div>
+									<TaskRow
+										{todo}
+										{weekEvent}
+										{hoveredTaskId}
+										onTaskHover={handleTaskHover}
+										onToggleStatus={handleToggleStatus}
+										onCyclePriority={handleCyclePriority}
+										onEditTask={handleEditTask}
+										onDeleteTask={handleDeleteTask}
+									/>
 								{:else}
 									<span class="text-xs text-gray-400">-</span>
 								{/each}
@@ -579,56 +557,15 @@
 							{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
 								<div class="space-y-0.5">
 									{#each getOpenTodosUpToCurrentWeek(todos, weekEvent) as todo (todo.id)}
-										<div
-											class="task-hover-target task-hover-highlight flex items-center rounded px-1.5 py-0.5"
-											class:task-highlight={hoveredTaskId === todo.id}
-											on:mouseenter={() => handleTaskHover(todo.id)}
-											on:mouseleave={() => handleTaskHover(null)}
-										>
-											<div
-												class="flex items-center gap-1"
-												class:text-gray-400={todo.status === 'completed'}
-											>
-												<span
-													class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-														? 'text-gray-400 line-through'
-														: ''}"
-													style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
-													on:click={(e) => handleToggleStatus(todo, e)}
-												>
-													{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
-												</span>
-												<span
-													class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium {getPriorityBadgeClass(
-														todo.priority,
-														todo.status === 'completed'
-													)}"
-													on:click={(e) => handleCyclePriority(todo, e)}
-												>
-													{todo.priority}
-												</span>
-												{#if isCurrentWeek(weekEvent) || weekEvent.endDate < new Date()}
-													{@const status = getTaskStatus(todo, weekEvent.startDate)}
-													{#if status}
-														<span
-															class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getStatusBadgeClass(
-																status,
-																todo.status === 'completed'
-															)} {todo.status === 'completed' ? 'line-through' : ''}"
-															on:click={(e) => handleToggleStatus(todo, e)}
-															on:mouseenter={() => handleTaskHover(todo.id)}
-															on:mouseleave={() => handleTaskHover(null)}
-														>
-															{#if status.type === 'overdue'}
-																overdue ({status.daysOverdue}d)
-															{:else}
-																{status.type}
-															{/if}
-														</span>
-													{/if}
-												{/if}
-											</div>
-										</div>
+										<TaskRow
+											{todo}
+											{weekEvent}
+											{hoveredTaskId}
+											onTaskHover={handleTaskHover}
+											onToggleStatus={handleToggleStatus}
+											onCyclePriority={handleCyclePriority}
+											onEditTask={handleEditTask}
+										/>
 									{:else}
 										<span class="text-xs text-gray-400">-</span>
 									{/each}
@@ -643,6 +580,15 @@
 		</table>
 	</div>
 </div>
+
+<AddTaskDialog bind:open={showAddTaskDialog} onSuccess={handleTaskAdded} />
+<EditTaskDialog bind:open={showEditTaskDialog} todo={selectedTaskForEdit} onSuccess={handleTaskUpdated} />
+<DeleteConfirmDialog 
+	bind:open={showDeleteConfirm} 
+	todo={selectedTaskForDelete} 
+	onConfirm={confirmDeleteTask}
+	onCancel={() => { showDeleteConfirm = false; selectedTaskForDelete = null; }}
+/>
 
 <style>
 	.task-hover-target {

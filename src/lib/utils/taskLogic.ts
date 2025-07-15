@@ -123,10 +123,10 @@ export function getTaskColor(todo: Todo): string {
     hash = todo.id.charCodeAt(i) + ((hash << 5) - hash);
   }
 
-  // Generate HSL color with fixed saturation and lightness for readability
+  // Generate HSL color with proper contrast
+  // Darker colors for light mode, lighter colors for dark mode
   const hue = Math.abs(hash % 360);
-  // In dark mode, use higher lightness for better visibility
-  return `hsl(${hue}, 65%, 50%)`;
+  return `hsl(${hue}, 70%, 35%)`; // This will be overridden by CSS classes
 }
 
 export function formatDate(date: Date, isDay: boolean = false): string {

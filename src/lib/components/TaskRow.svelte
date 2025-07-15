@@ -52,10 +52,10 @@
 			</span>
 		{/if}
 		<span
-			class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
+			class="cursor-pointer text-xs leading-snug font-semibold {todo.status === 'completed'
 				? 'text-muted-foreground/60 line-through'
 				: ''}"
-			style="padding-left: {todo.level * 0.75}rem; {todo.status === 'completed' ? '' : `color: ${getTaskColor(todo)}`}"
+			style="padding-left: {todo.level * 0.75}rem"
 			on:click={(e) => onToggleStatus(todo, e)}
 		>
 			{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}

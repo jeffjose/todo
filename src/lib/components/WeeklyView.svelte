@@ -562,7 +562,7 @@
 						</tr>
 					{/if}
 					<tr
-						class="border-b border-border/50 {isCurrentWeek(weekEvent) && !weekEvent.isDay ? 'bg-amber-50 dark:bg-amber-500/5' : ''} {weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent) ? 'bg-amber-50/50 dark:bg-amber-500/3' : ''} {isToday(weekEvent) ? 'bg-blue-50 dark:bg-blue-500/10' : ''}"
+						class="border-b border-border/30 transition-colors hover:bg-muted/5 {isCurrentWeek(weekEvent) && !weekEvent.isDay ? 'bg-amber-50/70 dark:bg-amber-950/20' : ''} {weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent) ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''} {isToday(weekEvent) ? 'bg-blue-50/70 dark:bg-blue-950/20' : ''}"
 						class:font-medium={isCurrentWeek(weekEvent) || isToday(weekEvent)}
 					>
 						<!-- Week -->

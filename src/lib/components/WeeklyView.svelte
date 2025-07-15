@@ -61,6 +61,9 @@
 	// React to todos changes
 	$effect(() => {
 		console.log("WeeklyView: todos prop changed, count:", todos.length);
+		if (todos.length > 0) {
+			console.log("WeeklyView: First todo:", todos[0]);
+		}
 	});
 
 	// Function to generate a consistent color based on an ID

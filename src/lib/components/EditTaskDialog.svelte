@@ -121,41 +121,43 @@
 			</Dialog.Description>
 		</Dialog.Header>
 		
-		<div class="grid gap-4 py-4">
-			<div class="grid gap-2">
-				<Label for="edit-title">Title *</Label>
+		<div class="grid gap-2 py-2">
+			<div class="grid gap-1">
+				<Label for="edit-title" class="text-xs">Title *</Label>
 				<Input
 					id="edit-title"
 					bind:value={title}
 					placeholder="Enter task title"
 					required
+					class="h-8 text-sm"
 				/>
 			</div>
 			
-			<div class="grid gap-2">
-				<Label for="edit-description">Description</Label>
+			<div class="grid gap-1">
+				<Label for="edit-description" class="text-xs">Description</Label>
 				<Textarea
 					id="edit-description"
 					bind:value={description}
 					placeholder="Enter task description"
-					rows={3}
+					rows={2}
+					class="text-sm min-h-[3rem]"
 				/>
 			</div>
 			
-			<div class="grid gap-2">
-				<Label>Emoji</Label>
-				<div class="flex gap-2 items-center">
+			<div class="grid gap-1">
+				<Label class="text-xs">Emoji</Label>
+				<div class="flex gap-1 items-center">
 					<Input
 						bind:value={emoji}
 						placeholder="📝"
-						class="w-20"
+						class="w-16 h-7 text-sm"
 						maxlength={2}
 					/>
-					<div class="flex gap-1">
+					<div class="flex gap-0.5">
 						{#each commonEmojis as e}
 							<button
 								type="button"
-								class="w-8 h-8 flex items-center justify-center rounded hover:bg-accent"
+								class="w-6 h-6 text-xs flex items-center justify-center rounded hover:bg-accent"
 								onclick={() => emoji = e}
 							>
 								{e}
@@ -165,117 +167,123 @@
 				</div>
 			</div>
 			
-			<div class="grid grid-cols-3 gap-4">
-				<div class="grid gap-2">
-					<Label for="edit-deadline">Deadline</Label>
+			<div class="grid grid-cols-3 gap-2">
+				<div class="grid gap-1">
+					<Label for="edit-deadline" class="text-xs">Deadline</Label>
 					<Input
 						id="edit-deadline"
 						type="date"
 						bind:value={deadline}
+						class="h-7 text-xs"
 					/>
 				</div>
 				
-				<div class="grid gap-2">
-					<Label for="edit-finishBy">Finish By</Label>
+				<div class="grid gap-1">
+					<Label for="edit-finishBy" class="text-xs">Finish By</Label>
 					<Input
 						id="edit-finishBy"
 						type="date"
 						bind:value={finishBy}
+						class="h-7 text-xs"
 					/>
 				</div>
 				
-				<div class="grid gap-2">
-					<Label for="edit-todo">Todo Date</Label>
+				<div class="grid gap-1">
+					<Label for="edit-todo" class="text-xs">Todo Date</Label>
 					<Input
 						id="edit-todo"
 						type="date"
 						bind:value={todoDate}
+						class="h-7 text-xs"
 					/>
 				</div>
 			</div>
 			
-			<div class="space-y-4">
-				<div class="grid gap-2">
-					<Label>Status</Label>
-					<ToggleGroup.Root type="single" bind:value={status} class="grid grid-cols-4 gap-2">
-						<ToggleGroup.Item value="pending" class="data-[state=on]:bg-blue-500 data-[state=on]:text-white">
+			<div class="space-y-2">
+				<div class="grid gap-1">
+					<Label class="text-xs">Status</Label>
+					<ToggleGroup.Root type="single" bind:value={status} class="grid grid-cols-4 gap-1">
+						<ToggleGroup.Item value="pending" class="h-7 text-xs data-[state=on]:bg-blue-500 data-[state=on]:text-white">
 							Pending
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="in-progress" class="data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
-							In Progress
+						<ToggleGroup.Item value="in-progress" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+							Progress
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="completed" class="data-[state=on]:bg-green-500 data-[state=on]:text-white">
-							Completed
+						<ToggleGroup.Item value="completed" class="h-7 text-xs data-[state=on]:bg-green-500 data-[state=on]:text-white">
+							Done
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="blocked" class="data-[state=on]:bg-red-500 data-[state=on]:text-white">
+						<ToggleGroup.Item value="blocked" class="h-7 text-xs data-[state=on]:bg-red-500 data-[state=on]:text-white">
 							Blocked
 						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 				
-				<div class="grid gap-2">
-					<Label>Priority</Label>
-					<ToggleGroup.Root type="single" bind:value={priority} class="grid grid-cols-4 gap-2">
-						<ToggleGroup.Item value="P0" class="data-[state=on]:bg-red-600 data-[state=on]:text-white">
+				<div class="grid gap-1">
+					<Label class="text-xs">Priority</Label>
+					<ToggleGroup.Root type="single" bind:value={priority} class="grid grid-cols-4 gap-1">
+						<ToggleGroup.Item value="P0" class="h-7 text-xs data-[state=on]:bg-red-600 data-[state=on]:text-white">
 							P0
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="P1" class="data-[state=on]:bg-orange-500 data-[state=on]:text-white">
+						<ToggleGroup.Item value="P1" class="h-7 text-xs data-[state=on]:bg-orange-500 data-[state=on]:text-white">
 							P1
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="P2" class="data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+						<ToggleGroup.Item value="P2" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
 							P2
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="P3" class="data-[state=on]:bg-gray-500 data-[state=on]:text-white">
+						<ToggleGroup.Item value="P3" class="h-7 text-xs data-[state=on]:bg-gray-500 data-[state=on]:text-white">
 							P3
 						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 				
-				<div class="grid gap-2">
-					<Label>Urgency</Label>
-					<ToggleGroup.Root type="single" bind:value={urgency} class="grid grid-cols-3 gap-2">
-						<ToggleGroup.Item value="high" class="data-[state=on]:bg-red-500 data-[state=on]:text-white">
+				<div class="grid gap-1">
+					<Label class="text-xs">Urgency</Label>
+					<ToggleGroup.Root type="single" bind:value={urgency} class="grid grid-cols-3 gap-1">
+						<ToggleGroup.Item value="high" class="h-7 text-xs data-[state=on]:bg-red-500 data-[state=on]:text-white">
 							High
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="medium" class="data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+						<ToggleGroup.Item value="medium" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
 							Medium
 						</ToggleGroup.Item>
-						<ToggleGroup.Item value="low" class="data-[state=on]:bg-green-500 data-[state=on]:text-white">
+						<ToggleGroup.Item value="low" class="h-7 text-xs data-[state=on]:bg-green-500 data-[state=on]:text-white">
 							Low
 						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 			</div>
 			
-			<div class="grid gap-2">
-				<Label for="edit-tags">Tags (comma separated)</Label>
+			<div class="grid gap-1">
+				<Label for="edit-tags" class="text-xs">Tags (comma separated)</Label>
 				<Input
 					id="edit-tags"
 					bind:value={tags}
 					placeholder="work, personal, urgent"
+					class="h-7 text-xs"
 				/>
 			</div>
 			
-			<div class="grid gap-2">
-				<Label for="edit-urls">URLs (one per line)</Label>
+			<div class="grid gap-1">
+				<Label for="edit-urls" class="text-xs">URLs (one per line)</Label>
 				<Textarea
 					id="edit-urls"
 					bind:value={urls}
 					placeholder="https://example.com"
-					rows={2}
+					rows={1}
+					class="text-xs min-h-[2rem]"
 				/>
 			</div>
 		</div>
 		
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => open = false}>
+			<Button variant="outline" onclick={() => open = false} size="sm">
 				Cancel
 			</Button>
 			<Button 
 				onclick={handleSubmit} 
 				disabled={isSubmitting || !title.trim()}
+				size="sm"
 			>
-				{isSubmitting ? "Updating..." : "Update Task"}
+				{isSubmitting ? "Updating..." : "Update"}
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

@@ -558,9 +558,14 @@
 										onEditTask={handleEditTask}
 										onDeleteTask={handleDeleteTask}
 									/>
-								{:else}
-									<EmptyTaskCell {weekEvent} taskType="deadline" onAddTask={handleQuickAddTask} />
 								{/each}
+								{#if getTodosForWeek(todos, weekEvent, 'deadline').length === 0}
+									<EmptyTaskCell {weekEvent} taskType="deadline" onAddTask={handleQuickAddTask} />
+								{:else}
+									<div class="mt-0.5">
+										<EmptyTaskCell {weekEvent} taskType="deadline" onAddTask={handleQuickAddTask} />
+									</div>
+								{/if}
 							</div>
 						</td>
 
@@ -578,9 +583,14 @@
 										onEditTask={handleEditTask}
 										onDeleteTask={handleDeleteTask}
 									/>
-								{:else}
-									<EmptyTaskCell {weekEvent} taskType="deadline" onAddTask={handleQuickAddTask} />
 								{/each}
+								{#if getTodosForWeek(todos, weekEvent, 'finishBy').length === 0}
+									<EmptyTaskCell {weekEvent} taskType="finishBy" onAddTask={handleQuickAddTask} />
+								{:else}
+									<div class="mt-0.5">
+										<EmptyTaskCell {weekEvent} taskType="finishBy" onAddTask={handleQuickAddTask} />
+									</div>
+								{/if}
 							</div>
 						</td>
 
@@ -597,10 +607,16 @@
 											onToggleStatus={handleToggleStatus}
 											onCyclePriority={handleCyclePriority}
 											onEditTask={handleEditTask}
+											onDeleteTask={handleDeleteTask}
 										/>
-									{:else}
-										<span class="text-xs text-gray-400">-</span>
 									{/each}
+									{#if getOpenTodosUpToCurrentWeek(todos, weekEvent).length === 0}
+										<EmptyTaskCell {weekEvent} taskType="todo" onAddTask={handleQuickAddTask} />
+									{:else}
+										<div class="mt-0.5">
+											<EmptyTaskCell {weekEvent} taskType="todo" onAddTask={handleQuickAddTask} />
+										</div>
+									{/if}
 								</div>
 							{:else}
 								<span class="text-xs text-gray-400">-</span>

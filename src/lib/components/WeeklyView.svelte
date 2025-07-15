@@ -18,6 +18,8 @@
 	import TaskRow from '$lib/components/TaskRow.svelte';
 	import EmptyTaskCell from '$lib/components/EmptyTaskCell.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import AddEventDialog from '$lib/components/AddEventDialog.svelte';
+	import EventCell from '$lib/components/EventCell.svelte';
 	import {
 		getTaskStatus,
 		getStatusBadgeClass,
@@ -56,9 +58,14 @@
 	let prefilledFinishBy = $state<string>("");
 	let prefilledTodo = $state<string>("");
 	let workOrderMap = $state<Map<string, number>>(new Map());
+	let showAddEventDialog = $state<boolean>(false);
+	let selectedWeekForEvent = $state<WeekEvent | null>(null);
+	let events = $state<any[]>([]);
+	let eventsMap = $state<Map<string, any>>(new Map());
 
 	onMount(async () => {
 		weekEvents = await loadData();
+		await loadEvents();
 	});
 	
 	// Calculate work order whenever todos change
@@ -289,6 +296,73 @@
 				notification = null;
 			}, 5000);
 		}
+	}
+
+	async function loadEvents() {
+		try {
+			const { getDB } = await import('$lib/client/dexie');
+			const db = await getDB();
+			const allEvents = await db.knownEvents.toArray();
+			events = allEvents;
+			
+			// Create a map for quick lookup by week
+			const newEventsMap = new Map();
+			allEvents.forEach(event => {
+				// Find which week this event belongs to
+				weekEvents.forEach(weekEvent => {
+					if (event.startDate >= weekEvent.startDate && event.endDate <= weekEvent.endDate) {
+						const key = `${weekEvent.startDate.toISOString()}-${weekEvent.endDate.toISOString()}`;
+						newEventsMap.set(key, event);
+					}
+				});
+			});
+			eventsMap = newEventsMap;
+		} catch (error) {
+			console.error('Failed to load events:', error);
+		}
+	}
+	
+	function handleAddEvent(weekEvent: WeekEvent) {
+		selectedWeekForEvent = weekEvent;
+		showAddEventDialog = true;
+	}
+	
+	async function handleEventAdded(event: any) {
+		await loadEvents();
+		notification = {
+			message: `Event "${event.description}" added successfully`,
+			type: 'success'
+		};
+		setTimeout(() => {
+			notification = null;
+		}, 3000);
+	}
+	
+	async function handleDeleteEvent(eventId: string) {
+		try {
+			const { getDB } = await import('$lib/client/dexie');
+			const db = await getDB();
+			await db.knownEvents.delete(eventId);
+			await loadEvents();
+			notification = {
+				message: 'Event deleted successfully',
+				type: 'success'
+			};
+			setTimeout(() => {
+				notification = null;
+			}, 3000);
+		} catch (error) {
+			console.error('Failed to delete event:', error);
+			notification = {
+				message: 'Failed to delete event',
+				type: 'error'
+			};
+		}
+	}
+	
+	function getEventForWeek(weekEvent: WeekEvent): any | null {
+		const key = `${weekEvent.startDate.toISOString()}-${weekEvent.endDate.toISOString()}`;
+		return eventsMap.get(key) || null;
 	}
 
 	async function loadData() {
@@ -593,16 +667,12 @@
 
 						<!-- Event -->
 						<td class="whitespace-nowrap px-2 py-1">
-							{#if weekEvent.description}
-								<span
-									class="rounded px-1.5 py-0.5 text-xs text-white"
-									style="background-color: #6B7280"
-								>
-									{weekEvent.description}
-								</span>
-							{:else}
-								<span class="text-xs text-muted-foreground">-</span>
-							{/if}
+							<EventCell 
+								{weekEvent} 
+								event={getEventForWeek(weekEvent)}
+								onAddEvent={handleAddEvent}
+								onDeleteEvent={handleDeleteEvent}
+							/>
 						</td>
 
 						<!-- Tasks columns with balanced styling -->
@@ -705,5 +775,10 @@
 	todo={selectedTaskForDelete} 
 	onConfirm={confirmDeleteTask}
 	onCancel={() => { showDeleteConfirm = false; selectedTaskForDelete = null; }}
+/>
+<AddEventDialog 
+	bind:open={showAddEventDialog} 
+	weekEvent={selectedWeekForEvent} 
+	onSuccess={handleEventAdded} 
 />
 

@@ -58,7 +58,11 @@
 	}
 	
 	async function handleSubmit() {
-		if (!title.trim() || !todo) return;
+		console.log("EditTaskDialog: handleSubmit called");
+		if (!title.trim() || !todo) {
+			console.log("EditTaskDialog: Validation failed - title or todo missing");
+			return;
+		}
 		
 		isSubmitting = true;
 		
@@ -82,12 +86,17 @@
 				updatedAt: new Date()
 			};
 			
+			console.log("EditTaskDialog: Updating todo with id:", todo.id);
+			console.log("EditTaskDialog: Update data:", updatedTodo);
+			
 			const result = await updateTodo(todo.id, updatedTodo);
+			
+			console.log("EditTaskDialog: Update successful, result:", result);
 			
 			onSuccess?.(result);
 			open = false;
 		} catch (error) {
-			console.error("Failed to update todo:", error);
+			console.error("EditTaskDialog: Failed to update todo:", error);
 		} finally {
 			isSubmitting = false;
 		}

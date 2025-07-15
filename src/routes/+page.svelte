@@ -35,10 +35,13 @@
 	});
 
 	async function loadTodosWithTiming() {
+		console.log("+page.svelte: loadTodosWithTiming called");
 		const startTime = performance.now();
 		todos = await getAllTodos();
 		const endTime = performance.now();
 		lastLoadTime = endTime - startTime;
+
+		console.log("+page.svelte: Loaded", todos.length, "todos in", lastLoadTime, "ms");
 
 		// Add to performance history
 		addPerformanceStat('load', todos.length, lastLoadTime);

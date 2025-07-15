@@ -57,6 +57,11 @@
 	onMount(async () => {
 		weekEvents = await loadData();
 	});
+	
+	// React to todos changes
+	$effect(() => {
+		console.log("WeeklyView: todos prop changed, count:", todos.length);
+	});
 
 	// Function to generate a consistent color based on an ID
 	function getColorForId(id: string): string {
@@ -126,8 +131,11 @@
 	}
 
 	async function handleTaskUpdated(todo: Todo) {
+		console.log("WeeklyView: handleTaskUpdated called with:", todo);
+		
 		await onTodosChange();
 		await loadData();
+		
 		notification = {
 			message: `Todo "${todo.title}" updated successfully`,
 			type: 'success'
@@ -135,6 +143,8 @@
 		setTimeout(() => {
 			notification = null;
 		}, 3000);
+		
+		console.log("WeeklyView: Task update complete");
 	}
 
 	function handleDeleteTask(todo: Todo, e: Event) {

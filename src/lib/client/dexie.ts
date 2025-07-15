@@ -632,11 +632,16 @@ export async function getTodoById(id: string): Promise<Todo | undefined> {
 }
 
 export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<Todo> {
+  console.log("dexie.updateTodo: Called with id:", id);
+  console.log("dexie.updateTodo: Update data:", todoData);
+  
   const db = await getDB();
   const todo = await getTodoById(id);
   if (!todo) {
     throw new Error(`Todo with id ${id} not found`);
   }
+  
+  console.log("dexie.updateTodo: Found existing todo:", todo);
 
   // Create a clean object with only serializable data
   const updatedTodo: Todo = {
@@ -663,7 +668,11 @@ export async function updateTodo(id: string, todoData: Partial<Todo>): Promise<T
     updatedAt: new Date()
   };
 
+  console.log("dexie.updateTodo: About to save updated todo:", updatedTodo);
+  
   await db.todos.put(updatedTodo);
+  
+  console.log("dexie.updateTodo: Save successful");
   return updatedTodo;
 }
 

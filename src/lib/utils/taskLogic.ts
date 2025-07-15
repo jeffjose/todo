@@ -115,7 +115,7 @@ export function getPriorityBadgeClass(priority: string, isCompleted: boolean): s
 }
 
 export function getTaskColor(todo: Todo): string {
-  if (todo.status === 'completed') return '#9CA3AF';
+  if (todo.status === 'completed') return '';
 
   // Use the ID to generate a hash
   let hash = 0;
@@ -125,7 +125,8 @@ export function getTaskColor(todo: Todo): string {
 
   // Generate HSL color with fixed saturation and lightness for readability
   const hue = Math.abs(hash % 360);
-  return `hsl(${hue}, 70%, 40%)`;
+  // In dark mode, use higher lightness for better visibility
+  return `hsl(${hue}, 65%, 50%)`;
 }
 
 export function formatDate(date: Date, isDay: boolean = false): string {

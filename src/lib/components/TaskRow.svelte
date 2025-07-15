@@ -36,7 +36,7 @@
 </script>
 
 <div
-	class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5"
+	class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
 	class:task-highlight={hoveredTaskId === todo.id}
 	on:mouseenter={() => onTaskHover(todo.id)}
 	on:mouseleave={() => onTaskHover(null)}
@@ -55,7 +55,7 @@
 			class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
 				? 'text-muted-foreground/60 line-through'
 				: ''}"
-			style="padding-left: {todo.level * 0.75}rem; color: {todo.status === 'completed' ? '' : getTaskColor(todo)}"
+			style="padding-left: {todo.level * 0.75}rem; {todo.status === 'completed' ? '' : `color: ${getTaskColor(todo)}`}"
 			on:click={(e) => onToggleStatus(todo, e)}
 		>
 			{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}

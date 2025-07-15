@@ -418,7 +418,7 @@
 	}
 </script>
 
-<div class="container mx-auto p-2">
+<div class="container mx-auto p-4">
 	<div class="mb-3 flex items-center justify-between">
 		<h1 class="text-xl font-bold">Weekly View ({todos.length})</h1>
 		<div class="flex items-center gap-2">
@@ -533,9 +533,9 @@
 		</div>
 	{/if}
 
-	<div class="overflow-x-auto">
+	<div class="overflow-x-auto rounded-lg border border-border">
 		<table class="min-w-full divide-y divide-border">
-			<thead class="bg-muted/50">
+			<thead class="bg-muted/30 dark:bg-muted/10">
 				<tr>
 					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground">Week</th>
 					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground">Event</th>
@@ -550,10 +550,10 @@
 					>
 				</tr>
 			</thead>
-			<tbody class="divide-y divide-border bg-background text-sm">
+			<tbody class="divide-y divide-border text-sm">
 				{#each weekEvents as weekEvent, index}
 					{#if shouldShowMonthHeader(weekEvent, index)}
-						<tr class="bg-muted/30">
+						<tr class="bg-muted/20 dark:bg-muted/10">
 							<td colspan="5" class="px-2 py-1">
 								<div class="text-base font-semibold text-foreground">
 									{getMonthYear(weekEvent.startDate, weekEvent)}
@@ -562,12 +562,7 @@
 						</tr>
 					{/if}
 					<tr
-						class:bg-amber-100/20={isCurrentWeek(weekEvent) && !weekEvent.isDay}
-						class:dark:bg-amber-900/20={isCurrentWeek(weekEvent) && !weekEvent.isDay}
-						class:bg-amber-50/50={weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent)}
-						class:dark:bg-amber-900/10={weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent)}
-						class:bg-blue-100/30={isToday(weekEvent)}
-						class:dark:bg-blue-900/30={isToday(weekEvent)}
+						class="border-b border-border/50 {isCurrentWeek(weekEvent) && !weekEvent.isDay ? 'bg-amber-50 dark:bg-amber-500/5' : ''} {weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent) ? 'bg-amber-50/50 dark:bg-amber-500/3' : ''} {isToday(weekEvent) ? 'bg-blue-50 dark:bg-blue-500/10' : ''}"
 						class:font-medium={isCurrentWeek(weekEvent) || isToday(weekEvent)}
 					>
 						<!-- Week -->
@@ -706,23 +701,3 @@
 	onCancel={() => { showDeleteConfirm = false; selectedTaskForDelete = null; }}
 />
 
-<style>
-	.task-hover-target {
-		@apply border border-transparent;
-	}
-
-	.task-hover-target:hover {
-		@apply bg-blue-100/80;
-		@apply border-blue-200;
-	}
-
-	.task-hover-highlight {
-		@apply transition-all;
-		@apply duration-100;
-	}
-
-	:global(.task-highlight) {
-		@apply bg-blue-100/80 !important;
-		@apply border-blue-200 !important;
-	}
-</style>

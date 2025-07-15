@@ -47,10 +47,8 @@
 </script>
 
 <Tooltip.Root>
-	<Tooltip.Trigger asChild let:builder>
+	<Tooltip.Trigger class="w-full">
 		<div
-			use:builder.action
-			{...builder}
 			class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
 			class:task-highlight={hoveredTaskId === todo.id}
 			onmouseenter={() => onTaskHover(todo.id)}

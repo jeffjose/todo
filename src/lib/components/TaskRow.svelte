@@ -47,7 +47,7 @@
 		class:text-gray-400={todo.status === 'completed'}
 	>
 		{#if workOrder && todo.status !== 'completed'}
-			<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-full">
+			<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-blue-600 dark:bg-blue-500 text-white rounded-full">
 				{workOrder}
 			</span>
 		{/if}

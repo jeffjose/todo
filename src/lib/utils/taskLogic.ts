@@ -12,6 +12,11 @@ export interface WeekEvent {
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
+  isDay?: boolean;
+  parentWeek?: {
+    startDate: Date;
+    endDate: Date;
+  };
 }
 
 export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | null {
@@ -94,7 +99,14 @@ export function getTaskColor(todo: Todo): string {
   return `hsl(${hue}, 70%, 40%)`;
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date, isDay: boolean = false): string {
+  if (isDay) {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric'
@@ -113,7 +125,25 @@ export function formatTodoDate(date: Date | null): string {
 
 export function isCurrentWeek(weekEvent: WeekEvent): boolean {
   const today = new Date();
+  
+  // For day events, check if the parent week is current
+  if (weekEvent.isDay && weekEvent.parentWeek) {
+    return today >= weekEvent.parentWeek.startDate && today <= weekEvent.parentWeek.endDate;
+  }
+  
   return today >= weekEvent.startDate && today <= weekEvent.endDate;
+}
+
+export function isToday(weekEvent: WeekEvent): boolean {
+  if (!weekEvent.isDay) return false;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const eventDate = new Date(weekEvent.startDate);
+  eventDate.setHours(0, 0, 0, 0);
+  
+  return today.getTime() === eventDate.getTime();
 }
 
 export function isStartOfMonth(weekEvent: WeekEvent): boolean {

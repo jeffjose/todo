@@ -25,6 +25,7 @@
 		formatDate,
 		formatTodoDate,
 		isCurrentWeek,
+		isToday,
 		isStartOfMonth,
 		getMonthYear,
 		shouldShowMonthHeader,
@@ -286,6 +287,10 @@
 		const currentWeekStart = new Date(today);
 		currentWeekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
 		currentWeekStart.setHours(0, 0, 0, 0);
+		
+		const currentWeekEnd = new Date(currentWeekStart);
+		currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+		currentWeekEnd.setHours(23, 59, 59, 999);
 
 		// Set view start date to 2 weeks before current week
 		viewStartDate = new Date(currentWeekStart);
@@ -305,14 +310,42 @@
 			weekEnd.setDate(weekStart.getDate() + 6);
 			weekEnd.setHours(23, 59, 59, 999);
 
-			weekEvents.push({
-				id: `week-${weekStart.toISOString()}`,
-				startDate: weekStart,
-				endDate: weekEnd,
-				description: null,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			});
+			// Check if this is the current week
+			const isCurrentWeekCheck = weekStart.getTime() === currentWeekStart.getTime();
+			
+			if (isCurrentWeekCheck) {
+				// For current week, create individual day events
+				for (let i = 0; i < 7; i++) {
+					const dayStart = new Date(weekStart);
+					dayStart.setDate(weekStart.getDate() + i);
+					const dayEnd = new Date(dayStart);
+					dayEnd.setHours(23, 59, 59, 999);
+					
+					weekEvents.push({
+						id: `day-${dayStart.toISOString()}`,
+						startDate: dayStart,
+						endDate: dayEnd,
+						description: null,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+						isDay: true,
+						parentWeek: {
+							startDate: weekStart,
+							endDate: weekEnd
+						}
+					});
+				}
+			} else {
+				// For other weeks, create week events as before
+				weekEvents.push({
+					id: `week-${weekStart.toISOString()}`,
+					startDate: weekStart,
+					endDate: weekEnd,
+					description: null,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				});
+			}
 
 			currentDate.setDate(currentDate.getDate() + 7);
 		}
@@ -516,17 +549,26 @@
 						</tr>
 					{/if}
 					<tr
-						class:bg-amber-100={isCurrentWeek(weekEvent)}
-						class:font-medium={isCurrentWeek(weekEvent)}
+						class:bg-amber-100={isCurrentWeek(weekEvent) && !weekEvent.isDay}
+						class:bg-amber-50={weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent)}
+						class:bg-blue-100={isToday(weekEvent)}
+						class:font-medium={isCurrentWeek(weekEvent) || isToday(weekEvent)}
 					>
 						<!-- Week -->
 						<td class="whitespace-nowrap px-2 py-1">
 							<div
 								class="text-xs"
-								class:text-amber-900={isCurrentWeek(weekEvent)}
-								class:text-gray-900={!isCurrentWeek(weekEvent)}
+								class:text-amber-900={isCurrentWeek(weekEvent) && !weekEvent.isDay}
+								class:text-blue-900={isToday(weekEvent)}
+								class:text-gray-700={weekEvent.isDay && !isToday(weekEvent)}
+								class:text-gray-900={!isCurrentWeek(weekEvent) && !weekEvent.isDay}
+								class:pl-4={weekEvent.isDay}
 							>
-								{formatDate(weekEvent.startDate)} - {formatDate(weekEvent.endDate)}
+								{#if weekEvent.isDay}
+									{formatDate(weekEvent.startDate, true)}
+								{:else}
+									{formatDate(weekEvent.startDate)} - {formatDate(weekEvent.endDate)}
+								{/if}
 							</div>
 						</td>
 

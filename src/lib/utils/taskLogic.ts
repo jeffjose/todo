@@ -79,7 +79,7 @@ export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | nul
     }
   }
 
-  return { type: 'on-track' };
+  return null;
 }
 
 export function getStatusBadgeClass(status: TaskStatus, isCompleted: boolean): string {

@@ -21,35 +21,60 @@ export interface WeekEvent {
 
 export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | null {
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to start of day
+  
   const isPastWeek = weekStartDate < today;
 
   // For completed tasks, only show status if completed after deadline/finishBy
   if (todo.status === 'completed') {
-    if (todo.deadline && todo.completed && todo.completed > todo.deadline) {
-      const daysOverdue = Math.ceil((todo.completed.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
-      return { type: 'overdue', daysOverdue };
+    if (todo.deadline && todo.completed) {
+      const deadline = new Date(todo.deadline);
+      deadline.setHours(0, 0, 0, 0);
+      const completed = new Date(todo.completed);
+      completed.setHours(0, 0, 0, 0);
+      
+      if (completed > deadline) {
+        const daysOverdue = Math.ceil((completed.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
+        return { type: 'overdue', daysOverdue };
+      }
     }
-    if (todo.finishBy && todo.completed && todo.completed > todo.finishBy) {
-      return { type: 'slipped' };
+    if (todo.finishBy && todo.completed) {
+      const finishBy = new Date(todo.finishBy);
+      finishBy.setHours(0, 0, 0, 0);
+      const completed = new Date(todo.completed);
+      completed.setHours(0, 0, 0, 0);
+      
+      if (completed > finishBy) {
+        return { type: 'slipped' };
+      }
     }
     return null;
   }
 
   if (todo.deadline) {
-    if (todo.deadline < today) {
-      const daysOverdue = Math.ceil((today.getTime() - todo.deadline.getTime()) / (1000 * 60 * 60 * 24));
+    const deadline = new Date(todo.deadline);
+    deadline.setHours(0, 0, 0, 0);
+    
+    if (deadline < today) {
+      const daysOverdue = Math.ceil((today.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
       return { type: 'overdue', daysOverdue };
     }
   }
 
   if (todo.finishBy) {
-    if (todo.finishBy < today) {
+    const finishBy = new Date(todo.finishBy);
+    finishBy.setHours(0, 0, 0, 0);
+    
+    if (finishBy < today) {
       return { type: 'slipped' };
     }
   }
 
   if (todo.todo) {
-    if (todo.todo < today) {
+    const todoDate = new Date(todo.todo);
+    todoDate.setHours(0, 0, 0, 0);
+    
+    if (todoDate < today) {
       return { type: 'slipped' };
     }
   }

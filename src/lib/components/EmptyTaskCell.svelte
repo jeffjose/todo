@@ -17,7 +17,7 @@
 
 <div class="group flex items-center justify-center h-6">
 	<button
-		class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+		class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
 		on:click={handleClick}
 		aria-label="Add {taskType} task"
 		type="button"

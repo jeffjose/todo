@@ -17,6 +17,7 @@
 	import DeleteConfirmDialog from '$lib/components/DeleteConfirmDialog.svelte';
 	import TaskRow from '$lib/components/TaskRow.svelte';
 	import EmptyTaskCell from '$lib/components/EmptyTaskCell.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import {
 		getTaskStatus,
 		getStatusBadgeClass,
@@ -420,9 +421,12 @@
 <div class="container mx-auto p-2">
 	<div class="mb-3 flex items-center justify-between">
 		<h1 class="text-xl font-bold">Weekly View ({todos.length})</h1>
-		<Button onclick={handleResetDatabase} variant="destructive" size="sm" disabled={isResetting}>
-			{isResetting ? 'Resetting...' : 'Reset Database'}
-		</Button>
+		<div class="flex items-center gap-2">
+			<ThemeToggle />
+			<Button onclick={handleResetDatabase} variant="destructive" size="sm" disabled={isResetting}>
+				{isResetting ? 'Resetting...' : 'Reset Database'}
+			</Button>
+		</div>
 	</div>
 
 	<div class="mb-3 flex flex-wrap items-center gap-1">
@@ -530,47 +534,52 @@
 	{/if}
 
 	<div class="overflow-x-auto">
-		<table class="min-w-full divide-y divide-gray-200">
-			<thead class="bg-gray-50">
+		<table class="min-w-full divide-y divide-border">
+			<thead class="bg-muted/50">
 				<tr>
-					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Week</th>
-					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">Event</th>
-					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground">Week</th>
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground">Event</th>
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground"
 						>Deadline Tasks ({getTotalDeadlineTasks()})</th
 					>
-					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground"
 						>Finish By Tasks ({getTotalFinishByTasks()})</th
 					>
-					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-gray-500"
+					<th class="px-2 py-1 text-left text-xs font-medium uppercase text-muted-foreground"
 						>Todo ({getTotalOpenTasks()})</th
 					>
 				</tr>
 			</thead>
-			<tbody class="divide-y divide-gray-200 bg-white text-sm">
+			<tbody class="divide-y divide-border bg-background text-sm">
 				{#each weekEvents as weekEvent, index}
 					{#if shouldShowMonthHeader(weekEvent, index)}
-						<tr class="bg-gray-100">
+						<tr class="bg-muted/30">
 							<td colspan="5" class="px-2 py-1">
-								<div class="text-base font-semibold text-gray-700">
+								<div class="text-base font-semibold text-foreground">
 									{getMonthYear(weekEvent.startDate, weekEvent)}
 								</div>
 							</td>
 						</tr>
 					{/if}
 					<tr
-						class:bg-amber-100={isCurrentWeek(weekEvent) && !weekEvent.isDay}
-						class:bg-amber-50={weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent)}
-						class:bg-blue-100={isToday(weekEvent)}
+						class:bg-amber-100/20={isCurrentWeek(weekEvent) && !weekEvent.isDay}
+						class:dark:bg-amber-900/20={isCurrentWeek(weekEvent) && !weekEvent.isDay}
+						class:bg-amber-50/50={weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent)}
+						class:dark:bg-amber-900/10={weekEvent.isDay && isCurrentWeek(weekEvent) && !isToday(weekEvent)}
+						class:bg-blue-100/30={isToday(weekEvent)}
+						class:dark:bg-blue-900/30={isToday(weekEvent)}
 						class:font-medium={isCurrentWeek(weekEvent) || isToday(weekEvent)}
 					>
 						<!-- Week -->
 						<td class="whitespace-nowrap px-2 py-1">
 							<div
 								class="text-xs"
-								class:text-amber-900={isCurrentWeek(weekEvent) && !weekEvent.isDay}
-								class:text-blue-900={isToday(weekEvent)}
-								class:text-gray-700={weekEvent.isDay && !isToday(weekEvent)}
-								class:text-gray-900={!isCurrentWeek(weekEvent) && !weekEvent.isDay}
+								class:text-amber-700={isCurrentWeek(weekEvent) && !weekEvent.isDay}
+								class:dark:text-amber-400={isCurrentWeek(weekEvent) && !weekEvent.isDay}
+								class:text-blue-700={isToday(weekEvent)}
+								class:dark:text-blue-400={isToday(weekEvent)}
+								class:text-muted-foreground={weekEvent.isDay && !isToday(weekEvent)}
+								class:text-foreground={!isCurrentWeek(weekEvent) && !weekEvent.isDay}
 								class:pl-4={weekEvent.isDay}
 							>
 								{#if weekEvent.isDay}
@@ -591,7 +600,7 @@
 									{weekEvent.description}
 								</span>
 							{:else}
-								<span class="text-xs text-gray-400">-</span>
+								<span class="text-xs text-muted-foreground">-</span>
 							{/if}
 						</td>
 
@@ -672,7 +681,7 @@
 									{/if}
 								</div>
 							{:else}
-								<span class="text-xs text-gray-400">-</span>
+								<span class="text-xs text-muted-foreground">-</span>
 							{/if}
 						</td>
 					</tr>

@@ -2,10 +2,15 @@
 	import '../app.css';
 	import { createRandomTodo } from '$lib/client/dexie';
 	import { onMount } from 'svelte';
+	import { theme } from '$lib/stores/theme';
 
 	let { children } = $props();
 	let notification = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 	let notificationTimeout: ReturnType<typeof setTimeout>;
+
+	onMount(() => {
+		theme.init();
+	});
 
 	function showNotification(message: string, type: 'success' | 'error' = 'success') {
 		if (notificationTimeout) clearTimeout(notificationTimeout);

@@ -47,15 +47,15 @@
 		class:text-gray-400={todo.status === 'completed'}
 	>
 		{#if workOrder && todo.status !== 'completed'}
-			<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+			<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-full">
 				{workOrder}
 			</span>
 		{/if}
 		<span
 			class="cursor-pointer text-xs leading-snug {todo.status === 'completed'
-				? 'text-gray-400 line-through'
+				? 'text-muted-foreground/60 line-through'
 				: ''}"
-			style="padding-left: {todo.level * 0.75}rem; color: {getTaskColor(todo)}"
+			style="padding-left: {todo.level * 0.75}rem; color: {todo.status === 'completed' ? '' : getTaskColor(todo)}"
 			on:click={(e) => onToggleStatus(todo, e)}
 		>
 			{#if todo.emoji}<span class="mr-1">{todo.emoji}</span>{/if}{todo.title}
@@ -92,7 +92,7 @@
 	</div>
 	<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 		<button
-			class="p-1 hover:bg-gray-200 rounded"
+			class="p-1 hover:bg-accent rounded"
 			on:click={(e) => onEditTask(todo, e)}
 			aria-label="Edit task"
 			type="button"
@@ -100,7 +100,7 @@
 			<Pencil class="w-3 h-3" />
 		</button>
 		<button
-			class="p-1 hover:bg-red-100 hover:text-red-600 rounded"
+			class="p-1 hover:bg-destructive/10 hover:text-destructive rounded"
 			on:click={(e) => onDeleteTask(todo, e)}
 			aria-label="Delete task"
 			type="button"

@@ -89,28 +89,28 @@ export function getTaskStatus(todo: Todo, weekStartDate: Date): TaskStatus | nul
 export function getStatusBadgeClass(status: TaskStatus, isCompleted: boolean): string {
   if (isCompleted) {
     return status.type === 'overdue'
-      ? 'bg-red-100 text-red-400'
+      ? 'bg-red-100 dark:bg-red-900/20 text-red-400 dark:text-red-400/70'
       : status.type === 'slipped'
-        ? 'bg-yellow-100 text-yellow-400'
-        : 'bg-gray-100 text-gray-400';
+        ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400/70'
+        : 'bg-gray-100 dark:bg-gray-800/20 text-gray-400 dark:text-gray-400/70';
   }
 
   return status.type === 'overdue'
-    ? 'bg-red-500 text-white'
+    ? 'bg-red-500 dark:bg-red-600 text-white'
     : status.type === 'slipped'
-      ? 'bg-yellow-500 text-white'
-      : 'bg-green-500 text-white';
+      ? 'bg-yellow-500 dark:bg-yellow-600 text-white'
+      : 'bg-green-500 dark:bg-green-600 text-white';
 }
 
 export function getPriorityBadgeClass(priority: string, isCompleted: boolean): string {
-  if (isCompleted) return 'text-gray-400';
+  if (isCompleted) return 'text-muted-foreground/50';
 
   switch (priority) {
-    case 'P0': return 'bg-red-100 text-red-800';
-    case 'P1': return 'bg-orange-100 text-orange-800';
-    case 'P2': return 'bg-yellow-100 text-yellow-800';
-    case 'P3': return 'bg-gray-100 text-gray-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'P0': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
+    case 'P1': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200';
+    case 'P2': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200';
+    case 'P3': return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
+    default: return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
   }
 }
 

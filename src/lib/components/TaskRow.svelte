@@ -10,6 +10,7 @@
 		isCurrentWeek
 	} from '$lib/utils/taskLogic';
 	import { Badge } from '$lib/components/ui/badge';
+	import TaskTooltip from '$lib/components/TaskTooltip.svelte';
 	
 	interface Props {
 		todo: Todo;
@@ -35,55 +36,36 @@
 		onDeleteTask
 	}: Props = $props();
 	
-	function formatDate(date: Date | null): string {
-		if (!date) return '';
-		return date.toLocaleDateString('en-US', { 
-			month: 'short', 
-			day: 'numeric', 
-			year: 'numeric' 
-		});
+	let showTooltip = $state(false);
+	let tooltipX = $state(0);
+	let tooltipY = $state(0);
+	let tooltipTimeout: ReturnType<typeof setTimeout>;
+	
+	function handleMouseEnter(e: MouseEvent) {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		tooltipX = rect.left + rect.width / 2;
+		tooltipY = rect.top;
+		
+		// Delay showing tooltip
+		tooltipTimeout = setTimeout(() => {
+			showTooltip = true;
+		}, 500);
+		
+		onTaskHover(todo.id);
 	}
 	
-	function getTooltipText(): string {
-		let parts = [`ID: ${todo.id}`];
-		
-		if (todo.description) {
-			parts.push(`Description: ${todo.description}`);
-		}
-		
-		parts.push(`Status: ${todo.status}`);
-		parts.push(`Priority: ${todo.priority}`);
-		parts.push(`Urgency: ${todo.urgency}`);
-		
-		if (todo.deadline) {
-			parts.push(`Deadline: ${formatDate(todo.deadline)}`);
-		}
-		if (todo.finishBy) {
-			parts.push(`Finish By: ${formatDate(todo.finishBy)}`);
-		}
-		if (todo.todo) {
-			parts.push(`Todo: ${formatDate(todo.todo)}`);
-		}
-		
-		if (todo.tags && todo.tags.length > 0) {
-			parts.push(`Tags: ${todo.tags.join(', ')}`);
-		}
-		
-		parts.push(`Created: ${formatDate(todo.createdAt)}`);
-		if (todo.completed) {
-			parts.push(`Completed: ${formatDate(todo.completed)}`);
-		}
-		
-		return parts.join('\n');
+	function handleMouseLeave() {
+		clearTimeout(tooltipTimeout);
+		showTooltip = false;
+		onTaskHover(null);
 	}
 </script>
 
 <div
 	class="task-hover-target task-hover-highlight group flex items-center justify-between rounded px-1.5 py-0.5 hover:bg-accent/50"
 	class:task-highlight={hoveredTaskId === todo.id}
-	onmouseenter={() => onTaskHover(todo.id)}
-	onmouseleave={() => onTaskHover(null)}
-	title={getTooltipText()}
+	onmouseenter={handleMouseEnter}
+	onmouseleave={handleMouseLeave}
 >
 	<div
 		class="flex items-center gap-1 flex-1"
@@ -148,3 +130,5 @@
 		</button>
 	</div>
 </div>
+
+<TaskTooltip {todo} show={showTooltip} x={tooltipX} y={tooltipY} />

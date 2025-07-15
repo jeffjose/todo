@@ -116,9 +116,6 @@
 	<Dialog.Content class="sm:max-w-[600px]" onkeydown={handleKeydown}>
 		<Dialog.Header>
 			<Dialog.Title>Edit Task</Dialog.Title>
-			<Dialog.Description>
-				Update task details including dates, status, and priority.
-			</Dialog.Description>
 		</Dialog.Header>
 		
 		<div class="grid gap-2 py-2">
@@ -199,58 +196,56 @@
 				</div>
 			</div>
 			
-			<div class="space-y-2">
+			<div class="grid grid-cols-3 gap-2">
 				<div class="grid gap-1">
 					<Label class="text-xs">Status</Label>
-					<ToggleGroup.Root type="single" bind:value={status} class="grid grid-cols-4 gap-1">
+					<ToggleGroup.Root type="single" bind:value={status} class="grid grid-cols-2 gap-1">
 						<ToggleGroup.Item value="pending" class="h-7 text-xs data-[state=on]:bg-blue-500 data-[state=on]:text-white">
-							Pending
+							Pend
 						</ToggleGroup.Item>
 						<ToggleGroup.Item value="in-progress" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
-							Progress
+							Prog
 						</ToggleGroup.Item>
 						<ToggleGroup.Item value="completed" class="h-7 text-xs data-[state=on]:bg-green-500 data-[state=on]:text-white">
 							Done
 						</ToggleGroup.Item>
 						<ToggleGroup.Item value="blocked" class="h-7 text-xs data-[state=on]:bg-red-500 data-[state=on]:text-white">
-							Blocked
+							Block
 						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 				
-				<div class="grid grid-cols-2 gap-2">
-					<div class="grid gap-1">
-						<Label class="text-xs">Priority</Label>
-						<ToggleGroup.Root type="single" bind:value={priority} class="grid grid-cols-4 gap-1">
-							<ToggleGroup.Item value="P0" class="h-7 text-xs data-[state=on]:bg-red-600 data-[state=on]:text-white">
-								P0
-							</ToggleGroup.Item>
-							<ToggleGroup.Item value="P1" class="h-7 text-xs data-[state=on]:bg-orange-500 data-[state=on]:text-white">
-								P1
-							</ToggleGroup.Item>
-							<ToggleGroup.Item value="P2" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
-								P2
-							</ToggleGroup.Item>
-							<ToggleGroup.Item value="P3" class="h-7 text-xs data-[state=on]:bg-gray-500 data-[state=on]:text-white">
-								P3
-							</ToggleGroup.Item>
-						</ToggleGroup.Root>
-					</div>
-					
-					<div class="grid gap-1">
-						<Label class="text-xs">Urgency</Label>
-						<ToggleGroup.Root type="single" bind:value={urgency} class="grid grid-cols-3 gap-1">
-							<ToggleGroup.Item value="high" class="h-7 text-xs data-[state=on]:bg-red-500 data-[state=on]:text-white">
-								High
-							</ToggleGroup.Item>
-							<ToggleGroup.Item value="medium" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
-								Med
-							</ToggleGroup.Item>
-							<ToggleGroup.Item value="low" class="h-7 text-xs data-[state=on]:bg-green-500 data-[state=on]:text-white">
-								Low
-							</ToggleGroup.Item>
-						</ToggleGroup.Root>
-					</div>
+				<div class="grid gap-1">
+					<Label class="text-xs">Priority</Label>
+					<ToggleGroup.Root type="single" bind:value={priority} class="grid grid-cols-2 gap-1">
+						<ToggleGroup.Item value="P0" class="h-7 text-xs data-[state=on]:bg-red-600 data-[state=on]:text-white">
+							P0
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="P1" class="h-7 text-xs data-[state=on]:bg-orange-500 data-[state=on]:text-white">
+							P1
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="P2" class="h-7 text-xs data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+							P2
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="P3" class="h-7 text-xs data-[state=on]:bg-gray-500 data-[state=on]:text-white">
+							P3
+						</ToggleGroup.Item>
+					</ToggleGroup.Root>
+				</div>
+				
+				<div class="grid gap-1">
+					<Label class="text-xs">Urgency</Label>
+					<ToggleGroup.Root type="single" bind:value={urgency} class="flex gap-1">
+						<ToggleGroup.Item value="high" class="h-7 text-xs flex-1 data-[state=on]:bg-red-500 data-[state=on]:text-white">
+							Hi
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="medium" class="h-7 text-xs flex-1 data-[state=on]:bg-yellow-500 data-[state=on]:text-white">
+							Mid
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="low" class="h-7 text-xs flex-1 data-[state=on]:bg-green-500 data-[state=on]:text-white">
+							Lo
+						</ToggleGroup.Item>
+					</ToggleGroup.Root>
 				</div>
 			</div>
 			

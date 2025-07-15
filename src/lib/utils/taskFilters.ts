@@ -6,6 +6,17 @@ export function getTodosForWeek(
   weekEvent: WeekEvent,
   type: 'deadline' | 'finishBy' | 'todo'
 ): Todo[] {
+  console.log('taskFilters.getTodosForWeek called:', {
+    todosCount: todos.length,
+    weekEvent: {
+      id: weekEvent.id,
+      startDate: weekEvent.startDate,
+      endDate: weekEvent.endDate,
+      isDay: weekEvent.isDay
+    },
+    type
+  });
+  
   // Create a map of all todos for quick lookup
   const todoMap = new Map(todos.map((todo: Todo) => [todo.id, todo]));
 
@@ -14,6 +25,10 @@ export function getTodosForWeek(
     const date =
       type === 'deadline' ? todo.deadline : type === 'finishBy' ? todo.finishBy : todo.todo;
     if (!date) return false;
+
+    // Normalize the task date to remove time component for comparison
+    const taskDate = new Date(date);
+    taskDate.setHours(0, 0, 0, 0);
 
     // Set start date to beginning of day (midnight)
     const startDate = new Date(weekEvent.startDate);
@@ -35,14 +50,25 @@ export function getTodosForWeek(
         todo.completed >= startDate &&
         todo.completed <= endDate;
 
-      const wasScheduledForThisWeek = date >= startDate && date <= endDate;
+      const wasScheduledForThisWeek = taskDate >= startDate && taskDate <= endDate;
+      
+      if (todo.id === '8z71gdpae4wy') {
+        console.log('taskFilters: Checking todo 8z71gdpae4wy:', {
+          todoFinishBy: date,
+          taskDate: taskDate,
+          weekStart: startDate,
+          weekEnd: endDate,
+          wasScheduledForThisWeek,
+          isInRange: taskDate >= startDate && taskDate <= endDate
+        });
+      }
 
       if (weekEvent.endDate < new Date()) {
         return wasCompletedInThisWeek;
       }
 
       if (weekEvent.startDate <= new Date() && weekEvent.endDate >= new Date()) {
-        const isOverdueFromPastWeek = date < new Date() && todo.status !== 'completed';
+        const isOverdueFromPastWeek = taskDate < new Date() && todo.status !== 'completed';
         return wasCompletedInThisWeek || wasScheduledForThisWeek || isOverdueFromPastWeek;
       }
 
@@ -50,7 +76,7 @@ export function getTodosForWeek(
     }
 
     // For deadline and todo columns, show tasks scheduled for this week
-    return date >= startDate && date <= endDate;
+    return taskDate >= startDate && taskDate <= endDate;
   });
 
   // Get all parent tasks for the filtered todos

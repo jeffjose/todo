@@ -10,13 +10,12 @@
 		"dev": "vite dev",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
-		"prepare": "husky",
 		"preview": "vite preview",
 		"test": "vitest --run",
-		"test:watch": "vitest --watch",
 		"test:db": "vitest src/lib/client/dexie.test.ts",
 		"test:db:all": "vitest src/lib/client/dexie.test.ts src/lib/client/db.integration.test.ts",
-		"test:db:integration": "vitest src/lib/client/db.integration.test.ts"
+		"test:db:integration": "vitest src/lib/client/db.integration.test.ts",
+		"test:watch": "vitest --watch"
 	},
 	"dependencies": {
 		"@node-rs/argon2": "^2.0.2",
@@ -42,7 +41,6 @@
 		"autoprefixer": "^10.4.20",
 		"bits-ui": "^1.8.0",
 		"clsx": "^2.1.1",
-		"husky": "^9.1.7",
 		"jsdom": "^26.0.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",

@@ -6,7 +6,6 @@
 		formatDate,
 		formatTodoDate
 	} from '$lib/utils/taskLogic';
-	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 
 	interface WeekEvent {
@@ -116,103 +115,123 @@
 	});
 </script>
 
-<div class="rounded-md border">
-	<Table.Root>
-		<Table.Header>
-			<Table.Row>
-				<Table.Head class="w-[160px]">Week</Table.Head>
-				<Table.Head>Deadline</Table.Head>
-				<Table.Head>Finish By</Table.Head>
-				<Table.Head>Todo</Table.Head>
-				{#if weekEvents.some(week => week.isCurrent)}
-					<Table.Head>Open Todos</Table.Head>
-				{/if}
-			</Table.Row>
-		</Table.Header>
-		<Table.Body>
+<div class="w-full overflow-x-auto rounded-lg border bg-background">
+	<div class="min-w-[900px]">
+		<!-- Header -->
+		<div class="grid grid-cols-[180px_1fr_1fr_1fr_1fr] gap-6 border-b bg-muted/30 px-6 py-4">
+			<div class="text-sm font-semibold text-muted-foreground">Week</div>
+			<div class="text-sm font-semibold text-muted-foreground">Deadline</div>
+			<div class="text-sm font-semibold text-muted-foreground">Finish By</div>
+			<div class="text-sm font-semibold text-muted-foreground">Todo</div>
+			{#if weekEvents.some(week => week.isCurrent)}
+				<div class="text-sm font-semibold text-muted-foreground">Open Todos</div>
+			{/if}
+		</div>
+
+		<!-- Body -->
+		<div class="divide-y">
 			{#each weekEvents as week, i}
 				{@const showMonth = i === 0 || week.weekStart.getDate() <= 7}
+				
 				{#if showMonth}
-					<Table.Row class="hover:bg-transparent">
-						<Table.Cell colspan={5} class="bg-muted/50 font-semibold text-sm">
-							{week.weekStart.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-						</Table.Cell>
-					</Table.Row>
+					<!-- Month separator -->
+					<div class="bg-muted/10 px-6 py-3 text-sm font-semibold text-muted-foreground">
+						{week.weekStart.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+					</div>
 				{/if}
-				<Table.Row class={week.isCurrent ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
-					<Table.Cell class="font-medium">
+				
+				<!-- Week row -->
+				<div class={`grid grid-cols-[180px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 dark:bg-amber-950/10 hover:bg-amber-50 dark:hover:bg-amber-950/10' : ''}`}>
+					<!-- Week dates -->
+					<div class="font-medium">
 						<div class="text-sm tabular-nums">
 							{week.weekStart.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
 						</div>
-					</Table.Cell>
-					<Table.Cell>
+					</div>
+					
+					<!-- Deadline column -->
+					<div class="space-y-2">
 						{#each week.todos.deadline as todo}
 							{@const status = getTaskStatus(todo, week.weekStart)}
-							<div class="flex items-center gap-2 py-1">
-								<span class="text-lg">{todo.emoji || '📋'}</span>
-								<span class="flex-1 text-sm">{todo.title}</span>
+							<div class="flex items-start gap-2 group">
+								<span class="text-base leading-tight mt-0.5">{todo.emoji || '📋'}</span>
+								<div class="flex-1 min-w-0">
+									<p class="text-sm leading-tight truncate group-hover:text-clip group-hover:whitespace-normal">{todo.title}</p>
+								</div>
 								{#if status && status.type !== 'on-track'}
 									<Badge
 										variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
-										class="text-xs"
+										class="text-xs shrink-0"
 									>
 										{status.type}
 									</Badge>
 								{/if}
 							</div>
 						{/each}
-					</Table.Cell>
-					<Table.Cell>
+					</div>
+					
+					<!-- Finish By column -->
+					<div class="space-y-2">
 						{#each week.todos.finishBy as todo}
 							{@const status = getTaskStatus(todo, week.weekStart)}
-							<div class="flex items-center gap-2 py-1">
-								<span class="text-lg">{todo.emoji || '📋'}</span>
-								<span class="flex-1 text-sm">{todo.title}</span>
+							<div class="flex items-start gap-2 group">
+								<span class="text-base leading-tight mt-0.5">{todo.emoji || '📋'}</span>
+								<div class="flex-1 min-w-0">
+									<p class="text-sm leading-tight truncate group-hover:text-clip group-hover:whitespace-normal">{todo.title}</p>
+								</div>
 								{#if status && status.type !== 'on-track'}
 									<Badge
 										variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
-										class="text-xs"
+										class="text-xs shrink-0"
 									>
 										{status.type}
 									</Badge>
 								{/if}
 							</div>
 						{/each}
-					</Table.Cell>
-					<Table.Cell>
+					</div>
+					
+					<!-- Todo column -->
+					<div class="space-y-2">
 						{#each week.todos.todo as todo}
-							<div class="flex items-center gap-2 py-1">
-								<span class="text-lg">{todo.emoji || '📋'}</span>
-								<span class="flex-1 text-sm">{todo.title}</span>
+							<div class="flex items-start gap-2 group">
+								<span class="text-base leading-tight mt-0.5">{todo.emoji || '📋'}</span>
+								<div class="flex-1 min-w-0">
+									<p class="text-sm leading-tight truncate group-hover:text-clip group-hover:whitespace-normal">{todo.title}</p>
+								</div>
 								{#if todo.todo}
-									<span class="text-xs text-muted-foreground">{formatTodoDate(todo.todo)}</span>
+									<span class="text-xs text-muted-foreground shrink-0">{formatTodoDate(todo.todo)}</span>
 								{/if}
 							</div>
 						{/each}
-					</Table.Cell>
+					</div>
+					
+					<!-- Open Todos column -->
 					{#if week.isCurrent}
-						<Table.Cell>
+						<div class="space-y-2">
 							{#each week.openTodos as todo}
 								{@const status = getTaskStatus(todo, week.weekStart)}
-								<div class="flex items-center gap-2 py-1">
-									<span class="text-lg">{todo.emoji || '📋'}</span>
-									<span class="flex-1 text-sm">{todo.title}</span>
+								<div class="flex items-start gap-2 group">
+									<span class="text-base leading-tight mt-0.5">{todo.emoji || '📋'}</span>
+									<div class="flex-1 min-w-0">
+										<p class="text-sm leading-tight truncate group-hover:text-clip group-hover:whitespace-normal">{todo.title}</p>
+									</div>
 									{#if status && status.type !== 'on-track'}
 										<Badge
 											variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
-											class="text-xs"
+											class="text-xs shrink-0"
 										>
 											{status.type}
 										</Badge>
 									{/if}
 								</div>
 							{/each}
-						</Table.Cell>
+						</div>
 					{:else if weekEvents.some(w => w.isCurrent)}
-						<Table.Cell></Table.Cell>
+						<div></div>
 					{/if}
-				</Table.Row>
+				</div>
 			{/each}
-		</Table.Body>
-	</Table.Root>
+		</div>
+	</div>
 </div>

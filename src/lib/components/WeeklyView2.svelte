@@ -23,21 +23,14 @@
 	}>();
 
 	let weekEvents = $state<WeekEvent[]>([]);
-	
+
 	// Format week dates intelligently
 	function formatWeekDates(weekStart: Date, weekEnd: Date): string {
-		const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
-		const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
 		const startDay = weekStart.getDate();
 		const endDay = weekEnd.getDate();
 		
-		if (startMonth === endMonth) {
-			// Same month: "Jul 1-7"
-			return `${startMonth} ${startDay}–${endDay}`;
-		} else {
-			// Different months: "Jul 29 – Aug 4"
-			return `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
-		}
+		// Always just show the day numbers
+		return `${startDay}–${endDay}`;
 	}
 	let viewStartDate = $state<Date | null>(null);
 	let viewEndDate = $state<Date | null>(null);
@@ -151,11 +144,9 @@
 
 				{#if showMonth}
 					<!-- Month separator -->
-					<div class="bg-muted/10 px-6 py-3 text-xs font-semibold text-muted-foreground">
-						{week.weekStart.toLocaleDateString('en-US', {
-							year: 'numeric',
-							month: 'long'
-						}).toUpperCase()}
+					<div class="relative bg-muted/10 px-6 py-3 text-xs font-semibold text-muted-foreground">
+						<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary/20"></div>
+						{week.weekStart.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}
 					</div>
 				{/if}
 
@@ -168,6 +159,11 @@
 						<div class="text-xs tabular-nums">
 							{formatWeekDates(week.weekStart, week.weekEnd)}
 						</div>
+						{#if week.weekStart.getMonth() !== week.weekEnd.getMonth()}
+							<div class="text-[10px] text-muted-foreground mt-0.5">
+								{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
+							</div>
+						{/if}
 					</div>
 
 					<!-- Deadline column -->

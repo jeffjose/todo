@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getAllTodos, type Todo } from '$lib/client/dexie';
-	import WeeklyView from '$lib/components/WeeklyView.svelte';
+	import WeeklyView2 from '$lib/components/WeeklyView2.svelte';
 
 	let todos: Todo[] = $state([]);
 
@@ -16,4 +16,4 @@
 	}
 </script>
 
-<WeeklyView {todos} onTodosChange={loadTodos} />
+<WeeklyView2 {todos} onTodosChange={loadTodos} />

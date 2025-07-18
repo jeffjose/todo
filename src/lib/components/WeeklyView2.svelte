@@ -145,19 +145,23 @@
 					class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
 				>
 					<!-- Week dates -->
-					<div class="font-medium flex flex-col items-center">
+					<div class="font-medium flex flex-col items-center justify-center h-8">
 						{#if i === 0 || week.weekStart.getMonth() !== week.weekEnd.getMonth()}
-							<div class="text-[10px] text-muted-foreground mb-0.5">
+							<div class="text-[10px] text-muted-foreground leading-tight">
 								{#if week.weekStart.getMonth() === week.weekEnd.getMonth()}
 									{week.weekStart.toLocaleDateString('en-US', { month: 'short' })}
 								{:else}
 									{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
 								{/if}
 							</div>
+							<div class="text-xs tabular-nums leading-tight">
+								{formatWeekDates(week.weekStart, week.weekEnd)}
+							</div>
+						{:else}
+							<div class="text-xs tabular-nums">
+								{formatWeekDates(week.weekStart, week.weekEnd)}
+							</div>
 						{/if}
-						<div class="text-xs tabular-nums">
-							{formatWeekDates(week.weekStart, week.weekEnd)}
-						</div>
 					</div>
 
 					<!-- Deadline column -->

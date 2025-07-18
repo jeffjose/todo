@@ -126,7 +126,7 @@
 	<div class="min-w-[900px]">
 		<!-- Header -->
 		<div
-			class="grid grid-cols-[180px_1fr_1fr_1fr_1fr] gap-6 border-b bg-muted/30 px-6 py-4 text-xs"
+			class="grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 border-b bg-muted/30 px-6 py-4 text-xs"
 		>
 			<div class="font-semibold text-muted-foreground">WEEK</div>
 			<div class="font-semibold text-muted-foreground">DEADLINE</div>
@@ -142,17 +142,19 @@
 			{#each weekEvents as week, i}
 				<!-- Week row -->
 				<div
-					class={`grid grid-cols-[180px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
+					class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
 				>
 					<!-- Week dates -->
-					<div class="font-medium">
-						<div class="text-[10px] text-muted-foreground mb-0.5">
-							{#if week.weekStart.getMonth() === week.weekEnd.getMonth()}
-								{week.weekStart.toLocaleDateString('en-US', { month: 'short' })}
-							{:else}
-								{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
-							{/if}
-						</div>
+					<div class="font-medium flex flex-col items-center">
+						{#if i === 0 || week.weekStart.getMonth() !== week.weekEnd.getMonth()}
+							<div class="text-[10px] text-muted-foreground mb-0.5">
+								{#if week.weekStart.getMonth() === week.weekEnd.getMonth()}
+									{week.weekStart.toLocaleDateString('en-US', { month: 'short' })}
+								{:else}
+									{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
+								{/if}
+							</div>
+						{/if}
 						<div class="text-xs tabular-nums">
 							{formatWeekDates(week.weekStart, week.weekEnd)}
 						</div>

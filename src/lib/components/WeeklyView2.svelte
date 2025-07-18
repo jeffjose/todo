@@ -3,22 +3,28 @@
 	import type { Todo } from '$lib/client/dexie';
 	import { 
 		getTaskStatus,
-		getStatusBadgeClass,
-		getPriorityBadgeClass,
 		formatDate,
-		formatTodoDate,
-		isCurrentWeek,
-		getMonthYear,
-		shouldShowMonthHeader,
-		type WeekEvent
+		formatTodoDate
 	} from '$lib/utils/taskLogic';
-	import { getTodosForWeek, getOpenTodosUpToCurrentWeek } from '$lib/utils/taskFilters';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 
-	const { todos = [], onTodosChange } = $props<{
+	interface WeekEvent {
+		id: string;
+		weekStart: Date;
+		weekEnd: Date;
+		isCurrent: boolean;
+		todos: {
+			deadline: Todo[];
+			finishBy: Todo[];
+			todo: Todo[];
+		};
+		openTodos: Todo[];
+	}
+
+	const { todos = [] } = $props<{
 		todos: Todo[];
-		onTodosChange: () => Promise<void>;
+		onTodosChange?: () => Promise<void>;
 	}>();
 
 	let weekEvents = $state<WeekEvent[]>([]);
@@ -41,15 +47,54 @@
 			const weekEnd = new Date(weekStart);
 			weekEnd.setDate(weekStart.getDate() + 6);
 			
-			const weekTodos = getTodosForWeek(todos, weekStart, weekEnd, isCurrentWeek(weekStart));
-			const openTodos = weekOffset === 0 ? getOpenTodosUpToCurrentWeek(todos, weekStart) : [];
+			const isCurrent = weekOffset === 0;
+			
+			// Get todos for each column type
+			const deadlineTodos = todos.filter((todo: Todo) => {
+				if (todo.status === 'completed' || !todo.deadline) return false;
+				const deadline = new Date(todo.deadline);
+				return deadline >= weekStart && deadline <= weekEnd;
+			});
+			
+			const finishByTodos = todos.filter((todo: Todo) => {
+				if (!todo.finishBy) return false;
+				const finishBy = new Date(todo.finishBy);
+				
+				// For current week, include all slipped tasks
+				if (isCurrent && todo.status !== 'completed' && finishBy < weekStart) {
+					return true;
+				}
+				
+				// For non-current weeks, show completed tasks
+				if (!isCurrent && todo.status === 'completed' && todo.completed) {
+					const completed = new Date(todo.completed);
+					return completed >= weekStart && completed <= weekEnd;
+				}
+				
+				// Regular case: show tasks in their original week
+				return finishBy >= weekStart && finishBy <= weekEnd;
+			});
+			
+			const todoTodos = todos.filter((todo: Todo) => {
+				if (!todo.todo) return false;
+				const todoDate = new Date(todo.todo);
+				return todoDate >= weekStart && todoDate <= weekEnd;
+			});
+			
+			const openTodos = isCurrent ? todos.filter((todo: Todo) => {
+				return todo.status !== 'completed' && todo.todo && new Date(todo.todo) <= weekEnd;
+			}) : [];
 			
 			newWeekEvents.push({
 				id: `week-${weekOffset}`,
 				weekStart,
 				weekEnd,
-				isCurrent: weekOffset === 0,
-				todos: weekTodos,
+				isCurrent,
+				todos: {
+					deadline: deadlineTodos,
+					finishBy: finishByTodos,
+					todo: todoTodos
+				},
 				openTodos
 			});
 		}
@@ -71,64 +116,74 @@
 	});
 </script>
 
-<div class="weekly-view-container">
+<div class="rounded-md border">
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head>Week</Table.Head>
-				<Table.Head>Deadline</Table.Head>
-				<Table.Head>Finish By</Table.Head>
-				<Table.Head>Todo</Table.Head>
+				<Table.Head class="w-[180px]">WEEK</Table.Head>
+				<Table.Head>DEADLINE</Table.Head>
+				<Table.Head>FINISH BY</Table.Head>
+				<Table.Head>TODO</Table.Head>
 				{#if weekEvents.some(week => week.isCurrent)}
-					<Table.Head>Open Todos</Table.Head>
+					<Table.Head>OPEN TODOS</Table.Head>
 				{/if}
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
-			{#each weekEvents as week}
-				{@const showMonth = shouldShowMonthHeader(week, weekEvents)}
+			{#each weekEvents as week, i}
+				{@const showMonth = i === 0 || week.weekStart.getDate() <= 7}
 				{#if showMonth}
-					<Table.Row class="month-separator">
-						<Table.Cell colspan={5}>
-							<div class="month-header">{getMonthYear(week.weekStart)}</div>
+					<Table.Row class="hover:bg-transparent">
+						<Table.Cell colspan={5} class="bg-muted/50 font-semibold text-sm">
+							{week.weekStart.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
 						</Table.Cell>
 					</Table.Row>
 				{/if}
-				<Table.Row class={week.isCurrent ? 'current-week' : ''}>
+				<Table.Row class={week.isCurrent ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
 					<Table.Cell class="font-medium">
-						<div class="week-dates">
-							{formatDate(week.weekStart)} - {formatDate(week.weekEnd)}
-						</div>
+						{formatDate(week.weekStart)} - {formatDate(week.weekEnd)}
 					</Table.Cell>
 					<Table.Cell>
 						{#each week.todos.deadline as todo}
-							<div class="task-item">
-								<span class="task-emoji">{todo.emoji || '📋'}</span>
-								<span class="task-title">{todo.title}</span>
-								<Badge variant={getTaskStatus(todo) === 'overdue' ? 'destructive' : getTaskStatus(todo) === 'slipped' ? 'secondary' : 'default'}>
-									{getTaskStatus(todo)}
-								</Badge>
+							{@const status = getTaskStatus(todo, week.weekStart)}
+							<div class="flex items-center gap-2 py-1">
+								<span class="text-lg">{todo.emoji || '📋'}</span>
+								<span class="flex-1 text-sm">{todo.title}</span>
+								{#if status && status.type !== 'on-track'}
+									<Badge
+										variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
+										class="text-xs"
+									>
+										{status.type}
+									</Badge>
+								{/if}
 							</div>
 						{/each}
 					</Table.Cell>
 					<Table.Cell>
 						{#each week.todos.finishBy as todo}
-							<div class="task-item">
-								<span class="task-emoji">{todo.emoji || '📋'}</span>
-								<span class="task-title">{todo.title}</span>
-								<Badge variant={getTaskStatus(todo) === 'overdue' ? 'destructive' : getTaskStatus(todo) === 'slipped' ? 'secondary' : 'default'}>
-									{getTaskStatus(todo)}
-								</Badge>
+							{@const status = getTaskStatus(todo, week.weekStart)}
+							<div class="flex items-center gap-2 py-1">
+								<span class="text-lg">{todo.emoji || '📋'}</span>
+								<span class="flex-1 text-sm">{todo.title}</span>
+								{#if status && status.type !== 'on-track'}
+									<Badge
+										variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
+										class="text-xs"
+									>
+										{status.type}
+									</Badge>
+								{/if}
 							</div>
 						{/each}
 					</Table.Cell>
 					<Table.Cell>
 						{#each week.todos.todo as todo}
-							<div class="task-item">
-								<span class="task-emoji">{todo.emoji || '📋'}</span>
-								<span class="task-title">{todo.title}</span>
+							<div class="flex items-center gap-2 py-1">
+								<span class="text-lg">{todo.emoji || '📋'}</span>
+								<span class="flex-1 text-sm">{todo.title}</span>
 								{#if todo.todo}
-									<span class="task-date">{formatTodoDate(todo.todo)}</span>
+									<span class="text-xs text-muted-foreground">{formatTodoDate(todo.todo)}</span>
 								{/if}
 							</div>
 						{/each}
@@ -136,12 +191,18 @@
 					{#if week.isCurrent}
 						<Table.Cell>
 							{#each week.openTodos as todo}
-								<div class="task-item">
-									<span class="task-emoji">{todo.emoji || '📋'}</span>
-									<span class="task-title">{todo.title}</span>
-									<Badge variant={getTaskStatus(todo) === 'overdue' ? 'destructive' : getTaskStatus(todo) === 'slipped' ? 'secondary' : 'default'}>
-										{getTaskStatus(todo)}
-									</Badge>
+								{@const status = getTaskStatus(todo, week.weekStart)}
+								<div class="flex items-center gap-2 py-1">
+									<span class="text-lg">{todo.emoji || '📋'}</span>
+									<span class="flex-1 text-sm">{todo.title}</span>
+									{#if status && status.type !== 'on-track'}
+										<Badge
+											variant={status.type === 'overdue' ? 'destructive' : 'secondary'}
+											class="text-xs"
+										>
+											{status.type}
+										</Badge>
+									{/if}
 								</div>
 							{/each}
 						</Table.Cell>
@@ -153,43 +214,3 @@
 		</Table.Body>
 	</Table.Root>
 </div>
-
-<style lang="postcss">
-	.weekly-view-container {
-		@apply w-full overflow-x-auto;
-	}
-
-	/* Current week highlight */
-	:global(.current-week) {
-		@apply bg-amber-50 dark:bg-amber-900/20;
-	}
-
-	/* Month separator */
-	:global(.month-separator td) {
-		@apply bg-gray-100 dark:bg-gray-800 pt-4 pb-2;
-	}
-
-	.month-header {
-		@apply text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider;
-	}
-
-	.week-dates {
-		@apply text-sm whitespace-nowrap;
-	}
-
-	.task-item {
-		@apply flex items-center gap-2 py-1;
-	}
-
-	.task-emoji {
-		@apply text-base;
-	}
-
-	.task-title {
-		@apply text-sm text-gray-700 dark:text-gray-300 flex-1;
-	}
-
-	.task-date {
-		@apply text-xs text-gray-500;
-	}
-</style>

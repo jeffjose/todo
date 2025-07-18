@@ -298,8 +298,7 @@
 				{:else}
 					<!-- Expanded view (show all 7 days) -->
 					{#each Array(7) as _, dayIndex}
-						{@const dayDate = new Date(week.weekStart)}
-						{@const _date = dayDate.setDate(week.weekStart.getDate() + dayIndex)}
+						{@const dayDate = new Date(week.weekStart.getTime() + dayIndex * 24 * 60 * 60 * 1000)}
 						{@const dayTodos = {
 							deadline: week.todos.deadline.filter(todo => {
 								const deadline = new Date(todo.deadline!);

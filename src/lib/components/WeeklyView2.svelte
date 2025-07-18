@@ -94,7 +94,7 @@
 						</Table.Cell>
 					</Table.Row>
 				{/if}
-				<Table.Row class:current-week={week.isCurrent}>
+				<Table.Row class={week.isCurrent ? 'current-week' : ''}>
 					<Table.Cell class="font-medium">
 						<div class="week-dates">
 							{formatDate(week.weekStart)} - {formatDate(week.weekEnd)}
@@ -154,33 +154,29 @@
 	</Table.Root>
 </div>
 
-<style>
+<style lang="postcss">
 	.weekly-view-container {
 		@apply w-full overflow-x-auto;
 	}
 
 	/* Current week highlight */
 	:global(.current-week) {
-		@apply bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30;
+		@apply bg-amber-50 dark:bg-amber-900/20;
 	}
 
 	/* Month separator */
 	:global(.month-separator td) {
-		@apply bg-gray-100 dark:bg-gray-800;
-		padding-top: 1rem;
-		padding-bottom: 0.5rem;
+		@apply bg-gray-100 dark:bg-gray-800 pt-4 pb-2;
 	}
 
 	.month-header {
 		@apply text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider;
 	}
 
-	/* Week dates */
 	.week-dates {
 		@apply text-sm whitespace-nowrap;
 	}
 
-	/* Task items */
 	.task-item {
 		@apply flex items-center gap-2 py-1;
 	}
@@ -190,11 +186,10 @@
 	}
 
 	.task-title {
-		@apply text-sm text-gray-700 dark:text-gray-300;
-		flex: 1;
+		@apply text-sm text-gray-700 dark:text-gray-300 flex-1;
 	}
 
 	.task-date {
-		@apply text-xs text-gray-500 dark:text-gray-500;
+		@apply text-xs text-gray-500;
 	}
 </style>

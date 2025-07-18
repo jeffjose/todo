@@ -160,10 +160,11 @@
 		<!-- Body -->
 		<div class="divide-y">
 			{#each weekEvents as week, i}
-				<!-- Week row -->
-				<div
-					class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
-				>
+				{#if !expandedWeeks.has(week.id)}
+					<!-- Week row (collapsed) -->
+					<div
+						class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
+					>
 					<!-- Week dates -->
 					<button
 						class="font-medium gap-1 flex flex-col items-center justify-center h-8 w-full cursor-pointer hover:bg-muted/20 rounded transition-colors"
@@ -297,10 +298,9 @@
 					{:else if weekEvents.some((w) => w.isCurrent)}
 						<div></div>
 					{/if}
-				</div>
-				
-				<!-- Expanded day rows -->
-				{#if expandedWeeks.has(week.id)}
+					</div>
+				{:else}
+					<!-- Expanded view (show all 7 days) -->
 					{#each Array(7) as _, dayIndex}
 						{@const dayDate = new Date(week.weekStart)}
 						{@const _date = dayDate.setDate(week.weekStart.getDate() + dayIndex)}
@@ -318,12 +318,29 @@
 								return todoDate.toDateString() === dayDate.toDateString();
 							})
 						}}
-						<div class="grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-3 bg-muted/5 border-l-2 border-muted">
+						<div class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-3 ${dayIndex === 0 && week.isCurrent ? 'bg-amber-50 dark:bg-amber-950/10' : 'bg-muted/5'} ${dayIndex > 0 ? 'border-l-2 border-muted' : ''}`}>
 							<!-- Day date -->
-							<div class="text-xs text-center text-muted-foreground">
-								<div class="text-[10px]">{dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-								<div class="font-medium">{dayDate.getDate()}</div>
-							</div>
+							<button
+								class="font-medium gap-1 flex flex-col items-center justify-center min-h-[2rem] w-full cursor-pointer hover:bg-muted/20 rounded transition-colors py-1"
+								onclick={() => toggleWeek(week.id)}
+							>
+								<div class="flex items-center gap-1">
+									<div class="w-3 h-3">
+										{#if dayIndex === 0}
+											<ChevronDown class="w-3 h-3" />
+										{/if}
+									</div>
+									<div class="flex flex-col items-center">
+										{#if (dayIndex === 0 && i === 0) || (week.weekStart.getMonth() !== week.weekEnd.getMonth() && (dayIndex === 0 || dayDate.getMonth() !== week.weekStart.getMonth()))}
+											<div class="text-[10px] text-muted-foreground leading-tight">
+												{dayDate.toLocaleDateString('en-US', { month: 'short' })}
+											</div>
+										{/if}
+										<div class="text-[10px] text-muted-foreground">{dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+										<div class="text-xs font-medium">{dayDate.getDate()}</div>
+									</div>
+								</div>
+							</button>
 							
 							<!-- Day deadline tasks -->
 							<div class="space-y-1">

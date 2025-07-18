@@ -23,6 +23,7 @@
 	}>();
 
 	let weekEvents = $state<WeekEvent[]>([]);
+	let expandedWeeks = $state<Set<string>>(new Set());
 
 	// Format week dates intelligently
 	function formatWeekDates(weekStart: Date, weekEnd: Date): string {
@@ -32,6 +33,17 @@
 		// Always just show the day numbers with space
 		return `${startDay} – ${endDay}`;
 	}
+	
+	// Toggle week expansion
+	function toggleWeek(weekId: string) {
+		if (expandedWeeks.has(weekId)) {
+			expandedWeeks.delete(weekId);
+		} else {
+			expandedWeeks.add(weekId);
+		}
+		expandedWeeks = new Set(expandedWeeks); // Trigger reactivity
+	}
+	
 	let viewStartDate = $state<Date | null>(null);
 	let viewEndDate = $state<Date | null>(null);
 
@@ -106,6 +118,13 @@
 		}
 
 		weekEvents = newWeekEvents;
+		
+		// Set current week as expanded by default
+		const currentWeekId = 'week-0';
+		if (!expandedWeeks.has(currentWeekId)) {
+			expandedWeeks.add(currentWeekId);
+			expandedWeeks = new Set(expandedWeeks);
+		}
 	});
 
 	onMount(() => {
@@ -145,24 +164,32 @@
 					class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
 				>
 					<!-- Week dates -->
-					<div class="font-medium flex flex-col items-center justify-center h-8">
-						{#if i === 0 || week.weekStart.getMonth() !== week.weekEnd.getMonth()}
-							<div class="text-[10px] text-muted-foreground leading-tight">
-								{#if week.weekStart.getMonth() === week.weekEnd.getMonth()}
-									{week.weekStart.toLocaleDateString('en-US', { month: 'short' })}
-								{:else}
-									{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
-								{/if}
-							</div>
-							<div class="text-xs tabular-nums leading-tight">
-								{formatWeekDates(week.weekStart, week.weekEnd)}
-							</div>
-						{:else}
-							<div class="text-xs tabular-nums">
-								{formatWeekDates(week.weekStart, week.weekEnd)}
-							</div>
-						{/if}
-					</div>
+					<button
+						class="font-medium gap-1 flex flex-col items-center justify-center h-8 w-full cursor-pointer hover:bg-muted/20 rounded transition-colors"
+						onclick={() => toggleWeek(week.id)}
+					>
+						<div class="flex items-center gap-1">
+							<span class="text-[10px]">{expandedWeeks.has(week.id) ? '▼' : '▶'}</span>
+							{#if i === 0 || week.weekStart.getMonth() !== week.weekEnd.getMonth()}
+								<div class="flex flex-col items-center">
+									<div class="text-[10px] text-muted-foreground leading-tight">
+										{#if week.weekStart.getMonth() === week.weekEnd.getMonth()}
+											{week.weekStart.toLocaleDateString('en-US', { month: 'short' })}
+										{:else}
+											{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
+										{/if}
+									</div>
+									<div class="text-xs tabular-nums leading-tight">
+										{formatWeekDates(week.weekStart, week.weekEnd)}
+									</div>
+								</div>
+							{:else}
+								<div class="text-xs tabular-nums">
+									{formatWeekDates(week.weekStart, week.weekEnd)}
+								</div>
+							{/if}
+						</div>
+					</button>
 
 					<!-- Deadline column -->
 					<div class="space-y-2">
@@ -264,6 +291,70 @@
 						<div></div>
 					{/if}
 				</div>
+				
+				<!-- Expanded day rows -->
+				{#if expandedWeeks.has(week.id)}
+					{#each Array(7) as _, dayIndex}
+						{@const dayDate = new Date(week.weekStart)}
+						{@const _date = dayDate.setDate(week.weekStart.getDate() + dayIndex)}
+						{@const dayTodos = {
+							deadline: week.todos.deadline.filter(todo => {
+								const deadline = new Date(todo.deadline!);
+								return deadline.toDateString() === dayDate.toDateString();
+							}),
+							finishBy: week.todos.finishBy.filter(todo => {
+								const finishBy = new Date(todo.finishBy!);
+								return finishBy.toDateString() === dayDate.toDateString();
+							}),
+							todo: week.todos.todo.filter(todo => {
+								const todoDate = new Date(todo.todo!);
+								return todoDate.toDateString() === dayDate.toDateString();
+							})
+						}}
+						<div class="grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-3 bg-muted/5 border-l-2 border-muted">
+							<!-- Day date -->
+							<div class="text-xs text-center text-muted-foreground">
+								<div class="text-[10px]">{dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+								<div class="font-medium">{dayDate.getDate()}</div>
+							</div>
+							
+							<!-- Day deadline tasks -->
+							<div class="space-y-1">
+								{#each dayTodos.deadline as todo}
+									<div class="flex items-center gap-2 text-xs">
+										<span>{todo.emoji || '📋'}</span>
+										<span class="truncate">{todo.title}</span>
+									</div>
+								{/each}
+							</div>
+							
+							<!-- Day finishBy tasks -->
+							<div class="space-y-1">
+								{#each dayTodos.finishBy as todo}
+									<div class="flex items-center gap-2 text-xs">
+										<span>{todo.emoji || '📋'}</span>
+										<span class="truncate">{todo.title}</span>
+									</div>
+								{/each}
+							</div>
+							
+							<!-- Day todo tasks -->
+							<div class="space-y-1">
+								{#each dayTodos.todo as todo}
+									<div class="flex items-center gap-2 text-xs">
+										<span>{todo.emoji || '📋'}</span>
+										<span class="truncate">{todo.title}</span>
+									</div>
+								{/each}
+							</div>
+							
+							<!-- Empty cell for open todos column -->
+							{#if weekEvents.some((w) => w.isCurrent)}
+								<div></div>
+							{/if}
+						</div>
+					{/each}
+				{/if}
 			{/each}
 		</div>
 	</div>

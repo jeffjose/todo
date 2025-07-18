@@ -120,12 +120,12 @@
 	<Table.Root>
 		<Table.Header>
 			<Table.Row>
-				<Table.Head class="w-[180px]">WEEK</Table.Head>
-				<Table.Head>DEADLINE</Table.Head>
-				<Table.Head>FINISH BY</Table.Head>
-				<Table.Head>TODO</Table.Head>
+				<Table.Head class="w-[160px]">Week</Table.Head>
+				<Table.Head>Deadline</Table.Head>
+				<Table.Head>Finish By</Table.Head>
+				<Table.Head>Todo</Table.Head>
 				{#if weekEvents.some(week => week.isCurrent)}
-					<Table.Head>OPEN TODOS</Table.Head>
+					<Table.Head>Open Todos</Table.Head>
 				{/if}
 			</Table.Row>
 		</Table.Header>
@@ -141,7 +141,9 @@
 				{/if}
 				<Table.Row class={week.isCurrent ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
 					<Table.Cell class="font-medium">
-						{formatDate(week.weekStart)} - {formatDate(week.weekEnd)}
+						<div class="text-sm tabular-nums">
+							{week.weekStart.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
+						</div>
 					</Table.Cell>
 					<Table.Cell>
 						{#each week.todos.deadline as todo}

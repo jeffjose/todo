@@ -29,8 +29,8 @@
 		const startDay = weekStart.getDate();
 		const endDay = weekEnd.getDate();
 		
-		// Always just show the day numbers
-		return `${startDay}–${endDay}`;
+		// Always just show the day numbers with space
+		return `${startDay} – ${endDay}`;
 	}
 	let viewStartDate = $state<Date | null>(null);
 	let viewEndDate = $state<Date | null>(null);
@@ -140,30 +140,22 @@
 		<!-- Body -->
 		<div class="divide-y">
 			{#each weekEvents as week, i}
-				{@const showMonth = i === 0 || week.weekStart.getDate() <= 7}
-
-				{#if showMonth}
-					<!-- Month separator -->
-					<div class="relative bg-muted/10 px-6 py-3 text-xs font-semibold text-muted-foreground">
-						<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary/20"></div>
-						{week.weekStart.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}
-					</div>
-				{/if}
-
 				<!-- Week row -->
 				<div
 					class={`grid grid-cols-[180px_1fr_1fr_1fr_1fr] gap-6 px-6 py-4 transition-colors hover:bg-muted/5 ${week.isCurrent ? 'bg-amber-50 hover:bg-amber-50 dark:bg-amber-950/10 dark:hover:bg-amber-950/10' : ''}`}
 				>
 					<!-- Week dates -->
 					<div class="font-medium">
+						<div class="text-[10px] text-muted-foreground mb-0.5">
+							{#if week.weekStart.getMonth() === week.weekEnd.getMonth()}
+								{week.weekStart.toLocaleDateString('en-US', { month: 'short' })}
+							{:else}
+								{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
+							{/if}
+						</div>
 						<div class="text-xs tabular-nums">
 							{formatWeekDates(week.weekStart, week.weekEnd)}
 						</div>
-						{#if week.weekStart.getMonth() !== week.weekEnd.getMonth()}
-							<div class="text-[10px] text-muted-foreground mt-0.5">
-								{week.weekStart.toLocaleDateString('en-US', { month: 'short' })} – {week.weekEnd.toLocaleDateString('en-US', { month: 'short' })}
-							</div>
-						{/if}
 					</div>
 
 					<!-- Deadline column -->

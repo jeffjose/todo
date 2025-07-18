@@ -13,6 +13,8 @@
 		type WeekEvent
 	} from '$lib/utils/taskLogic';
 	import { getTodosForWeek, getOpenTodosUpToCurrentWeek } from '$lib/utils/taskFilters';
+	import * as Table from '$lib/components/ui/table';
+	import { Badge } from '$lib/components/ui/badge';
 
 	const { todos = [], onTodosChange } = $props<{
 		todos: Todo[];
@@ -70,53 +72,57 @@
 </script>
 
 <div class="weekly-view-container">
-	<table class="rt-table">
-		<thead class="rt-table-header">
-			<tr class="rt-table-row">
-				<th class="rt-table-cell rt-table-header-cell" scope="col">Week</th>
-				<th class="rt-table-cell rt-table-header-cell" scope="col">Deadline</th>
-				<th class="rt-table-cell rt-table-header-cell" scope="col">Finish By</th>
-				<th class="rt-table-cell rt-table-header-cell" scope="col">Todo</th>
+	<Table.Root>
+		<Table.Header>
+			<Table.Row>
+				<Table.Head>Week</Table.Head>
+				<Table.Head>Deadline</Table.Head>
+				<Table.Head>Finish By</Table.Head>
+				<Table.Head>Todo</Table.Head>
 				{#if weekEvents.some(week => week.isCurrent)}
-					<th class="rt-table-cell rt-table-header-cell" scope="col">Open Todos</th>
+					<Table.Head>Open Todos</Table.Head>
 				{/if}
-			</tr>
-		</thead>
-		<tbody class="rt-table-body">
+			</Table.Row>
+		</Table.Header>
+		<Table.Body>
 			{#each weekEvents as week}
 				{@const showMonth = shouldShowMonthHeader(week, weekEvents)}
 				{#if showMonth}
-					<tr class="rt-table-row month-separator">
-						<td class="rt-table-cell" colspan="5">
+					<Table.Row class="month-separator">
+						<Table.Cell colspan={5}>
 							<div class="month-header">{getMonthYear(week.weekStart)}</div>
-						</td>
-					</tr>
+						</Table.Cell>
+					</Table.Row>
 				{/if}
-				<tr class="rt-table-row" class:current-week={week.isCurrent}>
-					<th class="rt-table-cell rt-table-row-header-cell" scope="row">
+				<Table.Row class:current-week={week.isCurrent}>
+					<Table.Cell class="font-medium">
 						<div class="week-dates">
 							{formatDate(week.weekStart)} - {formatDate(week.weekEnd)}
 						</div>
-					</th>
-					<td class="rt-table-cell">
+					</Table.Cell>
+					<Table.Cell>
 						{#each week.todos.deadline as todo}
 							<div class="task-item">
 								<span class="task-emoji">{todo.emoji || '📋'}</span>
 								<span class="task-title">{todo.title}</span>
-								<span class="task-badge {getStatusBadgeClass(getTaskStatus(todo))}">{getTaskStatus(todo)}</span>
+								<Badge variant={getTaskStatus(todo) === 'overdue' ? 'destructive' : getTaskStatus(todo) === 'slipped' ? 'secondary' : 'default'}>
+									{getTaskStatus(todo)}
+								</Badge>
 							</div>
 						{/each}
-					</td>
-					<td class="rt-table-cell">
+					</Table.Cell>
+					<Table.Cell>
 						{#each week.todos.finishBy as todo}
 							<div class="task-item">
 								<span class="task-emoji">{todo.emoji || '📋'}</span>
 								<span class="task-title">{todo.title}</span>
-								<span class="task-badge {getStatusBadgeClass(getTaskStatus(todo))}">{getTaskStatus(todo)}</span>
+								<Badge variant={getTaskStatus(todo) === 'overdue' ? 'destructive' : getTaskStatus(todo) === 'slipped' ? 'secondary' : 'default'}>
+									{getTaskStatus(todo)}
+								</Badge>
 							</div>
 						{/each}
-					</td>
-					<td class="rt-table-cell">
+					</Table.Cell>
+					<Table.Cell>
 						{#each week.todos.todo as todo}
 							<div class="task-item">
 								<span class="task-emoji">{todo.emoji || '📋'}</span>
@@ -126,75 +132,41 @@
 								{/if}
 							</div>
 						{/each}
-					</td>
+					</Table.Cell>
 					{#if week.isCurrent}
-						<td class="rt-table-cell">
+						<Table.Cell>
 							{#each week.openTodos as todo}
 								<div class="task-item">
 									<span class="task-emoji">{todo.emoji || '📋'}</span>
 									<span class="task-title">{todo.title}</span>
-									<span class="task-badge {getStatusBadgeClass(getTaskStatus(todo))}">{getTaskStatus(todo)}</span>
+									<Badge variant={getTaskStatus(todo) === 'overdue' ? 'destructive' : getTaskStatus(todo) === 'slipped' ? 'secondary' : 'default'}>
+										{getTaskStatus(todo)}
+									</Badge>
 								</div>
 							{/each}
-						</td>
+						</Table.Cell>
 					{:else if weekEvents.some(w => w.isCurrent)}
-						<td class="rt-table-cell"></td>
+						<Table.Cell></Table.Cell>
 					{/if}
-				</tr>
+				</Table.Row>
 			{/each}
-		</tbody>
-	</table>
+		</Table.Body>
+	</Table.Root>
 </div>
 
 <style>
-	/* Radix UI inspired table styling */
 	.weekly-view-container {
 		@apply w-full overflow-x-auto;
 	}
 
-	.rt-table {
-		@apply w-full border-collapse;
-		font-size: 14px;
-		line-height: 1.5;
-	}
-
-	/* Table Header */
-	.rt-table-header {
-		@apply border-b border-gray-200 dark:border-gray-700;
-	}
-
-	.rt-table-header-cell {
-		@apply px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300;
-		font-weight: 500;
-		letter-spacing: 0.025em;
-	}
-
-	/* Table Body */
-	.rt-table-body {
-		@apply divide-y divide-gray-100 dark:divide-gray-800;
-	}
-
-	.rt-table-row {
-		@apply hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors;
-	}
-
-	.rt-table-row.current-week {
+	/* Current week highlight */
+	:global(.current-week) {
 		@apply bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30;
 	}
 
-	/* Table Cells */
-	.rt-table-cell {
-		@apply px-4 py-3 align-top;
-	}
-
-	.rt-table-row-header-cell {
-		@apply font-medium text-gray-900 dark:text-gray-100;
-		font-weight: 500;
-	}
-
 	/* Month separator */
-	.month-separator td {
-		@apply bg-gray-100 dark:bg-gray-800 py-2;
+	:global(.month-separator td) {
+		@apply bg-gray-100 dark:bg-gray-800;
 		padding-top: 1rem;
 		padding-bottom: 0.5rem;
 	}
@@ -224,22 +196,5 @@
 
 	.task-date {
 		@apply text-xs text-gray-500 dark:text-gray-500;
-	}
-
-	.task-badge {
-		@apply px-2 py-0.5 text-xs rounded-full font-medium;
-	}
-
-	/* Status badge colors */
-	.task-badge.overdue {
-		@apply bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300;
-	}
-
-	.task-badge.slipped {
-		@apply bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300;
-	}
-
-	.task-badge.on-track {
-		@apply bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300;
 	}
 </style>

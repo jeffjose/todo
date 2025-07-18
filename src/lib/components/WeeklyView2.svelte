@@ -172,11 +172,7 @@
 					>
 						<div class="flex items-center gap-1">
 							<div class="w-3 h-3">
-								{#if expandedWeeks.has(week.id)}
-									<ChevronDown class="w-3 h-3" />
-								{:else}
-									<ChevronRight class="w-3 h-3" />
-								{/if}
+								<ChevronRight class="w-3 h-3" />
 							</div>
 							{#if i === 0 || week.weekStart.getMonth() !== week.weekEnd.getMonth()}
 								<div class="flex flex-col items-center">
@@ -320,27 +316,37 @@
 						}}
 						<div class={`grid grid-cols-[50px_1fr_1fr_1fr_1fr] gap-6 px-6 py-3 ${dayIndex === 0 && week.isCurrent ? 'bg-amber-50 dark:bg-amber-950/10' : 'bg-muted/5'} ${dayIndex > 0 ? 'border-l-2 border-muted' : ''}`}>
 							<!-- Day date -->
-							<button
-								class="font-medium gap-1 flex flex-col items-center justify-center min-h-[2rem] w-full cursor-pointer hover:bg-muted/20 rounded transition-colors py-1"
-								onclick={() => toggleWeek(week.id)}
-							>
-								<div class="flex items-center gap-1">
-									<div class="w-3 h-3">
-										{#if dayIndex === 0}
+							{#if dayIndex === 0}
+								<button
+									class="font-medium gap-1 flex flex-col items-center justify-center min-h-[2rem] w-full cursor-pointer hover:bg-muted/20 rounded transition-colors py-1"
+									onclick={() => toggleWeek(week.id)}
+								>
+									<div class="flex items-center gap-1">
+										<div class="w-3 h-3">
 											<ChevronDown class="w-3 h-3" />
-										{/if}
+										</div>
+										<div class="flex flex-col items-center">
+											{#if i === 0 || dayDate.getMonth() !== week.weekStart.getMonth()}
+												<div class="text-[10px] text-muted-foreground leading-tight">
+													{dayDate.toLocaleDateString('en-US', { month: 'short' })}
+												</div>
+											{/if}
+											<div class="text-[10px] text-muted-foreground">{dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+											<div class="text-xs font-medium">{dayDate.getDate()}</div>
+										</div>
 									</div>
-									<div class="flex flex-col items-center">
-										{#if (dayIndex === 0 && i === 0) || (week.weekStart.getMonth() !== week.weekEnd.getMonth() && (dayIndex === 0 || dayDate.getMonth() !== week.weekStart.getMonth()))}
-											<div class="text-[10px] text-muted-foreground leading-tight">
-												{dayDate.toLocaleDateString('en-US', { month: 'short' })}
-											</div>
-										{/if}
-										<div class="text-[10px] text-muted-foreground">{dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-										<div class="text-xs font-medium">{dayDate.getDate()}</div>
-									</div>
+								</button>
+							{:else}
+								<div class="flex flex-col items-center justify-center min-h-[2rem]">
+									{#if dayDate.getMonth() !== new Date(week.weekStart.getTime() + (dayIndex - 1) * 86400000).getMonth()}
+										<div class="text-[10px] text-muted-foreground leading-tight">
+											{dayDate.toLocaleDateString('en-US', { month: 'short' })}
+										</div>
+									{/if}
+									<div class="text-[10px] text-muted-foreground">{dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+									<div class="text-xs font-medium">{dayDate.getDate()}</div>
 								</div>
-							</button>
+							{/if}
 							
 							<!-- Day deadline tasks -->
 							<div class="space-y-1">

@@ -71,15 +71,6 @@ To run the tests:
 pnpm test
 ```
 
-### Git Hooks
-
-We use Husky to run tests automatically:
-
-- **Pre-commit Hook**: Runs task management tests before each commit
-- **Pre-push Hook**: Runs all tests before pushing to the remote repository
-
-This ensures that task management logic issues are caught early in the development process.
-
 # Task Status Behaviors
 
 ## Task Types and Status Indicators

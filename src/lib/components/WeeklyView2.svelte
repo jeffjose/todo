@@ -3,6 +3,7 @@
 	import type { Todo } from '$lib/client/dexie';
 	import { getTaskStatus, formatTodoDate } from '$lib/utils/taskLogic';
 	import { Badge } from '$lib/components/ui/badge';
+	import { ChevronRight, ChevronDown } from 'lucide-svelte';
 
 	interface WeekEvent {
 		id: string;
@@ -169,7 +170,13 @@
 						onclick={() => toggleWeek(week.id)}
 					>
 						<div class="flex items-center gap-1">
-							<span class="text-[10px]">{expandedWeeks.has(week.id) ? '▼' : '▶'}</span>
+							<div class="w-3 h-3">
+								{#if expandedWeeks.has(week.id)}
+									<ChevronDown class="w-3 h-3" />
+								{:else}
+									<ChevronRight class="w-3 h-3" />
+								{/if}
+							</div>
 							{#if i === 0 || week.weekStart.getMonth() !== week.weekEnd.getMonth()}
 								<div class="flex flex-col items-center">
 									<div class="text-[10px] text-muted-foreground leading-tight">

@@ -1,19 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { getAllTodos, type Todo } from '$lib/client/dexie';
-	import WeeklyView2 from '$lib/components/WeeklyView2.svelte';
-
-	let todos: Todo[] = $state([]);
-
-	onMount(async () => {
-		await loadTodos();
-	});
-
-	async function loadTodos() {
-		const newTodos = await getAllTodos();
-		todos = [...newTodos];
-		document.title = `Todo (${todos.length})`;
-	}
+	// Blank slate - ready to build from scratch
 </script>
 
-<WeeklyView2 {todos} onTodosChange={loadTodos} />
+<div class="min-h-screen bg-background">
+	<!-- Landing page content will go here -->
+	<div class="container mx-auto p-8">
+		<h1 class="text-4xl font-bold">Welcome</h1>
+		<p class="mt-4 text-muted-foreground">Let's build something amazing.</p>
+	</div>
+</div>

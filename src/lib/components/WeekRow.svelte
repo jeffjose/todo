@@ -46,16 +46,16 @@
 </script>
 
 <div
-	class="border-b border-zinc-800 {isCurrent ? 'bg-amber-500/5' : ''}"
+	class="border-b border-zinc-800 {isCurrent ? 'bg-yellow-500/10 border-l-2 border-l-yellow-500' : ''}"
 	class:min-h-[200px]={expanded}
 >
 	<!-- Week Header -->
 	<div class="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
-		<span class="text-xs font-medium {isCurrent ? 'text-amber-400' : 'text-zinc-400'}">
+		<span class="text-xs font-medium {isCurrent ? 'text-yellow-400' : 'text-zinc-400'}">
 			{formatWeekRange(weekStart)}
 		</span>
 		{#if isCurrent}
-			<span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">Current</span>
+			<span class="text-[10px] text-yellow-300 bg-yellow-500/20 px-1.5 py-0.5 rounded font-medium">Current</span>
 		{/if}
 	</div>
 

@@ -1,0 +1,135 @@
+<script lang="ts">
+	import type { Task, NewTask } from '$lib/types';
+	import WeekRow from './WeekRow.svelte';
+	import AddTaskDialog from './AddTaskDialog.svelte';
+	import EditTaskDialog from './EditTaskDialog.svelte';
+	import { getWeeksAroundCurrent, isCurrentWeek } from '$lib/utils/dates';
+	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+
+	interface Props {
+		tasks: Task[];
+		currentDate?: Date;
+		onCreateTask?: (task: NewTask) => void;
+		onUpdateTask?: (id: string, updates: Partial<Task>) => void;
+		onDeleteTask?: (id: string) => void;
+		onToggleTask?: (id: string) => void;
+	}
+
+	let {
+		tasks,
+		currentDate = new Date(),
+		onCreateTask,
+		onUpdateTask,
+		onDeleteTask,
+		onToggleTask
+	}: Props = $props();
+
+	// Navigation state
+	let centerDate = $state(new Date());
+
+	// Dialog state
+	let addDialogOpen = $state(false);
+	let editDialogOpen = $state(false);
+	let selectedTask = $state<Task | null>(null);
+	let addDefaultDate = $state<Date | undefined>(undefined);
+	let addDefaultColumn = $state<'deadline' | 'finishBy' | 'todo' | undefined>(undefined);
+
+	// Get weeks to display
+	let weeks = $derived(getWeeksAroundCurrent(centerDate));
+
+	function navigateWeek(direction: -1 | 1) {
+		const newDate = new Date(centerDate);
+		newDate.setDate(newDate.getDate() + direction * 7);
+		centerDate = newDate;
+	}
+
+	function goToToday() {
+		centerDate = new Date();
+	}
+
+	function handleAddTask(date: Date, column: 'deadline' | 'finishBy' | 'todo') {
+		addDefaultDate = date;
+		addDefaultColumn = column;
+		addDialogOpen = true;
+	}
+
+	function handleClickTask(task: Task) {
+		selectedTask = task;
+		editDialogOpen = true;
+	}
+
+	function handleCreateTask(task: NewTask) {
+		onCreateTask?.(task);
+	}
+
+	function handleUpdateTask(id: string, updates: Partial<Task>) {
+		onUpdateTask?.(id, updates);
+	}
+
+	function handleDeleteTask(id: string) {
+		onDeleteTask?.(id);
+	}
+</script>
+
+<div class="flex flex-col h-full">
+	<!-- Header -->
+	<div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-900/50">
+		<div class="flex items-center gap-2">
+			<button
+				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+				onclick={() => navigateWeek(-1)}
+			>
+				<ChevronLeft class="w-4 h-4" />
+			</button>
+			<button
+				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+				onclick={() => navigateWeek(1)}
+			>
+				<ChevronRight class="w-4 h-4" />
+			</button>
+			<button
+				class="text-xs text-zinc-400 hover:text-zinc-100 px-2 py-1 rounded-md hover:bg-zinc-800 transition-colors"
+				onclick={goToToday}
+			>
+				Today
+			</button>
+		</div>
+
+		<!-- Column Headers -->
+		<div class="flex-1 grid grid-cols-3 text-center">
+			<span class="text-xs font-medium text-zinc-500">Deadline</span>
+			<span class="text-xs font-medium text-zinc-500">Finish By</span>
+			<span class="text-xs font-medium text-zinc-500">Open Todos</span>
+		</div>
+	</div>
+
+	<!-- Week Rows -->
+	<div class="flex-1 overflow-y-auto">
+		{#each weeks as week (week.getTime())}
+			<WeekRow
+				weekStart={week}
+				{tasks}
+				{currentDate}
+				expanded={isCurrentWeek(week, centerDate)}
+				onToggleTask={onToggleTask}
+				onClickTask={handleClickTask}
+				onAddTask={handleAddTask}
+			/>
+		{/each}
+	</div>
+</div>
+
+<!-- Dialogs -->
+<AddTaskDialog
+	bind:open={addDialogOpen}
+	defaultDate={addDefaultDate}
+	defaultColumn={addDefaultColumn}
+	onSubmit={handleCreateTask}
+/>
+
+<EditTaskDialog
+	bind:open={editDialogOpen}
+	task={selectedTask}
+	onSubmit={handleUpdateTask}
+	onDelete={handleDeleteTask}
+/>

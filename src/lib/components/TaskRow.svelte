@@ -11,9 +11,10 @@
 		showDueDate?: boolean;
 		isHighlighted?: boolean;
 		workOrder?: number;
+		isGhost?: boolean; // Show as ghost (promoted to current week)
 	}
 
-	let { task, onToggle, onClick, onHover, showDueDate = false, isHighlighted = false, workOrder }: Props = $props();
+	let { task, onToggle, onClick, onHover, showDueDate = false, isHighlighted = false, workOrder, isGhost = false }: Props = $props();
 
 	const priorityColors: Record<string, string> = {
 		P0: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -67,7 +68,7 @@
 </script>
 
 <div
-	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''} {isBlocked ? 'opacity-60' : ''}"
+	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''} {isBlocked ? 'opacity-60' : ''} {isGhost ? 'opacity-50' : ''}"
 	style="padding-left: calc(0.5rem + {task.level * 0.75}rem)"
 	role="button"
 	tabindex="0"
@@ -77,29 +78,34 @@
 	onmouseleave={() => onHover?.(null)}
 >
 	<!-- Work Order Badge -->
-	{#if workOrder}
+	{#if workOrder && !isGhost}
 		<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 w-5 h-5 rounded-full flex items-center justify-center shrink-0">
 			{workOrder}
 		</span>
 	{/if}
 
-	<!-- Checkbox -->
-	<div
-		onclick={(e) => {
-			e.stopPropagation();
-			onToggle?.(task.id);
-		}}
-		onkeydown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
+	<!-- Ghost indicator (promoted to current week) -->
+	{#if isGhost}
+		<span class="text-zinc-500 text-sm w-4 flex items-center justify-center shrink-0">»</span>
+	{:else}
+		<!-- Checkbox -->
+		<div
+			onclick={(e) => {
 				e.stopPropagation();
 				onToggle?.(task.id);
-			}
-		}}
-		role="button"
-		tabindex="0"
-	>
-		<Checkbox checked={isCompleted} class="border-zinc-600 data-[state=checked]:bg-zinc-600" />
-	</div>
+			}}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.stopPropagation();
+					onToggle?.(task.id);
+				}
+			}}
+			role="button"
+			tabindex="0"
+		>
+			<Checkbox checked={isCompleted} class="border-zinc-600 data-[state=checked]:bg-zinc-600" />
+		</div>
+	{/if}
 
 	<!-- Blocked indicator -->
 	{#if isBlocked}

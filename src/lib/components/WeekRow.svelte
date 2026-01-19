@@ -54,42 +54,39 @@
 
 	// FinishBy column: tasks with finishBy in this week
 	// For current week: also include past overdue finishBy tasks (promotion)
-	// For past weeks: exclude incomplete tasks (they're promoted to current week)
 	let finishByTasks = $derived(
 		sortByPriority(tasks.filter((t) => {
 			if (!t.finishBy) return false;
-			if (!isDateInWeek(t.finishBy, weekStart)) {
-				// Not in this week - only show if promoted to current week
-				if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.finishBy, weekStart)) return true;
-				return false;
-			}
 			// Task has finishBy in this week
-			// For past weeks: hide incomplete tasks (they're promoted)
-			if (isPast && t.status !== 'completed') return false;
-			return true;
+			if (isDateInWeek(t.finishBy, weekStart)) return true;
+			// For current week: promote past incomplete finishBy tasks
+			if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.finishBy, weekStart)) return true;
+			return false;
 		}))
 	);
 
 	// Todo column: tasks with todo in this week
 	// For current week: also include past open todos and tasks without dates
-	// For past weeks: exclude incomplete tasks (they're promoted to current week)
 	let todoTasks = $derived(
 		sortByPriority(tasks.filter((t) => {
-			// For current week: show tasks without any date
+			// Show tasks with todo date in this week
+			if (t.todo && isDateInWeek(t.todo, weekStart)) return true;
+			// For current week: promote past incomplete todo tasks
+			if (isCurrent && t.todo && t.status !== 'completed' && isDateBeforeWeek(t.todo, weekStart)) return true;
+			// For current week, also show open tasks without any date
 			if (isCurrent && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) return true;
-
-			if (!t.todo) return false;
-			if (!isDateInWeek(t.todo, weekStart)) {
-				// Not in this week - only show if promoted to current week
-				if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.todo, weekStart)) return true;
-				return false;
-			}
-			// Task has todo in this week
-			// For past weeks: hide incomplete tasks (they're promoted)
-			if (isPast && t.status !== 'completed') return false;
-			return true;
+			return false;
 		}))
 	);
+
+	// Check if a task is promoted (shown as ghost in past week)
+	function isTaskPromoted(task: Task, dateField: 'deadline' | 'finishBy' | 'todo'): boolean {
+		if (task.status === 'completed') return false;
+		if (!isPast) return false;
+		const taskDate = task[dateField];
+		if (!taskDate) return false;
+		return isDateInWeek(taskDate, weekStart);
+	}
 
 	// Get tasks for a specific day
 	function getTasksForDay(day: Date, dateField: 'deadline' | 'finishBy' | 'todo'): Task[] {
@@ -214,7 +211,7 @@
 					<span class="text-xs text-zinc-700">-</span>
 				{:else}
 					{#each finishByTasks as task (task.id)}
-						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} isGhost={isTaskPromoted(task, 'finishBy')} />
 					{/each}
 				{/if}
 			</div>
@@ -225,7 +222,7 @@
 					<span class="text-xs text-zinc-700">-</span>
 				{:else}
 					{#each todoTasks as task (task.id)}
-						<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+						<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} isGhost={isTaskPromoted(task, 'todo')} />
 					{/each}
 				{/if}
 			</div>

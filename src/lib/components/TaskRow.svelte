@@ -2,6 +2,7 @@
 	import type { Task } from '$lib/types';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { formatShortDate, daysDiff } from '$lib/utils/dates';
+	import { ChevronsRight } from '@lucide/svelte';
 
 	interface Props {
 		task: Task;
@@ -86,7 +87,7 @@
 
 	<!-- Ghost indicator (promoted to current week) -->
 	{#if isGhost}
-		<span class="text-zinc-500 text-sm w-4 flex items-center justify-center shrink-0">»</span>
+		<ChevronsRight class="w-4 h-4 text-zinc-500 shrink-0" />
 	{:else}
 		<!-- Checkbox -->
 		<div
@@ -131,14 +132,14 @@
 	<!-- Status Badge (overdue/slipped/promoted) -->
 	{#if statusBadge}
 		<span
-			class="text-[10px] font-medium px-1.5 py-0.5 rounded {statusBadge.type === 'overdue'
+			class="text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 {statusBadge.type === 'overdue'
 				? 'text-red-400 bg-red-500/20'
 				: statusBadge.type === 'slipped'
 					? 'text-yellow-400 bg-yellow-500/20'
 					: 'text-cyan-400 bg-cyan-500/20'}"
 		>
 			{#if statusBadge.type === 'promoted'}
-				<span class="mr-0.5">»</span>
+				<ChevronsRight class="w-3 h-3" />
 			{/if}
 			{statusBadge.label}
 		</span>

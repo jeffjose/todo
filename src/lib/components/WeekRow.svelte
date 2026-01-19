@@ -25,26 +25,38 @@
 	let isCurrent = $derived(isCurrentWeek(weekStart, currentDate));
 	let weekDays = $derived(getWeekDays(weekStart));
 
+	// Sort by priority (P0 first, then P1, P2, P3), then by status (pending first)
+	const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
+	function sortByPriority(taskList: Task[]): Task[] {
+		return [...taskList].sort((a, b) => {
+			// Completed tasks go to bottom
+			if (a.status === 'completed' && b.status !== 'completed') return 1;
+			if (a.status !== 'completed' && b.status === 'completed') return -1;
+			// Then sort by priority
+			return priorityOrder[a.priority] - priorityOrder[b.priority];
+		});
+	}
+
 	// Filter tasks for this week by column
 	let deadlineTasks = $derived(
-		tasks.filter((t) => t.deadline && isDateInWeek(t.deadline, weekStart))
+		sortByPriority(tasks.filter((t) => t.deadline && isDateInWeek(t.deadline, weekStart)))
 	);
 	let finishByTasks = $derived(
-		tasks.filter((t) => t.finishBy && isDateInWeek(t.finishBy, weekStart))
+		sortByPriority(tasks.filter((t) => t.finishBy && isDateInWeek(t.finishBy, weekStart)))
 	);
 	let todoTasks = $derived(
-		tasks.filter((t) => {
+		sortByPriority(tasks.filter((t) => {
 			// Show tasks with todo date in this week
 			if (t.todo && isDateInWeek(t.todo, weekStart)) return true;
 			// For current week, also show open tasks without any date
 			if (isCurrent && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) return true;
 			return false;
-		})
+		}))
 	);
 
 	// Get tasks for a specific day
-	function getTasksForDay(day: Date, dateField: 'deadline' | 'finishBy' | 'todo') {
-		return tasks.filter((t) => {
+	function getTasksForDay(day: Date, dateField: 'deadline' | 'finishBy' | 'todo'): Task[] {
+		const filtered = tasks.filter((t) => {
 			const taskDate = t[dateField];
 			if (!taskDate) {
 				// For todo column on current day, include tasks without dates
@@ -55,6 +67,7 @@
 			}
 			return isSameDay(taskDate, day);
 		});
+		return sortByPriority(filtered);
 	}
 
 	// Format day for display

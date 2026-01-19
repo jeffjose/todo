@@ -134,12 +134,12 @@
 	class="border-b border-zinc-800 {isCurrent ? 'border-l-2 border-l-yellow-500' : ''}"
 >
 	<!-- Week Header -->
-	<div class="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
-		<span class="text-xs font-medium {isCurrent ? 'text-yellow-400' : 'text-zinc-400'}">
+	<div class="flex items-center gap-2 px-2 py-1 border-b border-zinc-800/50">
+		<span class="text-[11px] font-medium {isCurrent ? 'text-yellow-400' : 'text-zinc-400'}">
 			{formatWeekRange(weekStart)}
 		</span>
 		{#if isCurrent}
-			<span class="text-[10px] text-yellow-300 bg-yellow-500/20 px-1.5 py-0.5 rounded font-medium">Current</span>
+			<span class="text-[9px] text-yellow-300 bg-yellow-500/20 px-1 py-0.5 rounded font-medium">Current</span>
 		{/if}
 	</div>
 
@@ -153,30 +153,30 @@
 				{@const isDayToday = isToday(day, currentDate)}
 				{@const hasAnyTasks = dayDeadlines.length > 0 || dayFinishBy.length > 0 || dayTodos.length > 0}
 
-				<div class="grid grid-cols-[100px_1fr_1fr_1fr] {isDayToday ? 'bg-yellow-500/10' : ''}">
+				<div class="grid grid-cols-[72px_1fr_1fr_1fr] {isDayToday ? 'bg-yellow-500/10' : ''}">
 					<!-- Day Label -->
-					<div class="px-3 py-2 border-r border-zinc-800/50 flex items-start">
-						<span class="text-xs {isDayToday ? 'text-yellow-400 font-medium' : 'text-zinc-500'}">
+					<div class="px-2 py-1 border-r border-zinc-800/50 flex items-start">
+						<span class="text-[11px] {isDayToday ? 'text-yellow-400 font-medium' : 'text-zinc-500'}">
 							{formatDay(day)}
 						</span>
 					</div>
 
 					<!-- Deadline Column -->
-					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
+					<div class="px-1 py-0.5 border-r border-zinc-800/50 min-h-[24px]">
 						{#each dayDeadlines as task (task.id)}
 							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} workOrder={workOrderMap.get(task.id)} />
 						{/each}
 					</div>
 
 					<!-- Finish By Column -->
-					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
+					<div class="px-1 py-0.5 border-r border-zinc-800/50 min-h-[24px]">
 						{#each dayFinishBy as task (task.id)}
 							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 						{/each}
 					</div>
 
 					<!-- Todo Column -->
-					<div class="px-2 py-1 min-h-[32px]">
+					<div class="px-1 py-0.5 min-h-[24px]">
 						{#each dayTodos as task (task.id)}
 							<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 						{/each}
@@ -186,9 +186,9 @@
 		</div>
 	{:else}
 		<!-- Week view for past/future weeks: show actual tasks -->
-		<div class="grid grid-cols-[100px_1fr_1fr_1fr] min-h-[60px]">
+		<div class="grid grid-cols-[72px_1fr_1fr_1fr] min-h-[40px]">
 			<!-- Week summary label -->
-			<div class="px-3 py-2 border-r border-zinc-800/50">
+			<div class="px-2 py-1 border-r border-zinc-800/50">
 				<span class="text-[10px] text-zinc-600">
 					{deadlineTasks.length + finishByTasks.length + todoTasks.length} tasks
 				</span>

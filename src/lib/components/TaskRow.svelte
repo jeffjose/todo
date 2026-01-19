@@ -68,8 +68,8 @@
 </script>
 
 <div
-	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''} {isBlocked ? 'opacity-60' : ''} {isGhost ? 'opacity-50' : ''}"
-	style="padding-left: calc(0.5rem + {task.level * 0.75}rem)"
+	class="group flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''} {isBlocked ? 'opacity-60' : ''} {isGhost ? 'opacity-50' : ''}"
+	style="padding-left: calc(0.375rem + {task.level * 0.5}rem)"
 	role="button"
 	tabindex="0"
 	onclick={() => onClick?.(task)}
@@ -79,14 +79,14 @@
 >
 	<!-- Work Order Badge -->
 	{#if workOrder && !isGhost}
-		<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+		<span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 w-4 h-4 rounded-full flex items-center justify-center shrink-0">
 			{workOrder}
 		</span>
 	{/if}
 
 	<!-- Ghost indicator (promoted to current week) -->
 	{#if isGhost}
-		<ChevronsRight class="w-4 h-4 text-zinc-500 shrink-0" />
+		<ChevronsRight class="w-3.5 h-3.5 text-zinc-500 shrink-0" />
 	{:else}
 		<!-- Checkbox -->
 		<div
@@ -114,12 +114,12 @@
 
 	<!-- Emoji -->
 	{#if task.emoji}
-		<span class="text-sm">{task.emoji}</span>
+		<span class="text-xs">{task.emoji}</span>
 	{/if}
 
 	<!-- Title -->
 	<span
-		class="flex-1 text-sm truncate {isCompleted
+		class="flex-1 text-xs truncate {isCompleted
 			? 'text-zinc-500 line-through'
 			: isBlocked
 				? 'text-zinc-400 italic'

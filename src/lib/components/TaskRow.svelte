@@ -27,7 +27,7 @@
 	let isCompleted = $derived(task.status === 'completed');
 	let isBlocked = $derived(task.status === 'blocked');
 
-	// Calculate status badge (overdue/slipped/promoted)
+	// Calculate status badge (overdue/slipped)
 	let today = new Date();
 	let statusBadge = $derived.by(() => {
 		if (isCompleted) return null;
@@ -48,15 +48,14 @@
 			}
 		}
 
-		// Check todo (promoted from past)
-		if (task.todo) {
-			const days = daysDiff(today, task.todo);
-			if (days > 0) {
-				return { type: 'promoted' as const, days, label: `${days}d behind` };
-			}
-		}
-
+		// Todo dates don't get badges - they're just suggestions
 		return null;
+	});
+
+	// Check if todo date is in the past (for subtle styling)
+	let isTodoPast = $derived.by(() => {
+		if (isCompleted || !task.todo) return false;
+		return daysDiff(today, task.todo) > 0;
 	});
 
 	// Get the due date to display (prefer deadline, fallback to finishBy)
@@ -129,20 +128,20 @@
 		{task.title}
 	</span>
 
-	<!-- Status Badge (overdue/slipped/promoted) -->
+	<!-- Status Badge (overdue/slipped) -->
 	{#if statusBadge}
 		<span
-			class="text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 {statusBadge.type === 'overdue'
+			class="text-[10px] font-medium px-1.5 py-0.5 rounded {statusBadge.type === 'overdue'
 				? 'text-red-400 bg-red-500/20'
-				: statusBadge.type === 'slipped'
-					? 'text-yellow-400 bg-yellow-500/20'
-					: 'text-cyan-400 bg-cyan-500/20'}"
+				: 'text-yellow-400 bg-yellow-500/20'}"
 		>
-			{#if statusBadge.type === 'promoted'}
-				<ChevronsRight class="w-3 h-3" />
-			{/if}
 			{statusBadge.label}
 		</span>
+	{/if}
+
+	<!-- Subtle indicator for past todo (just a small dot) -->
+	{#if isTodoPast && !statusBadge}
+		<span class="w-1.5 h-1.5 rounded-full bg-zinc-500" title="Todo date passed"></span>
 	{/if}
 
 	<!-- Due Date (when showing in todo column) -->

@@ -33,32 +33,24 @@ Interactions:
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Working Prototype
 
-**Goal:** Clean slate with app shell
+**Goal:** Playable 3-column todo app
 
-### Tasks:
+This phase delivers everything needed for a functional app you can actually use.
+
+### 1.1 Setup & App Shell
 - [ ] Remove all existing source files
 - [ ] Fresh SvelteKit + Svelte 5 setup
 - [ ] Tailwind CSS 4 configuration
-- [ ] shadcn-svelte setup
+- [ ] shadcn-svelte setup (button, dialog, input, select)
 - [ ] App shell layout:
   - Left icon sidebar (w-12)
   - Header toolbar (h-11)
   - Main content area
-- [ ] Dark mode as default (no toggle yet)
-- [ ] Basic routing structure
+- [ ] Dark mode as default
 
-### Deliverable:
-Empty app shell that looks like a native app
-
----
-
-## Phase 2: Data Layer
-
-**Goal:** Persistent storage with clean data model
-
-### Data Model (refined):
+### 1.2 Data Layer
 ```typescript
 interface Task {
   id: string;
@@ -74,9 +66,9 @@ interface Task {
   status: 'pending' | 'in-progress' | 'completed' | 'blocked';
   priority: 'P0' | 'P1' | 'P2' | 'P3';
 
-  // Hierarchy
+  // Hierarchy (simplified for now)
   parentId?: string;
-  path: string;       // 'root.parent.child'
+  path: string;
   level: number;
 
   // Metadata
@@ -86,49 +78,18 @@ interface Task {
   createdAt: Date;
   updatedAt: Date;
 }
-
-interface WeekEvent {
-  id: string;
-  weekStart: Date;
-  title: string;
-  color?: string;
-}
 ```
 
-### Tasks:
 - [ ] Dexie database setup
-- [ ] Task CRUD operations
-- [ ] WeekEvent CRUD operations
+- [ ] Task CRUD operations (create, read, update, delete)
 - [ ] Type definitions
-- [ ] Basic tests
 
-### Deliverable:
-Working database layer with full CRUD
-
----
-
-## Phase 3: Core Components
-
-**Goal:** Basic task display and creation
-
-### Components:
-```
-TaskRow.svelte       - Single task display
-TaskList.svelte      - List of tasks (used in columns)
-AddTaskDialog.svelte - Create new task
-EditTaskDialog.svelte - Edit existing task
-```
-
-### Tasks:
+### 1.3 Core Components
 - [ ] TaskRow component
-  - Title, emoji, priority badge
-  - Status indicator
-  - Click to edit
+  - Title, priority badge (P0-P3 colors)
   - Checkbox for completion
-- [ ] TaskList component
-  - Renders array of tasks
-  - Handles empty state
-- [ ] AddTaskDialog (shadcn dialog)
+  - Click to edit
+- [ ] AddTaskDialog
   - Title input
   - Date pickers (deadline, finishBy, todo)
   - Priority selector
@@ -136,182 +97,127 @@ EditTaskDialog.svelte - Edit existing task
   - Pre-filled form
   - Delete option
 
-### Deliverable:
-Can create, view, edit, delete tasks
-
----
-
-## Phase 4: Three Column Layout
-
-**Goal:** Weekly view with 3 columns
-
-### Column Structure:
+### 1.4 Three Column Layout
 ```
 ┌──────────────────────────────────────────────────┐
-│  Week of Jan 13, 2025                   [+ Add]  │
+│  Week of Jan 13, 2025              [◀] [▶] [+]   │
 ├────────────────┬────────────────┬────────────────┤
 │   Deadline     │   Finish By    │   Open Todos   │
 │                │                │                │
 │  Hard dates    │  Soft dates    │  Work items    │
-│  Never move    │  Promote if    │  Current week  │
-│                │  overdue       │  + past open   │
+│  (this week)   │  (this week)   │  (open tasks)  │
 └────────────────┴────────────────┴────────────────┘
 ```
 
-### Tasks:
-- [ ] WeeklyView component
-  - 3-column grid layout
-  - Week header with navigation
-- [ ] Column component
-  - Header with count
-  - Task list
-  - Column-specific styling
-- [ ] Week navigation
-  - 2 weeks back, current, 3 weeks forward
-  - Current week highlight (amber)
-- [ ] Column filtering logic
-  - Deadline column: tasks with deadline in this week
-  - FinishBy column: tasks with finishBy in this week
-  - Todo column: all open tasks for current week
+- [ ] WeeklyView component (3-column grid)
+- [ ] Week header with navigation (prev/next)
+- [ ] Week rows: 2 weeks back → current → 3 weeks forward
+- [ ] Current week: expanded with day rows + amber highlight
+- [ ] Basic column filtering:
+  - Deadline: tasks with deadline in this week
+  - FinishBy: tasks with finishBy in this week
+  - Todo: open tasks (no complex promotion yet)
 
 ### Deliverable:
-3-column layout showing tasks by week
+A working todo app where you can:
+- Create tasks with dates and priorities
+- See tasks organized in 3 columns by week
+- Navigate between weeks
+- Complete/edit/delete tasks
 
 ---
 
-## Phase 5: Task Logic
+## Phase 2: Task Logic
 
-**Goal:** Promotion, badges, work order
+**Goal:** Smart promotion, badges, work order
 
 ### Badge System:
-```
-┌─────────────┬────────────┬──────────────────────────────┐
-│ Badge       │ Color      │ Condition                    │
-├─────────────┼────────────┼──────────────────────────────┤
-│ overdue     │ Red        │ deadline in past             │
-│ slipped     │ Yellow     │ finishBy in past             │
-│ on-track    │ Green      │ future date, not overdue     │
-└─────────────┴────────────┴──────────────────────────────┘
-```
+| Badge | Color | Condition |
+|-------|-------|-----------|
+| overdue | Red | deadline in past, not completed |
+| slipped | Yellow | finishBy in past, not completed |
+| on-track | Green | future date |
 
 ### Tasks:
 - [ ] Task promotion logic
   - FinishBy tasks: promote to current week if overdue
   - Deadline tasks: stay in original week, show badge
   - Todo tasks: show in current week if open
-- [ ] Badge component
-  - Visual styling per type
-  - Days count (e.g., "3d overdue")
+- [ ] Badge component with day counts ("3d overdue")
 - [ ] Work order calculation
   - Rank incomplete deadline tasks
-  - Sort by: deadline (earliest) → priority (P0-P3)
-  - Display numbered badge
+  - Sort by: deadline → priority
+  - Display numbered badge (1, 2, 3...)
 - [ ] Status styling
   - Completed: strikethrough, muted
   - Blocked: distinct styling
-  - In-progress: highlight
 
 ### Deliverable:
-Smart task organization with visual indicators
+Tasks automatically organize themselves, visual indicators show urgency
 
 ---
 
-## Phase 6: Task Hierarchy
+## Phase 3: Task Hierarchy
 
 **Goal:** Parent-child relationships
 
-### Hierarchy Display:
+### Display:
 ```
 ├── Parent Task
 │   ├── Child Task 1
 │   └── Child Task 2
-│       └── Grandchild
 ```
 
 ### Tasks:
-- [ ] Parent-child creation
-  - "Add subtask" action
-  - Assign parentId
-- [ ] Path management
-  - Auto-generate path on create
-  - Update children on parent move
-- [ ] Hierarchy display
-  - Indentation by level
-  - Expand/collapse (optional)
-- [ ] Visibility rules
-  - When task visible, show parent + children
-- [ ] Sorting
-  - By path → level → status → date
+- [ ] "Add subtask" action
+- [ ] Path management (auto-generate on create)
+- [ ] Indentation by level
+- [ ] Visibility rules (parent visible → show children)
+- [ ] Sorting by path → level → status
 
 ### Deliverable:
 Nested task structure with proper display
 
 ---
 
-## Phase 7: Week Events
+## Phase 4: Week Events
 
 **Goal:** Milestones attached to weeks
 
 ### Tasks:
-- [ ] WeekEvent display
-  - Show in week header or dedicated row
-  - Color-coded badges
-- [ ] AddEventDialog
-  - Title, color picker
-  - Week selection
-- [ ] Event CRUD
-  - Create, edit, delete events
+- [ ] WeekEvent data model & CRUD
+- [ ] Display in week header
+- [ ] AddEventDialog (title, color)
 
 ### Deliverable:
 Can add context/milestones to weeks
 
 ---
 
-## Phase 8: Import/Export
+## Phase 5: Import/Export
 
 **Goal:** Data portability
 
-### Formats:
-- YAML (human-readable)
-- JSON (programmatic)
-
 ### Tasks:
-- [ ] Export functionality
-  - Export all tasks as YAML/JSON
-  - Download as file
-- [ ] Import functionality
-  - File picker
-  - Parse and validate
-  - Merge or replace options
-- [ ] Initial data loading
-  - Load from /data/initial_tasks.yaml on first run
+- [ ] Export as YAML/JSON (download file)
+- [ ] Import from file (parse, validate, merge/replace)
+- [ ] Load initial data on first run
 
 ### Deliverable:
 Full data import/export capability
 
 ---
 
-## Phase 9: Polish
+## Phase 6: Polish
 
 **Goal:** Production-ready
 
 ### Tasks:
-- [ ] Keyboard shortcuts
-  - n: new task
-  - e: edit selected
-  - d: delete selected
-  - ↑↓: navigate
-- [ ] Empty states
-  - No tasks messaging
-  - Getting started hints
-- [ ] Loading states
-  - Skeleton loaders
-- [ ] Error handling
-  - Toast notifications
-  - Graceful failures
-- [ ] Performance
-  - Virtual scrolling for large lists
-  - Optimized re-renders
+- [ ] Keyboard shortcuts (n: new, e: edit, d: delete)
+- [ ] Empty states with hints
+- [ ] Loading/error states
+- [ ] Toast notifications
+- [ ] Performance optimization
 - [ ] Dark/Light toggle (optional)
 
 ### Deliverable:
@@ -341,23 +247,20 @@ src/
 ├── lib/
 │   ├── components/
 │   │   ├── ui/              # shadcn components
+│   │   ├── AppShell.svelte
 │   │   ├── TaskRow.svelte
-│   │   ├── TaskList.svelte
 │   │   ├── Column.svelte
 │   │   ├── WeeklyView.svelte
+│   │   ├── WeekRow.svelte
 │   │   ├── AddTaskDialog.svelte
-│   │   ├── EditTaskDialog.svelte
-│   │   └── ...
+│   │   └── EditTaskDialog.svelte
 │   ├── db/
 │   │   ├── index.ts         # Dexie setup
-│   │   ├── tasks.ts         # Task operations
-│   │   └── events.ts        # Event operations
+│   │   └── tasks.ts         # Task operations
 │   ├── utils/
 │   │   ├── dates.ts         # Date helpers
-│   │   ├── taskLogic.ts     # Promotion, badges
-│   │   └── workOrder.ts     # Work order calc
-│   └── types/
-│       └── index.ts         # Type definitions
+│   │   └── taskLogic.ts     # Filtering, promotion
+│   └── types.ts             # Type definitions
 ├── routes/
 │   ├── +layout.svelte       # App shell
 │   └── +page.svelte         # Main view
@@ -369,8 +272,7 @@ src/
 
 ## Notes
 
-- Each phase should be fully functional before moving to next
-- Commit after each major step
-- Test core logic (promotion, badges, hierarchy) thoroughly
+- Phase 1 is the big one - get to playable ASAP
+- Commit after each sub-section (1.1, 1.2, etc.)
 - Keep components small and focused
 - Use Svelte 5 runes ($state, $derived, $effect)

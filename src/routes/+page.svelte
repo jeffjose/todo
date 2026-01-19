@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Plus } from '@lucide/svelte';
+	import { Plus, CalendarDays, FlaskConical } from '@lucide/svelte';
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import AddTaskDialog from '$lib/components/AddTaskDialog.svelte';
 	import type { Task, NewTask } from '$lib/types';
 	import { getAllTasks, createTask, updateTask, deleteTask, toggleTaskStatus } from '$lib/db/tasks';
+	import { generateTestData } from '$lib/db/testData';
 
 	let tasks = $state<Task[]>([]);
 	let addDialogOpen = $state(false);
+	let weeklyView: WeeklyView;
 
 	onMount(async () => {
 		tasks = await getAllTasks();
@@ -46,6 +48,15 @@
 			);
 		}
 	}
+
+	async function handleGenerateTestData() {
+		await generateTestData(15);
+		tasks = await getAllTasks();
+	}
+
+	function handleGoToToday() {
+		weeklyView?.goToToday();
+	}
 </script>
 
 <!-- Header Toolbar -->
@@ -54,17 +65,40 @@
 
 	<div class="flex-1"></div>
 
-	<button
-		class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-		onclick={() => (addDialogOpen = true)}
-	>
-		<Plus class="w-4 h-4" />
-	</button>
+	<div class="flex items-center gap-1">
+		<!-- Test Data Button -->
+		<button
+			class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+			onclick={handleGenerateTestData}
+			title="Generate test data"
+		>
+			<FlaskConical class="w-4 h-4" />
+		</button>
+
+		<!-- Today Button -->
+		<button
+			class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+			onclick={handleGoToToday}
+			title="Go to today"
+		>
+			<CalendarDays class="w-4 h-4" />
+		</button>
+
+		<!-- Add Task Button -->
+		<button
+			class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+			onclick={() => (addDialogOpen = true)}
+			title="Add task"
+		>
+			<Plus class="w-4 h-4" />
+		</button>
+	</div>
 </header>
 
 <!-- Main Content -->
 <main class="flex-1 overflow-hidden">
 	<WeeklyView
+		bind:this={weeklyView}
 		{tasks}
 		onCreateTask={handleCreateTask}
 		onUpdateTask={handleUpdateTask}

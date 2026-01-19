@@ -8,7 +8,6 @@
 
 	interface Props {
 		tasks: Task[];
-		currentDate?: Date;
 		onCreateTask?: (task: NewTask) => void;
 		onUpdateTask?: (id: string, updates: Partial<Task>) => void;
 		onDeleteTask?: (id: string) => void;
@@ -17,15 +16,17 @@
 
 	let {
 		tasks,
-		currentDate = new Date(),
 		onCreateTask,
 		onUpdateTask,
 		onDeleteTask,
 		onToggleTask
 	}: Props = $props();
 
-	// Navigation state
-	let centerDate = $state(new Date());
+	// The actual current date (today) - never changes with navigation
+	const today = new Date();
+
+	// Navigation state - which week range to show
+	let viewCenterDate = $state(new Date());
 
 	// Dialog state
 	let addDialogOpen = $state(false);
@@ -34,17 +35,17 @@
 	let addDefaultDate = $state<Date | undefined>(undefined);
 	let addDefaultColumn = $state<'deadline' | 'finishBy' | 'todo' | undefined>(undefined);
 
-	// Get weeks to display
-	let weeks = $derived(getWeeksAroundCurrent(centerDate));
+	// Get weeks to display (centered around viewCenterDate)
+	let weeks = $derived(getWeeksAroundCurrent(viewCenterDate));
 
 	function navigateWeek(direction: -1 | 1) {
-		const newDate = new Date(centerDate);
+		const newDate = new Date(viewCenterDate);
 		newDate.setDate(newDate.getDate() + direction * 7);
-		centerDate = newDate;
+		viewCenterDate = newDate;
 	}
 
-	function goToToday() {
-		centerDate = new Date();
+	export function goToToday() {
+		viewCenterDate = new Date();
 	}
 
 	function handleAddTask(date: Date, column: 'deadline' | 'finishBy' | 'todo') {
@@ -87,12 +88,6 @@
 			>
 				<ChevronRight class="w-4 h-4" />
 			</button>
-			<button
-				class="text-xs text-zinc-400 hover:text-zinc-100 px-2 py-1 rounded-md hover:bg-zinc-800 transition-colors"
-				onclick={goToToday}
-			>
-				Today
-			</button>
 		</div>
 
 		<!-- Column Headers -->
@@ -109,8 +104,8 @@
 			<WeekRow
 				weekStart={week}
 				{tasks}
-				{currentDate}
-				expanded={isCurrentWeek(week, centerDate)}
+				currentDate={today}
+				expanded={isCurrentWeek(week, today)}
 				onToggleTask={onToggleTask}
 				onClickTask={handleClickTask}
 				onAddTask={handleAddTask}

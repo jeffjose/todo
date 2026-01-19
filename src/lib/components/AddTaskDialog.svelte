@@ -149,7 +149,7 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="ghost" onclick={() => (open = false)} class="text-zinc-400 hover:text-zinc-100">
+			<Button variant="ghost" onclick={() => (open = false)} class="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
 				Cancel
 			</Button>
 			<Button onclick={handleSubmit} disabled={!title.trim()} class="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">

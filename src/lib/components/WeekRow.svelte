@@ -43,6 +43,9 @@
 		});
 	}
 
+	// Check if this is a past week (tasks here might be promoted to current week)
+	let isPast = $derived(!isCurrent && isDateBeforeWeek(weekStart, currentDate));
+
 	// Filter tasks for this week by column
 	// Deadline column: tasks with deadline in this week (never promoted, stay in original week)
 	let deadlineTasks = $derived(
@@ -51,28 +54,40 @@
 
 	// FinishBy column: tasks with finishBy in this week
 	// For current week: also include past overdue finishBy tasks (promotion)
+	// For past weeks: exclude incomplete tasks (they're promoted to current week)
 	let finishByTasks = $derived(
 		sortByPriority(tasks.filter((t) => {
 			if (!t.finishBy) return false;
+			if (!isDateInWeek(t.finishBy, weekStart)) {
+				// Not in this week - only show if promoted to current week
+				if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.finishBy, weekStart)) return true;
+				return false;
+			}
 			// Task has finishBy in this week
-			if (isDateInWeek(t.finishBy, weekStart)) return true;
-			// For current week: promote past incomplete finishBy tasks
-			if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.finishBy, weekStart)) return true;
-			return false;
+			// For past weeks: hide incomplete tasks (they're promoted)
+			if (isPast && t.status !== 'completed') return false;
+			return true;
 		}))
 	);
 
 	// Todo column: tasks with todo in this week
 	// For current week: also include past open todos and tasks without dates
+	// For past weeks: exclude incomplete tasks (they're promoted to current week)
 	let todoTasks = $derived(
 		sortByPriority(tasks.filter((t) => {
-			// Show tasks with todo date in this week
-			if (t.todo && isDateInWeek(t.todo, weekStart)) return true;
-			// For current week: promote past incomplete todo tasks
-			if (isCurrent && t.todo && t.status !== 'completed' && isDateBeforeWeek(t.todo, weekStart)) return true;
-			// For current week, also show open tasks without any date
+			// For current week: show tasks without any date
 			if (isCurrent && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) return true;
-			return false;
+
+			if (!t.todo) return false;
+			if (!isDateInWeek(t.todo, weekStart)) {
+				// Not in this week - only show if promoted to current week
+				if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.todo, weekStart)) return true;
+				return false;
+			}
+			// Task has todo in this week
+			// For past weeks: hide incomplete tasks (they're promoted)
+			if (isPast && t.status !== 'completed') return false;
+			return true;
 		}))
 	);
 

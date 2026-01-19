@@ -25,12 +25,12 @@
 	let isCompleted = $derived(task.status === 'completed');
 	let isBlocked = $derived(task.status === 'blocked');
 
-	// Calculate status badge (overdue/slipped)
+	// Calculate status badge (overdue/slipped/promoted)
 	let today = new Date();
 	let statusBadge = $derived.by(() => {
 		if (isCompleted) return null;
 
-		// Check deadline first (overdue)
+		// Check deadline first (overdue) - most urgent
 		if (task.deadline) {
 			const days = daysDiff(today, task.deadline);
 			if (days > 0) {
@@ -43,6 +43,14 @@
 			const days = daysDiff(today, task.finishBy);
 			if (days > 0) {
 				return { type: 'slipped' as const, days, label: `${days}d slipped` };
+			}
+		}
+
+		// Check todo (promoted from past)
+		if (task.todo) {
+			const days = daysDiff(today, task.todo);
+			if (days > 0) {
+				return { type: 'promoted' as const, days, label: `${days}d behind` };
 			}
 		}
 
@@ -114,13 +122,18 @@
 		{task.title}
 	</span>
 
-	<!-- Status Badge (overdue/slipped) -->
+	<!-- Status Badge (overdue/slipped/promoted) -->
 	{#if statusBadge}
 		<span
 			class="text-[10px] font-medium px-1.5 py-0.5 rounded {statusBadge.type === 'overdue'
 				? 'text-red-400 bg-red-500/20'
-				: 'text-yellow-400 bg-yellow-500/20'}"
+				: statusBadge.type === 'slipped'
+					? 'text-yellow-400 bg-yellow-500/20'
+					: 'text-cyan-400 bg-cyan-500/20'}"
 		>
+			{#if statusBadge.type === 'promoted'}
+				<span class="mr-0.5">»</span>
+			{/if}
 			{statusBadge.label}
 		</span>
 	{/if}

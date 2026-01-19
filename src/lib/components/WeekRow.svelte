@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task } from '$lib/types';
 	import TaskRow from './TaskRow.svelte';
-	import { formatWeekRange, isCurrentWeek, getWeekDays, isDateInWeek, isSameDay, isToday } from '$lib/utils/dates';
+	import { formatWeekRange, isCurrentWeek, getWeekDays, isDateInWeek, isSameDay, isToday, isDateBeforeWeek } from '$lib/utils/dates';
 	import { Plus } from '@lucide/svelte';
 
 	interface Props {
@@ -11,6 +11,8 @@
 		onToggleTask?: (id: string) => void;
 		onClickTask?: (task: Task) => void;
 		onAddTask?: (date: Date, column: 'deadline' | 'finishBy' | 'todo') => void;
+		hoveredTaskId?: string | null;
+		onHoverTask?: (id: string | null) => void;
 	}
 
 	let {
@@ -19,7 +21,9 @@
 		currentDate = new Date(),
 		onToggleTask,
 		onClickTask,
-		onAddTask
+		onAddTask,
+		hoveredTaskId = null,
+		onHoverTask
 	}: Props = $props();
 
 	let isCurrent = $derived(isCurrentWeek(weekStart, currentDate));
@@ -38,16 +42,32 @@
 	}
 
 	// Filter tasks for this week by column
+	// Deadline column: tasks with deadline in this week (never promoted, stay in original week)
 	let deadlineTasks = $derived(
 		sortByPriority(tasks.filter((t) => t.deadline && isDateInWeek(t.deadline, weekStart)))
 	);
+
+	// FinishBy column: tasks with finishBy in this week
+	// For current week: also include past overdue finishBy tasks (promotion)
 	let finishByTasks = $derived(
-		sortByPriority(tasks.filter((t) => t.finishBy && isDateInWeek(t.finishBy, weekStart)))
+		sortByPriority(tasks.filter((t) => {
+			if (!t.finishBy) return false;
+			// Task has finishBy in this week
+			if (isDateInWeek(t.finishBy, weekStart)) return true;
+			// For current week: promote past incomplete finishBy tasks
+			if (isCurrent && t.status !== 'completed' && isDateBeforeWeek(t.finishBy, weekStart)) return true;
+			return false;
+		}))
 	);
+
+	// Todo column: tasks with todo in this week
+	// For current week: also include past open todos and tasks without dates
 	let todoTasks = $derived(
 		sortByPriority(tasks.filter((t) => {
 			// Show tasks with todo date in this week
 			if (t.todo && isDateInWeek(t.todo, weekStart)) return true;
+			// For current week: promote past incomplete todo tasks
+			if (isCurrent && t.todo && t.status !== 'completed' && isDateBeforeWeek(t.todo, weekStart)) return true;
 			// For current week, also show open tasks without any date
 			if (isCurrent && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) return true;
 			return false;
@@ -56,16 +76,34 @@
 
 	// Get tasks for a specific day
 	function getTasksForDay(day: Date, dateField: 'deadline' | 'finishBy' | 'todo'): Task[] {
+		const isDayToday = isToday(day, currentDate);
+
 		const filtered = tasks.filter((t) => {
 			const taskDate = t[dateField];
+
+			// Handle tasks without this date field
 			if (!taskDate) {
-				// For todo column on current day, include tasks without dates
-				if (dateField === 'todo' && isToday(day, currentDate) && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) {
+				// For todo column on today, include tasks without any dates
+				if (dateField === 'todo' && isDayToday && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) {
 					return true;
 				}
 				return false;
 			}
-			return isSameDay(taskDate, day);
+
+			// Task has this date - check if it matches this day
+			if (isSameDay(taskDate, day)) return true;
+
+			// For today: also show promoted tasks (past incomplete tasks)
+			// Deadline tasks: never promoted (stay in original week)
+			// FinishBy and Todo tasks: promote to today if past and incomplete
+			if (isDayToday && dateField !== 'deadline' && t.status !== 'completed') {
+				// Check if the task's date is before today's week (promoted)
+				if (isDateBeforeWeek(taskDate, weekStart)) {
+					return true;
+				}
+			}
+
+			return false;
 		});
 		return sortByPriority(filtered);
 	}
@@ -112,21 +150,21 @@
 					<!-- Deadline Column -->
 					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
 						{#each dayDeadlines as task (task.id)}
-							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 						{/each}
 					</div>
 
 					<!-- Finish By Column -->
 					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
 						{#each dayFinishBy as task (task.id)}
-							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 						{/each}
 					</div>
 
 					<!-- Todo Column -->
 					<div class="px-2 py-1 min-h-[32px]">
 						{#each dayTodos as task (task.id)}
-							<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} />
+							<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 						{/each}
 					</div>
 				</div>
@@ -148,7 +186,7 @@
 					<span class="text-xs text-zinc-700">-</span>
 				{:else}
 					{#each deadlineTasks as task (task.id)}
-						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 					{/each}
 				{/if}
 			</div>
@@ -159,7 +197,7 @@
 					<span class="text-xs text-zinc-700">-</span>
 				{:else}
 					{#each finishByTasks as task (task.id)}
-						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 					{/each}
 				{/if}
 			</div>
@@ -170,7 +208,7 @@
 					<span class="text-xs text-zinc-700">-</span>
 				{:else}
 					{#each todoTasks as task (task.id)}
-						<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} />
+						<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
 					{/each}
 				{/if}
 			</div>

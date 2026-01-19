@@ -7,10 +7,12 @@
 		task: Task;
 		onToggle?: (id: string) => void;
 		onClick?: (task: Task) => void;
+		onHover?: (id: string | null) => void;
 		showDueDate?: boolean;
+		isHighlighted?: boolean;
 	}
 
-	let { task, onToggle, onClick, showDueDate = false }: Props = $props();
+	let { task, onToggle, onClick, onHover, showDueDate = false, isHighlighted = false }: Props = $props();
 
 	const priorityColors: Record<string, string> = {
 		P0: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -31,12 +33,14 @@
 </script>
 
 <div
-	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors"
+	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''}"
 	style="padding-left: calc(0.5rem + {task.level * 0.75}rem)"
 	role="button"
 	tabindex="0"
 	onclick={() => onClick?.(task)}
 	onkeydown={(e) => e.key === 'Enter' && onClick?.(task)}
+	onmouseenter={() => onHover?.(task.id)}
+	onmouseleave={() => onHover?.(null)}
 >
 	<!-- Checkbox -->
 	<div

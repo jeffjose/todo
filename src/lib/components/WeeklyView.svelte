@@ -35,6 +35,13 @@
 	let addDefaultDate = $state<Date | undefined>(undefined);
 	let addDefaultColumn = $state<'deadline' | 'finishBy' | 'todo' | undefined>(undefined);
 
+	// Hover state for cross-column highlighting
+	let hoveredTaskId = $state<string | null>(null);
+
+	function handleHoverTask(id: string | null) {
+		hoveredTaskId = id;
+	}
+
 	// Get weeks to display (centered around viewCenterDate)
 	let weeks = $derived(getWeeksAroundCurrent(viewCenterDate));
 
@@ -108,6 +115,8 @@
 				onToggleTask={onToggleTask}
 				onClickTask={handleClickTask}
 				onAddTask={handleAddTask}
+				{hoveredTaskId}
+				onHoverTask={handleHoverTask}
 			/>
 		{/each}
 	</div>

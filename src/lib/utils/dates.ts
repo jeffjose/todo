@@ -112,6 +112,23 @@ export function isToday(date: Date, currentDate: Date = new Date()): boolean {
 	return isSameDay(date, currentDate);
 }
 
+// Check if a date is before today (in the past)
+export function isDateInPast(date: Date, currentDate: Date = new Date()): boolean {
+	const today = new Date(currentDate);
+	today.setHours(0, 0, 0, 0);
+	const checkDate = new Date(date);
+	checkDate.setHours(0, 0, 0, 0);
+	return checkDate < today;
+}
+
+// Check if a date is before a specific week (before Monday of that week)
+export function isDateBeforeWeek(date: Date, weekStart: Date): boolean {
+	const start = getWeekStart(weekStart);
+	const checkDate = new Date(date);
+	checkDate.setHours(0, 0, 0, 0);
+	return checkDate < start;
+}
+
 // Format date for input[type="date"]
 export function formatDateForInput(date: Date | undefined): string {
 	if (!date) return '';

@@ -1,14 +1,16 @@
 <script lang="ts">
 	import type { Task } from '$lib/types';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { formatShortDate } from '$lib/utils/dates';
 
 	interface Props {
 		task: Task;
 		onToggle?: (id: string) => void;
 		onClick?: (task: Task) => void;
+		showDueDate?: boolean;
 	}
 
-	let { task, onToggle, onClick }: Props = $props();
+	let { task, onToggle, onClick, showDueDate = false }: Props = $props();
 
 	const priorityColors: Record<string, string> = {
 		P0: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -18,6 +20,14 @@
 	};
 
 	let isCompleted = $derived(task.status === 'completed');
+
+	// Get the due date to display (prefer deadline, fallback to finishBy)
+	let dueDate = $derived(task.deadline || task.finishBy);
+	let dueDateLabel = $derived(() => {
+		if (!dueDate) return null;
+		const label = task.deadline ? 'due' : 'finish';
+		return `${label} ${formatShortDate(dueDate)}`;
+	});
 </script>
 
 <div
@@ -59,6 +69,13 @@
 	>
 		{task.title}
 	</span>
+
+	<!-- Due Date (when showing in todo column) -->
+	{#if showDueDate && dueDate && !isCompleted}
+		<span class="text-[10px] text-zinc-500">
+			{dueDateLabel()}
+		</span>
+	{/if}
 
 	<!-- Priority Badge -->
 	<span

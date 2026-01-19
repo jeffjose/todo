@@ -74,8 +74,8 @@
 
 <div class="flex flex-col h-full">
 	<!-- Header -->
-	<div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-900/50">
-		<div class="flex items-center gap-2">
+	<div class="flex items-center px-3 py-2 border-b border-zinc-800 bg-zinc-900/50">
+		<div class="flex items-center gap-2 w-[100px] shrink-0">
 			<button
 				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
 				onclick={() => navigateWeek(-1)}
@@ -91,10 +91,10 @@
 		</div>
 
 		<!-- Column Headers -->
-		<div class="flex-1 grid grid-cols-3 text-center">
-			<span class="text-xs font-medium text-zinc-500">Deadline</span>
-			<span class="text-xs font-medium text-zinc-500">Finish By</span>
-			<span class="text-xs font-medium text-zinc-500">Open Todos</span>
+		<div class="flex-1 grid grid-cols-3">
+			<span class="text-xs font-medium text-zinc-500 px-2">Deadline</span>
+			<span class="text-xs font-medium text-zinc-500 px-2">Finish By</span>
+			<span class="text-xs font-medium text-zinc-500 px-2">Todo</span>
 		</div>
 	</div>
 
@@ -105,7 +105,6 @@
 				weekStart={week}
 				{tasks}
 				currentDate={today}
-				expanded={isCurrentWeek(week, today)}
 				onToggleTask={onToggleTask}
 				onClickTask={handleClickTask}
 				onAddTask={handleAddTask}

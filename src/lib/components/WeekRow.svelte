@@ -1,14 +1,13 @@
 <script lang="ts">
 	import type { Task } from '$lib/types';
-	import Column from './Column.svelte';
-	import { formatWeekRange, isCurrentWeek, getWeekDays, formatDayDate, isDateInWeek } from '$lib/utils/dates';
+	import TaskRow from './TaskRow.svelte';
+	import { formatWeekRange, isCurrentWeek, getWeekDays, isDateInWeek, isSameDay, isToday } from '$lib/utils/dates';
 	import { Plus } from '@lucide/svelte';
 
 	interface Props {
 		weekStart: Date;
 		tasks: Task[];
 		currentDate?: Date;
-		expanded?: boolean;
 		onToggleTask?: (id: string) => void;
 		onClickTask?: (task: Task) => void;
 		onAddTask?: (date: Date, column: 'deadline' | 'finishBy' | 'todo') => void;
@@ -18,7 +17,6 @@
 		weekStart,
 		tasks,
 		currentDate = new Date(),
-		expanded = false,
 		onToggleTask,
 		onClickTask,
 		onAddTask
@@ -43,11 +41,32 @@
 			return false;
 		})
 	);
+
+	// Get tasks for a specific day
+	function getTasksForDay(day: Date, dateField: 'deadline' | 'finishBy' | 'todo') {
+		return tasks.filter((t) => {
+			const taskDate = t[dateField];
+			if (!taskDate) {
+				// For todo column on current day, include tasks without dates
+				if (dateField === 'todo' && isToday(day, currentDate) && t.status !== 'completed' && !t.deadline && !t.finishBy && !t.todo) {
+					return true;
+				}
+				return false;
+			}
+			return isSameDay(taskDate, day);
+		});
+	}
+
+	// Format day for display
+	function formatDay(day: Date): string {
+		const dayName = day.toLocaleDateString('en-US', { weekday: 'short' });
+		const date = day.getDate();
+		return `${dayName} ${date}`;
+	}
 </script>
 
 <div
 	class="border-b border-zinc-800 {isCurrent ? 'bg-yellow-500/10 border-l-2 border-l-yellow-500' : ''}"
-	class:min-h-[200px]={expanded}
 >
 	<!-- Week Header -->
 	<div class="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
@@ -59,80 +78,87 @@
 		{/if}
 	</div>
 
-	{#if expanded}
-		<!-- Expanded view for current week: show day rows -->
-		<div class="grid grid-cols-3 divide-x divide-zinc-800 min-h-[160px]">
-			<Column
-				title="Deadline"
-				tasks={deadlineTasks}
-				emptyText="No deadlines"
-				{onToggleTask}
-				{onClickTask}
-			>
-				{#snippet headerSlot()}
-					<button
-						class="w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-						onclick={() => onAddTask?.(weekStart, 'deadline')}
-					>
-						<Plus class="w-3 h-3" />
-					</button>
-				{/snippet}
-			</Column>
-			<Column
-				title="Finish By"
-				tasks={finishByTasks}
-				emptyText="No finish by tasks"
-				{onToggleTask}
-				{onClickTask}
-			>
-				{#snippet headerSlot()}
-					<button
-						class="w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-						onclick={() => onAddTask?.(weekStart, 'finishBy')}
-					>
-						<Plus class="w-3 h-3" />
-					</button>
-				{/snippet}
-			</Column>
-			<Column
-				title="Open Todos"
-				tasks={todoTasks}
-				emptyText="No open tasks"
-				{onToggleTask}
-				{onClickTask}
-			>
-				{#snippet headerSlot()}
-					<button
-						class="w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-						onclick={() => onAddTask?.(weekStart, 'todo')}
-					>
-						<Plus class="w-3 h-3" />
-					</button>
-				{/snippet}
-			</Column>
+	{#if isCurrent}
+		<!-- Day-by-day view for current week -->
+		<div class="divide-y divide-zinc-800/50">
+			{#each weekDays as day (day.getTime())}
+				{@const dayDeadlines = getTasksForDay(day, 'deadline')}
+				{@const dayFinishBy = getTasksForDay(day, 'finishBy')}
+				{@const dayTodos = getTasksForDay(day, 'todo')}
+				{@const isDayToday = isToday(day, currentDate)}
+				{@const hasAnyTasks = dayDeadlines.length > 0 || dayFinishBy.length > 0 || dayTodos.length > 0}
+
+				<div class="grid grid-cols-[100px_1fr_1fr_1fr] {isDayToday ? 'bg-yellow-500/5' : ''}">
+					<!-- Day Label -->
+					<div class="px-3 py-2 border-r border-zinc-800/50 flex items-start">
+						<span class="text-xs {isDayToday ? 'text-yellow-400 font-medium' : 'text-zinc-500'}">
+							{formatDay(day)}
+						</span>
+					</div>
+
+					<!-- Deadline Column -->
+					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
+						{#each dayDeadlines as task (task.id)}
+							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+						{/each}
+					</div>
+
+					<!-- Finish By Column -->
+					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
+						{#each dayFinishBy as task (task.id)}
+							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+						{/each}
+					</div>
+
+					<!-- Todo Column -->
+					<div class="px-2 py-1 min-h-[32px]">
+						{#each dayTodos as task (task.id)}
+							<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} />
+						{/each}
+					</div>
+				</div>
+			{/each}
 		</div>
 	{:else}
-		<!-- Collapsed view: single row with task counts -->
-		<div class="grid grid-cols-3 divide-x divide-zinc-800">
-			<div class="px-3 py-2">
-				{#if deadlineTasks.length > 0}
-					<span class="text-xs text-zinc-400">{deadlineTasks.length} deadline{deadlineTasks.length !== 1 ? 's' : ''}</span>
+		<!-- Week view for past/future weeks: show actual tasks -->
+		<div class="grid grid-cols-[100px_1fr_1fr_1fr] min-h-[60px]">
+			<!-- Week summary label -->
+			<div class="px-3 py-2 border-r border-zinc-800/50">
+				<span class="text-[10px] text-zinc-600">
+					{deadlineTasks.length + finishByTasks.length + todoTasks.length} tasks
+				</span>
+			</div>
+
+			<!-- Deadline Column -->
+			<div class="px-2 py-1 border-r border-zinc-800/50">
+				{#if deadlineTasks.length === 0}
+					<span class="text-xs text-zinc-700">-</span>
 				{:else}
-					<span class="text-xs text-zinc-600">-</span>
+					{#each deadlineTasks as task (task.id)}
+						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+					{/each}
 				{/if}
 			</div>
-			<div class="px-3 py-2">
-				{#if finishByTasks.length > 0}
-					<span class="text-xs text-zinc-400">{finishByTasks.length} finish by</span>
+
+			<!-- Finish By Column -->
+			<div class="px-2 py-1 border-r border-zinc-800/50">
+				{#if finishByTasks.length === 0}
+					<span class="text-xs text-zinc-700">-</span>
 				{:else}
-					<span class="text-xs text-zinc-600">-</span>
+					{#each finishByTasks as task (task.id)}
+						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+					{/each}
 				{/if}
 			</div>
-			<div class="px-3 py-2">
-				{#if todoTasks.length > 0}
-					<span class="text-xs text-zinc-400">{todoTasks.length} todo{todoTasks.length !== 1 ? 's' : ''}</span>
+
+			<!-- Todo Column -->
+			<div class="px-2 py-1">
+				{#if todoTasks.length === 0}
+					<span class="text-xs text-zinc-700">-</span>
 				{:else}
-					<span class="text-xs text-zinc-600">-</span>
+					{#each todoTasks as task (task.id)}
+						<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} />
+					{/each}
 				{/if}
 			</div>
 		</div>

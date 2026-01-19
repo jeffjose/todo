@@ -7,12 +7,13 @@
 		title: string;
 		tasks: Task[];
 		emptyText?: string;
+		showDueDate?: boolean;
 		onToggleTask?: (id: string) => void;
 		onClickTask?: (task: Task) => void;
 		headerSlot?: Snippet;
 	}
 
-	let { title, tasks, emptyText = 'No tasks', onToggleTask, onClickTask, headerSlot }: Props = $props();
+	let { title, tasks, emptyText = 'No tasks', showDueDate = false, onToggleTask, onClickTask, headerSlot }: Props = $props();
 </script>
 
 <div class="flex flex-col min-h-0">
@@ -35,7 +36,7 @@
 			<p class="text-xs text-zinc-600 px-2 py-2">{emptyText}</p>
 		{:else}
 			{#each tasks as task (task.id)}
-				<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} />
+				<TaskRow {task} {showDueDate} onToggle={onToggleTask} onClick={onClickTask} />
 			{/each}
 		{/if}
 	</div>

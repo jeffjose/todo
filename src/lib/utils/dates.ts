@@ -98,6 +98,20 @@ export function getWeekDays(weekStart: Date): Date[] {
 	return days;
 }
 
+// Check if two dates are the same day
+export function isSameDay(date1: Date, date2: Date): boolean {
+	return (
+		date1.getFullYear() === date2.getFullYear() &&
+		date1.getMonth() === date2.getMonth() &&
+		date1.getDate() === date2.getDate()
+	);
+}
+
+// Check if a date is today
+export function isToday(date: Date, currentDate: Date = new Date()): boolean {
+	return isSameDay(date, currentDate);
+}
+
 // Format date for input[type="date"]
 export function formatDateForInput(date: Date | undefined): string {
 	if (!date) return '';

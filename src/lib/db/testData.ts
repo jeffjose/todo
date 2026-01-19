@@ -63,8 +63,9 @@ export async function generateTestData(count: number = 15): Promise<void> {
 		usedTitles.add(title);
 
 		// Generate dates in logical order: todo <= finishBy <= deadline
-		// Start todo somewhere between -3 days (past) and +7 days (future)
-		const todoOffset = randomInt(-3, 7);
+		// All dates can be past, present, or future
+		// Start todo somewhere between -7 days (past) and +7 days (future)
+		const todoOffset = randomInt(-7, 7);
 		const todo = addDays(now, todoOffset);
 
 		// finishBy is 2-5 days after todo

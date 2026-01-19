@@ -66,7 +66,7 @@
 </script>
 
 <div
-	class="border-b border-zinc-800 {isCurrent ? 'bg-yellow-500/10 border-l-2 border-l-yellow-500' : ''}"
+	class="border-b border-zinc-800 {isCurrent ? 'border-l-2 border-l-yellow-500' : ''}"
 >
 	<!-- Week Header -->
 	<div class="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50">
@@ -88,7 +88,7 @@
 				{@const isDayToday = isToday(day, currentDate)}
 				{@const hasAnyTasks = dayDeadlines.length > 0 || dayFinishBy.length > 0 || dayTodos.length > 0}
 
-				<div class="grid grid-cols-[100px_1fr_1fr_1fr] {isDayToday ? 'bg-yellow-500/5' : ''}">
+				<div class="grid grid-cols-[100px_1fr_1fr_1fr] {isDayToday ? 'bg-yellow-500/10' : ''}">
 					<!-- Day Label -->
 					<div class="px-3 py-2 border-r border-zinc-800/50 flex items-start">
 						<span class="text-xs {isDayToday ? 'text-yellow-400 font-medium' : 'text-zinc-500'}">

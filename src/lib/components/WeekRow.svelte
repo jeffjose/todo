@@ -13,6 +13,7 @@
 		onAddTask?: (date: Date, column: 'deadline' | 'finishBy' | 'todo') => void;
 		hoveredTaskId?: string | null;
 		onHoverTask?: (id: string | null) => void;
+		workOrderMap?: Map<string, number>;
 	}
 
 	let {
@@ -23,7 +24,8 @@
 		onClickTask,
 		onAddTask,
 		hoveredTaskId = null,
-		onHoverTask
+		onHoverTask,
+		workOrderMap = new Map()
 	}: Props = $props();
 
 	let isCurrent = $derived(isCurrentWeek(weekStart, currentDate));
@@ -150,7 +152,7 @@
 					<!-- Deadline Column -->
 					<div class="px-2 py-1 border-r border-zinc-800/50 min-h-[32px]">
 						{#each dayDeadlines as task (task.id)}
-							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+							<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} workOrder={workOrderMap.get(task.id)} />
 						{/each}
 					</div>
 
@@ -186,7 +188,7 @@
 					<span class="text-xs text-zinc-700">-</span>
 				{:else}
 					{#each deadlineTasks as task (task.id)}
-						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+						<TaskRow {task} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} workOrder={workOrderMap.get(task.id)} />
 					{/each}
 				{/if}
 			</div>

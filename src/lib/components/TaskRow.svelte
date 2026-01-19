@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task } from '$lib/types';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { formatShortDate } from '$lib/utils/dates';
+	import { formatShortDate, daysDiff } from '$lib/utils/dates';
 
 	interface Props {
 		task: Task;
@@ -10,9 +10,10 @@
 		onHover?: (id: string | null) => void;
 		showDueDate?: boolean;
 		isHighlighted?: boolean;
+		workOrder?: number;
 	}
 
-	let { task, onToggle, onClick, onHover, showDueDate = false, isHighlighted = false }: Props = $props();
+	let { task, onToggle, onClick, onHover, showDueDate = false, isHighlighted = false, workOrder }: Props = $props();
 
 	const priorityColors: Record<string, string> = {
 		P0: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -22,10 +23,35 @@
 	};
 
 	let isCompleted = $derived(task.status === 'completed');
+	let isBlocked = $derived(task.status === 'blocked');
+
+	// Calculate status badge (overdue/slipped)
+	let today = new Date();
+	let statusBadge = $derived.by(() => {
+		if (isCompleted) return null;
+
+		// Check deadline first (overdue)
+		if (task.deadline) {
+			const days = daysDiff(today, task.deadline);
+			if (days > 0) {
+				return { type: 'overdue' as const, days, label: `${days}d overdue` };
+			}
+		}
+
+		// Check finishBy (slipped)
+		if (task.finishBy) {
+			const days = daysDiff(today, task.finishBy);
+			if (days > 0) {
+				return { type: 'slipped' as const, days, label: `${days}d slipped` };
+			}
+		}
+
+		return null;
+	});
 
 	// Get the due date to display (prefer deadline, fallback to finishBy)
 	let dueDate = $derived(task.deadline || task.finishBy);
-	let dueDateLabel = $derived(() => {
+	let dueDateLabel = $derived.by(() => {
 		if (!dueDate) return null;
 		const label = task.deadline ? 'due' : 'finish';
 		return `${label} ${formatShortDate(dueDate)}`;
@@ -33,7 +59,7 @@
 </script>
 
 <div
-	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''}"
+	class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors {isHighlighted ? 'ring-1 ring-blue-500/50 bg-blue-500/10' : ''} {isBlocked ? 'opacity-60' : ''}"
 	style="padding-left: calc(0.5rem + {task.level * 0.75}rem)"
 	role="button"
 	tabindex="0"
@@ -42,6 +68,13 @@
 	onmouseenter={() => onHover?.(task.id)}
 	onmouseleave={() => onHover?.(null)}
 >
+	<!-- Work Order Badge -->
+	{#if workOrder}
+		<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+			{workOrder}
+		</span>
+	{/if}
+
 	<!-- Checkbox -->
 	<div
 		onclick={(e) => {
@@ -60,6 +93,11 @@
 		<Checkbox checked={isCompleted} class="border-zinc-600 data-[state=checked]:bg-zinc-600" />
 	</div>
 
+	<!-- Blocked indicator -->
+	{#if isBlocked}
+		<span class="text-[10px] text-purple-400 bg-purple-500/20 px-1.5 py-0.5 rounded">blocked</span>
+	{/if}
+
 	<!-- Emoji -->
 	{#if task.emoji}
 		<span class="text-sm">{task.emoji}</span>
@@ -69,15 +107,28 @@
 	<span
 		class="flex-1 text-sm truncate {isCompleted
 			? 'text-zinc-500 line-through'
-			: 'text-zinc-200'}"
+			: isBlocked
+				? 'text-zinc-400 italic'
+				: 'text-zinc-200'}"
 	>
 		{task.title}
 	</span>
 
+	<!-- Status Badge (overdue/slipped) -->
+	{#if statusBadge}
+		<span
+			class="text-[10px] font-medium px-1.5 py-0.5 rounded {statusBadge.type === 'overdue'
+				? 'text-red-400 bg-red-500/20'
+				: 'text-yellow-400 bg-yellow-500/20'}"
+		>
+			{statusBadge.label}
+		</span>
+	{/if}
+
 	<!-- Due Date (when showing in todo column) -->
 	{#if showDueDate && dueDate && !isCompleted}
 		<span class="text-[10px] text-zinc-500">
-			{dueDateLabel()}
+			{dueDateLabel}
 		</span>
 	{/if}
 

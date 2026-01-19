@@ -42,6 +42,30 @@
 		hoveredTaskId = id;
 	}
 
+	// Work order calculation: rank incomplete deadline tasks by deadline then priority
+	const priorityOrder: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+	let workOrderMap = $derived(() => {
+		const map = new Map<string, number>();
+
+		// Get incomplete tasks with deadlines
+		const deadlineTasks = tasks
+			.filter((t) => t.status !== 'completed' && t.deadline)
+			.sort((a, b) => {
+				// Sort by deadline first
+				const deadlineDiff = a.deadline!.getTime() - b.deadline!.getTime();
+				if (deadlineDiff !== 0) return deadlineDiff;
+				// Then by priority
+				return priorityOrder[a.priority] - priorityOrder[b.priority];
+			});
+
+		// Assign work order numbers
+		deadlineTasks.forEach((task, index) => {
+			map.set(task.id, index + 1);
+		});
+
+		return map;
+	});
+
 	// Get weeks to display (centered around viewCenterDate)
 	let weeks = $derived(getWeeksAroundCurrent(viewCenterDate));
 
@@ -117,6 +141,7 @@
 				onAddTask={handleAddTask}
 				{hoveredTaskId}
 				onHoverTask={handleHoverTask}
+				workOrderMap={workOrderMap()}
 			/>
 		{/each}
 	</div>

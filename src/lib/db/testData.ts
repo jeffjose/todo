@@ -31,16 +31,15 @@ const taskTitles = [
 
 const priorities: TaskPriority[] = ['P0', 'P1', 'P2', 'P3'];
 
-function randomDate(startOffset: number, endOffset: number): Date {
-	const now = new Date();
-	const start = new Date(now);
-	start.setDate(start.getDate() + startOffset);
-	const end = new Date(now);
-	end.setDate(end.getDate() + endOffset);
+function randomInt(min: number, max: number): number {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
-	const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-	date.setHours(0, 0, 0, 0);
-	return date;
+function addDays(date: Date, days: number): Date {
+	const result = new Date(date);
+	result.setDate(result.getDate() + days);
+	result.setHours(0, 0, 0, 0);
+	return result;
 }
 
 function randomChoice<T>(arr: T[]): T {
@@ -52,6 +51,8 @@ export async function generateTestData(count: number = 15): Promise<void> {
 	await clearAllTasks();
 
 	const usedTitles = new Set<string>();
+	const now = new Date();
+	now.setHours(0, 0, 0, 0);
 
 	for (let i = 0; i < count; i++) {
 		// Get a unique title
@@ -61,27 +62,33 @@ export async function generateTestData(count: number = 15): Promise<void> {
 		} while (usedTitles.has(title) && usedTitles.size < taskTitles.length);
 		usedTitles.add(title);
 
-		// Randomly decide which date field to set (can have multiple)
-		const hasDeadline = Math.random() < 0.4;
-		const hasFinishBy = Math.random() < 0.4;
-		const hasTodo = Math.random() < 0.3;
+		// Generate dates in logical order: todo <= finishBy <= deadline
+		// Start todo somewhere between -3 days (past) and +7 days (future)
+		const todoOffset = randomInt(-3, 7);
+		const todo = addDays(now, todoOffset);
 
-		// If no date, give it a todo date
-		const needsDate = !hasDeadline && !hasFinishBy && !hasTodo;
+		// finishBy is 2-5 days after todo
+		const finishByGap = randomInt(2, 5);
+		const finishBy = addDays(todo, finishByGap);
+
+		// deadline is 1-4 days after finishBy
+		const deadlineGap = randomInt(1, 4);
+		const deadline = addDays(finishBy, deadlineGap);
 
 		const task: NewTask = {
 			title,
-			status: Math.random() < 0.2 ? 'completed' : 'pending',
+			status: Math.random() < 0.15 ? 'completed' : 'pending',
 			priority: randomChoice(priorities),
-			deadline: hasDeadline ? randomDate(-7, 14) : undefined,
-			finishBy: hasFinishBy ? randomDate(-7, 14) : undefined,
-			todo: hasTodo || needsDate ? randomDate(-3, 7) : undefined,
+			todo,
+			finishBy,
+			deadline,
 			tags: []
 		};
 
-		// If completed, set completed date
+		// If completed, set completed date (sometime before or on the deadline)
 		if (task.status === 'completed') {
-			task.completed = randomDate(-7, 0);
+			const completedOffset = randomInt(-3, 0);
+			task.completed = addDays(now, completedOffset);
 		}
 
 		await createTask(task);

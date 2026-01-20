@@ -152,17 +152,21 @@
 		</div>
 	{/if}
 
-	<!-- Urgency Meter (4 dots + overflow for overdue) - only shown in todo column -->
+	<!-- Urgency Meter (4 dots + stacked bars for overdue) - only shown in todo column -->
 	{#if showUrgency && urgency.level > 0 && !isCompleted && !isGhost}
-		<div class="flex gap-0.5 shrink-0" title="{urgency.overflow > 0 ? `${urgency.overflow}d overdue` : `Urgency: ${urgency.level}/4`}">
+		<div class="flex items-center gap-0.5 shrink-0" title="{urgency.overflow > 0 ? `${urgency.overflow}d overdue` : `Urgency: ${urgency.level}/4`}">
 			<!-- Base 4 dots -->
 			{#each [1, 2, 3, 4] as dot}
 				<span class="w-1.5 h-1.5 rounded-full {dot <= urgency.level ? urgencyColors[urgency.color].filled : urgencyColors[urgency.color].empty}"></span>
 			{/each}
-			<!-- Overflow dots for overdue -->
-			{#each Array(urgency.overflow) as _, i}
-				<span class="w-1.5 h-1.5 rounded-full {urgencyColors[urgency.color].filled}"></span>
-			{/each}
+			<!-- Overflow bars for overdue (stacked vertical bars) -->
+			{#if urgency.overflow > 0}
+				<div class="flex gap-px ml-0.5">
+					{#each Array(urgency.overflow) as _, i}
+						<span class="w-1 h-3 rounded-sm {urgencyColors[urgency.color].filled}"></span>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 

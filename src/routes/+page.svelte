@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Plus, CalendarDays, FlaskConical, Download, Upload, Keyboard } from '@lucide/svelte';
+	import { Plus, CalendarDays, FlaskConical, Download, Upload, Keyboard, Trash2 } from '@lucide/svelte';
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import AddTaskDialog from '$lib/components/AddTaskDialog.svelte';
 	import ImportDialog from '$lib/components/ImportDialog.svelte';
 	import KeyboardShortcutsDialog from '$lib/components/KeyboardShortcutsDialog.svelte';
 	import Toast, { showToast } from '$lib/components/Toast.svelte';
 	import type { Task, NewTask, TaskStatus, WeekEvent } from '$lib/types';
-	import { getAllTasks, createTask, updateTask, deleteTask, toggleTaskStatus } from '$lib/db/tasks';
-	import { getAllWeekEvents, createWeekEvent, updateWeekEvent, deleteWeekEvent } from '$lib/db/weekEvents';
+	import { getAllTasks, createTask, updateTask, deleteTask, toggleTaskStatus, clearAllTasks } from '$lib/db/tasks';
+	import { getAllWeekEvents, createWeekEvent, updateWeekEvent, deleteWeekEvent, clearAllWeekEvents } from '$lib/db/weekEvents';
 	import { downloadExport, importFromJSON, type ImportMode } from '$lib/db/exportImport';
 	import { generateDemoData } from '$lib/db/demoData';
 	import { nanoid } from 'nanoid';
@@ -257,6 +257,21 @@
 			showToast('Import failed: ' + result.errors[0], 'error');
 		}
 	}
+
+	async function handleClearAll() {
+		if (!confirm('Clear all tasks and events? This cannot be undone.')) return;
+
+		if (isDemoMode) {
+			tasks = [];
+			weekEvents = [];
+		} else {
+			await clearAllTasks();
+			await clearAllWeekEvents();
+			tasks = [];
+			weekEvents = [];
+		}
+		showToast('All data cleared', 'info');
+	}
 </script>
 
 <!-- Header Toolbar -->
@@ -286,6 +301,15 @@
 				title="Import data from JSON"
 			>
 				<Upload class="w-4 h-4" />
+			</button>
+
+			<!-- Clear All Button -->
+			<button
+				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-red-400 transition-colors"
+				onclick={handleClearAll}
+				title="Clear all tasks and events"
+			>
+				<Trash2 class="w-4 h-4" />
 			</button>
 
 			<div class="w-px h-4 bg-zinc-700 mx-1"></div>

@@ -67,31 +67,41 @@
 		return `${label} ${formatShortDate(dueDate)}`;
 	});
 
-	// Urgency meter (0-4 dots filled based on time pressure)
+	// Urgency meter (0-4 dots filled based on time pressure, with overflow for overdue)
 	let urgency = $derived.by(() => {
-		if (isCompleted) return { level: 0, color: 'zinc' };
+		if (isCompleted) return { level: 0, color: 'zinc', overflow: 0 };
 
 		const deadlineDays = task.deadline ? daysDiff(task.deadline, today) : null;
 		const finishByDays = task.finishBy ? daysDiff(task.finishBy, today) : null;
 
 		// Deadline takes priority
 		if (deadlineDays !== null) {
-			if (deadlineDays <= 0) return { level: 4, color: 'red' }; // today or overdue
-			if (deadlineDays <= 2) return { level: 3, color: 'orange' };
-			if (deadlineDays <= 7) return { level: 2, color: 'yellow' };
-			if (deadlineDays <= 14) return { level: 1, color: 'zinc' };
-			return { level: 0, color: 'zinc' };
+			if (deadlineDays < 0) {
+				// Overdue - show overflow dots (capped at 4 extra)
+				const overdueDays = Math.abs(deadlineDays);
+				return { level: 4, color: 'red', overflow: Math.min(overdueDays, 4) };
+			}
+			if (deadlineDays === 0) return { level: 4, color: 'red', overflow: 0 }; // due today
+			if (deadlineDays <= 2) return { level: 3, color: 'orange', overflow: 0 };
+			if (deadlineDays <= 7) return { level: 2, color: 'yellow', overflow: 0 };
+			if (deadlineDays <= 14) return { level: 1, color: 'zinc', overflow: 0 };
+			return { level: 0, color: 'zinc', overflow: 0 };
 		}
 
 		// FinishBy is less urgent
 		if (finishByDays !== null) {
-			if (finishByDays <= 0) return { level: 3, color: 'orange' }; // today or overdue
-			if (finishByDays <= 2) return { level: 2, color: 'yellow' };
-			if (finishByDays <= 7) return { level: 1, color: 'zinc' };
-			return { level: 0, color: 'zinc' };
+			if (finishByDays < 0) {
+				// Overdue finishBy - show some overflow but less prominent
+				const overdueDays = Math.abs(finishByDays);
+				return { level: 3, color: 'orange', overflow: Math.min(overdueDays, 2) };
+			}
+			if (finishByDays === 0) return { level: 3, color: 'orange', overflow: 0 }; // due today
+			if (finishByDays <= 2) return { level: 2, color: 'yellow', overflow: 0 };
+			if (finishByDays <= 7) return { level: 1, color: 'zinc', overflow: 0 };
+			return { level: 0, color: 'zinc', overflow: 0 };
 		}
 
-		return { level: 0, color: 'zinc' };
+		return { level: 0, color: 'zinc', overflow: 0 };
 	});
 
 	const urgencyColors: Record<string, { filled: string; empty: string }> = {
@@ -142,11 +152,16 @@
 		</div>
 	{/if}
 
-	<!-- Urgency Meter (4 dots) - only shown in todo column -->
+	<!-- Urgency Meter (4 dots + overflow for overdue) - only shown in todo column -->
 	{#if showUrgency && urgency.level > 0 && !isCompleted && !isGhost}
-		<div class="flex gap-0.5 shrink-0" title="Urgency: {urgency.level}/4">
+		<div class="flex gap-0.5 shrink-0" title="{urgency.overflow > 0 ? `${urgency.overflow}d overdue` : `Urgency: ${urgency.level}/4`}">
+			<!-- Base 4 dots -->
 			{#each [1, 2, 3, 4] as dot}
 				<span class="w-1.5 h-1.5 rounded-full {dot <= urgency.level ? urgencyColors[urgency.color].filled : urgencyColors[urgency.color].empty}"></span>
+			{/each}
+			<!-- Overflow dots for overdue -->
+			{#each Array(urgency.overflow) as _, i}
+				<span class="w-1.5 h-1.5 rounded-full {urgencyColors[urgency.color].filled}"></span>
 			{/each}
 		</div>
 	{/if}

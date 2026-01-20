@@ -33,178 +33,100 @@ Interactions:
 
 ---
 
-## Phase 1: Working Prototype
+## Phase 1: Working Prototype ✅
 
 **Goal:** Playable 3-column todo app
 
 This phase delivers everything needed for a functional app you can actually use.
 
 ### 1.1 Setup & App Shell
-- [ ] Remove all existing source files
-- [ ] Fresh SvelteKit + Svelte 5 setup
-- [ ] Tailwind CSS 4 configuration
-- [ ] shadcn-svelte setup (button, dialog, input, select)
-- [ ] App shell layout:
-  - Left icon sidebar (w-12)
-  - Header toolbar (h-11)
-  - Main content area
-- [ ] Dark mode as default
+- [x] Fresh SvelteKit + Svelte 5 setup
+- [x] Tailwind CSS 4 configuration
+- [x] shadcn-svelte setup (button, dialog, input, select)
+- [x] App shell layout with header toolbar (h-11)
+- [x] Dark mode as default
 
 ### 1.2 Data Layer
-```typescript
-interface Task {
-  id: string;
-  title: string;
-  emoji?: string;
-
-  // The 3 key dates
-  deadline?: Date;    // Hard deadline, never moves
-  finishBy?: Date;    // Soft deadline, promotes if overdue
-  todo?: Date;        // Work date
-
-  // Status
-  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
-  priority: 'P0' | 'P1' | 'P2' | 'P3';
-
-  // Hierarchy (simplified for now)
-  parentId?: string;
-  path: string;
-  level: number;
-
-  // Metadata
-  description?: string;
-  tags: string[];
-  completed?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-- [ ] Dexie database setup
-- [ ] Task CRUD operations (create, read, update, delete)
-- [ ] Type definitions
+- [x] Dexie database setup
+- [x] Task CRUD operations (create, read, update, delete)
+- [x] Type definitions
 
 ### 1.3 Core Components
-- [ ] TaskRow component
-  - Title, priority badge (P0-P3 colors)
-  - Checkbox for completion
-  - Click to edit
-- [ ] AddTaskDialog
-  - Title input
-  - Date pickers (deadline, finishBy, todo)
-  - Priority selector
-- [ ] EditTaskDialog
-  - Pre-filled form
-  - Delete option
+- [x] TaskRow component with priority badges, checkbox, click to edit
+- [x] AddTaskDialog with date pickers and priority selector
+- [x] EditTaskDialog with pre-filled form and delete option
 
 ### 1.4 Three Column Layout
-```
-┌──────────────────────────────────────────────────┐
-│  Week of Jan 13, 2025              [◀] [▶] [+]   │
-├────────────────┬────────────────┬────────────────┤
-│   Deadline     │   Finish By    │   Open Todos   │
-│                │                │                │
-│  Hard dates    │  Soft dates    │  Work items    │
-│  (this week)   │  (this week)   │  (open tasks)  │
-└────────────────┴────────────────┴────────────────┘
-```
-
-- [ ] WeeklyView component (3-column grid)
-- [ ] Week header with navigation (prev/next)
-- [ ] Week rows: 2 weeks back → current → 3 weeks forward
-- [ ] Current week: expanded with day rows + amber highlight
-- [ ] Basic column filtering:
-  - Deadline: tasks with deadline in this week
-  - FinishBy: tasks with finishBy in this week
-  - Todo: open tasks (no complex promotion yet)
-
-### Deliverable:
-A working todo app where you can:
-- Create tasks with dates and priorities
-- See tasks organized in 3 columns by week
-- Navigate between weeks
-- Complete/edit/delete tasks
+- [x] WeeklyView component (3-column grid)
+- [x] Week header with navigation (prev/next)
+- [x] Week rows: 2 weeks back → current → 3 weeks forward
+- [x] Current week: expanded with day rows + amber highlight
+- [x] Column filtering for deadline, finishBy, todo
 
 ---
 
-## Phase 2: Task Logic
+## Phase 2: Task Logic ✅
 
 **Goal:** Smart promotion, badges, work order
 
-### Badge System:
-| Badge | Color | Condition |
-|-------|-------|-----------|
-| overdue | Red | deadline in past, not completed |
-| slipped | Yellow | finishBy in past, not completed |
-| on-track | Green | future date |
-
-### Tasks:
-- [ ] Task promotion logic
-  - FinishBy tasks: promote to current week if overdue
-  - Deadline tasks: stay in original week, show badge
-  - Todo tasks: show in current week if open
-- [ ] Badge component with day counts ("3d overdue")
-- [ ] Work order calculation
-  - Rank incomplete deadline tasks
-  - Sort by: deadline → priority
-  - Display numbered badge (1, 2, 3...)
-- [ ] Status styling
-  - Completed: strikethrough, muted
-  - Blocked: distinct styling
-
-### Deliverable:
-Tasks automatically organize themselves, visual indicators show urgency
+### Implemented:
+- [x] Task promotion logic (finishBy/todo tasks promote to current week)
+- [x] Badge component with day counts ("3d overdue", "2d slipped")
+- [x] Work order calculation (numbered badges for deadline tasks)
+- [x] Status styling (completed strikethrough, blocked styling)
+- [x] Urgency meter (4 dots that fill based on time pressure)
+- [x] Overflow bars for overdue tasks (visual danger level)
+- [x] Todo column grouping (DUE / FINISH / TODO sections)
+- [x] Relative date formatting ("due tomorrow", "due next Wed")
+- [x] Past weeks collapse by default
 
 ---
 
-## Phase 3: Task Hierarchy
+## Phase 3: Task Hierarchy ✅
 
 **Goal:** Parent-child relationships
 
-### Display:
-```
-├── Parent Task
-│   ├── Child Task 1
-│   └── Child Task 2
-```
+### Implemented:
+- [x] Path management (auto-generate on create)
+- [x] Indentation by level
+- [x] Demo mode with hierarchical project tasks
+- [x] Subtask display in demo data
 
-### Tasks:
-- [ ] "Add subtask" action
-- [ ] Path management (auto-generate on create)
-- [ ] Indentation by level
+### Not implemented (deferred):
+- [ ] "Add subtask" action UI
 - [ ] Visibility rules (parent visible → show children)
 - [ ] Sorting by path → level → status
 
-### Deliverable:
-Nested task structure with proper display
-
 ---
 
-## Phase 4: Week Events
+## Phase 4: Week Events ✅
 
 **Goal:** Milestones attached to weeks
 
-### Tasks:
-- [ ] WeekEvent data model & CRUD
-- [ ] Display in week header
-- [ ] AddEventDialog (title, color)
-
-### Deliverable:
-Can add context/milestones to weeks
+### Implemented:
+- [x] WeekEvent data model & CRUD
+- [x] Display in week header as colored badges
+- [x] WeekEventDialog (title, color picker, delete)
+- [x] 6 colors: blue, green, amber, red, purple, pink
+- [x] Add event button on hover
+- [x] Demo events included in demo mode
 
 ---
 
-## Phase 5: Import/Export
+## Phase 5: Import/Export ✅
 
 **Goal:** Data portability
 
-### Tasks:
-- [ ] Export as YAML/JSON (download file)
-- [ ] Import from file (parse, validate, merge/replace)
-- [ ] Load initial data on first run
+### Implemented:
+- [x] Export as JSON (download file with tasks + events)
+- [x] Import from file with validation
+- [x] Import modes: Replace (clear existing) or Merge (add to existing)
+- [x] File validation with error reporting
+- [x] Import summary (task count, event count)
 
-### Deliverable:
-Full data import/export capability
+### Not implemented (deferred):
+- [ ] YAML export format
+- [ ] Load initial data on first run
 
 ---
 
@@ -240,30 +162,33 @@ Polished, production-ready app
 
 ---
 
-## File Structure (Target)
+## File Structure (Current)
 
 ```
 src/
 ├── lib/
 │   ├── components/
-│   │   ├── ui/              # shadcn components
-│   │   ├── AppShell.svelte
-│   │   ├── TaskRow.svelte
-│   │   ├── Column.svelte
-│   │   ├── WeeklyView.svelte
-│   │   ├── WeekRow.svelte
-│   │   ├── AddTaskDialog.svelte
-│   │   └── EditTaskDialog.svelte
+│   │   ├── ui/                    # shadcn components
+│   │   ├── TaskRow.svelte         # Task display with urgency meter
+│   │   ├── WeeklyView.svelte      # Main 3-column view
+│   │   ├── WeekRow.svelte         # Individual week display
+│   │   ├── AddTaskDialog.svelte   # Create task dialog
+│   │   ├── EditTaskDialog.svelte  # Edit task dialog
+│   │   ├── WeekEventDialog.svelte # Create/edit week event
+│   │   └── ImportDialog.svelte    # Import data dialog
 │   ├── db/
-│   │   ├── index.ts         # Dexie setup
-│   │   └── tasks.ts         # Task operations
+│   │   ├── index.ts               # Dexie setup
+│   │   ├── tasks.ts               # Task CRUD operations
+│   │   ├── weekEvents.ts          # Week event operations
+│   │   ├── exportImport.ts        # Export/import utilities
+│   │   ├── demoData.ts            # Demo mode data generator
+│   │   └── testData.ts            # Test data (legacy)
 │   ├── utils/
-│   │   ├── dates.ts         # Date helpers
-│   │   └── taskLogic.ts     # Filtering, promotion
-│   └── types.ts             # Type definitions
+│   │   └── dates.ts               # Date helpers
+│   └── types.ts                   # Type definitions
 ├── routes/
-│   ├── +layout.svelte       # App shell
-│   └── +page.svelte         # Main view
+│   ├── +layout.svelte             # App shell
+│   └── +page.svelte               # Main view
 ├── app.css
 └── app.html
 ```
@@ -272,7 +197,7 @@ src/
 
 ## Notes
 
-- Phase 1 is the big one - get to playable ASAP
-- Commit after each sub-section (1.1, 1.2, etc.)
-- Keep components small and focused
-- Use Svelte 5 runes ($state, $derived, $effect)
+- Phase 1-5 complete
+- Demo mode allows trying features without affecting real data
+- Export/import enables data backup and portability
+- Next: Phase 6 polish (keyboard shortcuts, empty states, toasts)

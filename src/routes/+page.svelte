@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Plus, CalendarDays, FlaskConical } from '@lucide/svelte';
+	import { Plus, CalendarDays, FlaskConical, Download, Upload } from '@lucide/svelte';
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import AddTaskDialog from '$lib/components/AddTaskDialog.svelte';
+	import ImportDialog from '$lib/components/ImportDialog.svelte';
 	import type { Task, NewTask, TaskStatus, WeekEvent } from '$lib/types';
 	import { getAllTasks, createTask, updateTask, deleteTask, toggleTaskStatus } from '$lib/db/tasks';
 	import { getAllWeekEvents, createWeekEvent, updateWeekEvent, deleteWeekEvent } from '$lib/db/weekEvents';
+	import { downloadExport, importFromJSON, type ImportMode } from '$lib/db/exportImport';
 	import { generateDemoData } from '$lib/db/demoData';
 	import { nanoid } from 'nanoid';
 	import { getWeekStart } from '$lib/utils/dates';
@@ -13,6 +15,7 @@
 	let tasks = $state<Task[]>([]);
 	let weekEvents = $state<WeekEvent[]>([]);
 	let addDialogOpen = $state(false);
+	let importDialogOpen = $state(false);
 	let weeklyView: WeeklyView;
 
 	// Demo mode state
@@ -180,6 +183,20 @@
 	function handleGoToToday() {
 		weeklyView?.goToToday();
 	}
+
+	// Export/Import handlers
+	async function handleExport() {
+		await downloadExport();
+	}
+
+	async function handleImport(jsonString: string, mode: ImportMode) {
+		const result = await importFromJSON(jsonString, mode);
+		if (result.success) {
+			// Reload data
+			tasks = await getAllTasks();
+			weekEvents = await getAllWeekEvents();
+		}
+	}
 </script>
 
 <!-- Header Toolbar -->
@@ -192,6 +209,28 @@
 	<div class="flex-1"></div>
 
 	<div class="flex items-center gap-1">
+		<!-- Export Button -->
+		{#if !isDemoMode}
+			<button
+				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+				onclick={handleExport}
+				title="Export data as JSON"
+			>
+				<Download class="w-4 h-4" />
+			</button>
+
+			<!-- Import Button -->
+			<button
+				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+				onclick={() => (importDialogOpen = true)}
+				title="Import data from JSON"
+			>
+				<Upload class="w-4 h-4" />
+			</button>
+
+			<div class="w-px h-4 bg-zinc-700 mx-1"></div>
+		{/if}
+
 		<!-- Demo Mode Toggle -->
 		<button
 			class="w-7 h-7 flex items-center justify-center rounded-md transition-colors {isDemoMode ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30' : 'text-zinc-500 hover:bg-zinc-800 hover:text-amber-400'}"
@@ -239,3 +278,6 @@
 
 <!-- Global Add Dialog (from header button) -->
 <AddTaskDialog bind:open={addDialogOpen} onSubmit={handleCreateTask} />
+
+<!-- Import Dialog -->
+<ImportDialog bind:open={importDialogOpen} onImport={handleImport} />

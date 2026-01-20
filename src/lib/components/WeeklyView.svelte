@@ -5,6 +5,7 @@
 	import EditTaskDialog from './EditTaskDialog.svelte';
 	import { getWeeksAroundCurrent, isCurrentWeek } from '$lib/utils/dates';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { tick } from 'svelte';
 
 	interface Props {
 		tasks: Task[];
@@ -27,6 +28,21 @@
 
 	// Navigation state - which week range to show
 	let viewCenterDate = $state(new Date());
+
+	// Ref to scroll container for auto-scrolling to current week
+	let scrollContainer: HTMLDivElement | undefined = $state();
+
+	// Auto-scroll to current week on mount
+	$effect(() => {
+		if (scrollContainer) {
+			tick().then(() => {
+				const currentWeekEl = scrollContainer?.querySelector('[data-current-week="true"]');
+				if (currentWeekEl) {
+					currentWeekEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+				}
+			});
+		}
+	});
 
 	// Dialog state
 	let addDialogOpen = $state(false);
@@ -130,8 +146,10 @@
 	</div>
 
 	<!-- Week Rows -->
-	<div class="flex-1 overflow-y-auto">
+	<div class="flex-1 overflow-y-auto" bind:this={scrollContainer}>
 		{#each weeks as week (week.getTime())}
+			{@const isCurrentWeekRow = isCurrentWeek(week, today)}
+			<div data-current-week={isCurrentWeekRow}>
 			<WeekRow
 				weekStart={week}
 				{tasks}
@@ -143,6 +161,7 @@
 				onHoverTask={handleHoverTask}
 				workOrderMap={workOrderMap()}
 			/>
+			</div>
 		{/each}
 	</div>
 </div>

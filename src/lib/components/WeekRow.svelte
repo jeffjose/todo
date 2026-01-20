@@ -2,7 +2,7 @@
 	import type { Task } from '$lib/types';
 	import TaskRow from './TaskRow.svelte';
 	import { formatWeekRange, isCurrentWeek, getWeekDays, isDateInWeek, isSameDay, isToday, isDateBeforeWeek } from '$lib/utils/dates';
-	import { Plus } from '@lucide/svelte';
+	import { Plus, ChevronRight } from '@lucide/svelte';
 
 	interface Props {
 		weekStart: Date;
@@ -30,6 +30,15 @@
 
 	let isCurrent = $derived(isCurrentWeek(weekStart, currentDate));
 	let weekDays = $derived(getWeekDays(weekStart));
+
+	// Past weeks are collapsed by default
+	let isPastWeek = $derived(!isCurrent && isDateBeforeWeek(weekStart, currentDate));
+	let isCollapsed = $state<boolean | null>(null);
+	let effectiveCollapsed = $derived(isCollapsed === null ? isPastWeek : isCollapsed);
+
+	function toggleCollapse() {
+		isCollapsed = !effectiveCollapsed;
+	}
 
 	// Sort by priority (P0 first, then P1, P2, P3), then by status (pending first)
 	const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
@@ -134,16 +143,36 @@
 	class="border-b border-zinc-800 {isCurrent ? 'border-l-2 border-l-yellow-500' : ''}"
 >
 	<!-- Week Header -->
-	<div class="flex items-center gap-2 px-2 py-1 border-b border-zinc-800/50">
+	<button
+		class="w-full flex items-center gap-2 px-2 py-1 {effectiveCollapsed ? '' : 'border-b border-zinc-800/50'} {isPastWeek ? 'hover:bg-zinc-800/50 cursor-pointer' : ''} text-left"
+		onclick={isPastWeek ? toggleCollapse : undefined}
+		disabled={!isPastWeek}
+	>
+		{#if isPastWeek}
+			<ChevronRight class="w-3 h-3 text-zinc-500 transition-transform {effectiveCollapsed ? '' : 'rotate-90'}" />
+		{/if}
 		<span class="text-[11px] font-medium {isCurrent ? 'text-yellow-400' : 'text-zinc-400'}">
 			{formatWeekRange(weekStart)}
 		</span>
 		{#if isCurrent}
 			<span class="text-[9px] text-yellow-300 bg-yellow-500/20 px-1 py-0.5 rounded font-medium">Current</span>
 		{/if}
-	</div>
+		{#if effectiveCollapsed}
+			{@const totalTasks = deadlineTasks.length + finishByTasks.length + todoTasks.length}
+			{@const incompleteTasks = deadlineTasks.filter(t => t.status !== 'completed').length + finishByTasks.filter(t => t.status !== 'completed').length + todoTasks.filter(t => t.status !== 'completed').length}
+			<span class="text-[10px] text-zinc-600 ml-auto">
+				{#if incompleteTasks > 0}
+					{incompleteTasks} open
+				{:else if totalTasks > 0}
+					{totalTasks} done
+				{/if}
+			</span>
+		{/if}
+	</button>
 
-	{#if isCurrent}
+	{#if effectiveCollapsed}
+		<!-- Collapsed: show nothing, header has summary -->
+	{:else if isCurrent}
 		<!-- Day-by-day view for current week -->
 		<div class="divide-y divide-zinc-800/50">
 			{#each weekDays as day (day.getTime())}

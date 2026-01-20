@@ -130,15 +130,18 @@ This phase delivers everything needed for a functional app you can actually use.
 
 ---
 
-## Phase 6: Polish
+## Phase 6: Polish ✅
 
 **Goal:** Production-ready
 
-### Tasks:
-- [ ] Keyboard shortcuts (n: new, e: edit, d: delete)
-- [ ] Empty states with hints
+### Implemented:
+- [x] Keyboard shortcuts (n: new task, t: today, d: demo, e: export, i: import, ?: help)
+- [x] KeyboardShortcutsDialog showing all shortcuts
+- [x] Empty state with hint when no tasks exist
+- [x] Toast notifications for export/import feedback
+
+### Not implemented (deferred):
 - [ ] Loading/error states
-- [ ] Toast notifications
 - [ ] Performance optimization
 - [ ] Dark/Light toggle (optional)
 
@@ -197,7 +200,7 @@ src/
 
 ## Notes
 
-- Phase 1-5 complete
+- Phase 1-6 complete
 - Demo mode allows trying features without affecting real data
 - Export/import enables data backup and portability
-- Next: Phase 6 polish (keyboard shortcuts, empty states, toasts)
+- Keyboard shortcuts for efficient navigation

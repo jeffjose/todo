@@ -5,7 +5,7 @@
 	import EditTaskDialog from './EditTaskDialog.svelte';
 	import WeekEventDialog from './WeekEventDialog.svelte';
 	import { getWeeksAroundCurrent, isCurrentWeek, getWeekStart } from '$lib/utils/dates';
-	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, ListTodo } from '@lucide/svelte';
 	import { tick } from 'svelte';
 
 	interface Props {
@@ -192,25 +192,38 @@
 
 	<!-- Week Rows -->
 	<div class="flex-1 overflow-y-auto" bind:this={scrollContainer}>
-		{#each weeks as week (week.getTime())}
-			{@const isCurrentWeekRow = isCurrentWeek(week, today)}
-			<div data-current-week={isCurrentWeekRow}>
-			<WeekRow
-				weekStart={week}
-				{tasks}
-				weekEvents={getEventsForWeek(week)}
-				currentDate={today}
-				onToggleTask={onToggleTask}
-				onClickTask={handleClickTask}
-				onAddTask={handleAddTask}
-				onAddEvent={handleAddEvent}
-				onClickEvent={handleClickEvent}
-				{hoveredTaskId}
-				onHoverTask={handleHoverTask}
-				workOrderMap={workOrderMap()}
-			/>
+		{#if tasks.length === 0}
+			<!-- Empty state -->
+			<div class="flex flex-col items-center justify-center h-full text-center px-4">
+				<div class="w-12 h-12 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
+					<ListTodo class="w-6 h-6 text-zinc-600" />
+				</div>
+				<h3 class="text-sm font-medium text-zinc-400 mb-1">No tasks yet</h3>
+				<p class="text-xs text-zinc-600 max-w-[200px]">
+					Press <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 border border-zinc-700 rounded text-zinc-400">n</kbd> to create your first task
+				</p>
 			</div>
-		{/each}
+		{:else}
+			{#each weeks as week (week.getTime())}
+				{@const isCurrentWeekRow = isCurrentWeek(week, today)}
+				<div data-current-week={isCurrentWeekRow}>
+				<WeekRow
+					weekStart={week}
+					{tasks}
+					weekEvents={getEventsForWeek(week)}
+					currentDate={today}
+					onToggleTask={onToggleTask}
+					onClickTask={handleClickTask}
+					onAddTask={handleAddTask}
+					onAddEvent={handleAddEvent}
+					onClickEvent={handleClickEvent}
+					{hoveredTaskId}
+					onHoverTask={handleHoverTask}
+					workOrderMap={workOrderMap()}
+				/>
+				</div>
+			{/each}
+		{/if}
 	</div>
 </div>
 

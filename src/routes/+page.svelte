@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Plus, CalendarDays, FlaskConical, Download, Upload } from '@lucide/svelte';
+	import { Plus, CalendarDays, FlaskConical, Download, Upload, Keyboard } from '@lucide/svelte';
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import AddTaskDialog from '$lib/components/AddTaskDialog.svelte';
 	import ImportDialog from '$lib/components/ImportDialog.svelte';
+	import KeyboardShortcutsDialog from '$lib/components/KeyboardShortcutsDialog.svelte';
+	import Toast, { showToast } from '$lib/components/Toast.svelte';
 	import type { Task, NewTask, TaskStatus, WeekEvent } from '$lib/types';
 	import { getAllTasks, createTask, updateTask, deleteTask, toggleTaskStatus } from '$lib/db/tasks';
 	import { getAllWeekEvents, createWeekEvent, updateWeekEvent, deleteWeekEvent } from '$lib/db/weekEvents';
@@ -16,6 +18,7 @@
 	let weekEvents = $state<WeekEvent[]>([]);
 	let addDialogOpen = $state(false);
 	let importDialogOpen = $state(false);
+	let shortcutsDialogOpen = $state(false);
 	let weeklyView: WeeklyView;
 
 	// Demo mode state
@@ -23,9 +26,62 @@
 	let realTasks = $state<Task[]>([]); // Backup of real tasks when in demo mode
 	let realWeekEvents = $state<WeekEvent[]>([]); // Backup of real events when in demo mode
 
-	onMount(async () => {
-		tasks = await getAllTasks();
-		weekEvents = await getAllWeekEvents();
+	onMount(() => {
+		// Load data
+		getAllTasks().then((t) => (tasks = t));
+		getAllWeekEvents().then((e) => (weekEvents = e));
+
+		// Keyboard shortcuts
+		function handleKeydown(e: KeyboardEvent) {
+			// Ignore if typing in an input
+			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+				return;
+			}
+
+			// Ignore if a dialog is open (except for Escape)
+			const anyDialogOpen = addDialogOpen || importDialogOpen || shortcutsDialogOpen;
+			if (anyDialogOpen && e.key !== 'Escape') {
+				return;
+			}
+
+			switch (e.key) {
+				case 'n':
+					e.preventDefault();
+					addDialogOpen = true;
+					break;
+				case 't':
+					e.preventDefault();
+					handleGoToToday();
+					break;
+				case 'd':
+					e.preventDefault();
+					if (isDemoMode) {
+						exitDemoMode();
+					} else {
+						enterDemoMode();
+					}
+					break;
+				case 'e':
+					if (!isDemoMode) {
+						e.preventDefault();
+						handleExport();
+					}
+					break;
+				case 'i':
+					if (!isDemoMode) {
+						e.preventDefault();
+						importDialogOpen = true;
+					}
+					break;
+				case '?':
+					e.preventDefault();
+					shortcutsDialogOpen = true;
+					break;
+			}
+		}
+
+		window.addEventListener('keydown', handleKeydown);
+		return () => window.removeEventListener('keydown', handleKeydown);
 	});
 
 	async function handleCreateTask(data: NewTask) {
@@ -187,6 +243,7 @@
 	// Export/Import handlers
 	async function handleExport() {
 		await downloadExport();
+		showToast('Data exported successfully', 'success');
 	}
 
 	async function handleImport(jsonString: string, mode: ImportMode) {
@@ -195,6 +252,9 @@
 			// Reload data
 			tasks = await getAllTasks();
 			weekEvents = await getAllWeekEvents();
+			showToast(`Imported ${result.imported.tasks} tasks and ${result.imported.weekEvents} events`, 'success');
+		} else {
+			showToast('Import failed: ' + result.errors[0], 'error');
 		}
 	}
 </script>
@@ -240,11 +300,22 @@
 			<FlaskConical class="w-4 h-4" />
 		</button>
 
+		<!-- Keyboard Shortcuts Button -->
+		<button
+			class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+			onclick={() => (shortcutsDialogOpen = true)}
+			title="Keyboard shortcuts (?)"
+		>
+			<Keyboard class="w-4 h-4" />
+		</button>
+
+		<div class="w-px h-4 bg-zinc-700 mx-1"></div>
+
 		<!-- Today Button -->
 		<button
 			class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
 			onclick={handleGoToToday}
-			title="Go to today"
+			title="Go to today (t)"
 		>
 			<CalendarDays class="w-4 h-4" />
 		</button>
@@ -253,7 +324,7 @@
 		<button
 			class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
 			onclick={() => (addDialogOpen = true)}
-			title="Add task"
+			title="Add task (n)"
 		>
 			<Plus class="w-4 h-4" />
 		</button>
@@ -281,3 +352,9 @@
 
 <!-- Import Dialog -->
 <ImportDialog bind:open={importDialogOpen} onImport={handleImport} />
+
+<!-- Keyboard Shortcuts Dialog -->
+<KeyboardShortcutsDialog bind:open={shortcutsDialogOpen} />
+
+<!-- Toast notifications -->
+<Toast />

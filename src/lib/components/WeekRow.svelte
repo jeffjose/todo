@@ -181,6 +181,9 @@
 				{@const dayTodos = getTasksForDay(day, 'todo')}
 				{@const isDayToday = isToday(day, currentDate)}
 				{@const hasAnyTasks = dayDeadlines.length > 0 || dayFinishBy.length > 0 || dayTodos.length > 0}
+				{@const todosWithDeadline = dayTodos.filter(t => t.deadline)}
+				{@const todosWithFinishBy = dayTodos.filter(t => !t.deadline && t.finishBy)}
+				{@const regularTodos = dayTodos.filter(t => !t.deadline && !t.finishBy)}
 
 				<div class="grid grid-cols-[72px_1fr_1fr_1fr] {isDayToday ? 'bg-yellow-500/10' : ''}">
 					<!-- Day Label -->
@@ -204,11 +207,37 @@
 						{/each}
 					</div>
 
-					<!-- Todo Column -->
+					<!-- Todo Column - grouped by urgency source -->
 					<div class="px-1 py-0.5 min-h-[24px]">
-						{#each dayTodos as task (task.id)}
-							<TaskRow {task} showDueDate={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
-						{/each}
+						{#if todosWithDeadline.length > 0}
+							<div class="flex items-center gap-1 mb-0.5 mt-0.5">
+								<span class="text-[9px] text-red-400/70 font-medium">DUE</span>
+								<span class="flex-1 h-px bg-red-400/20"></span>
+							</div>
+							{#each todosWithDeadline as task (task.id)}
+								<TaskRow {task} showDueDate={true} showUrgency={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+							{/each}
+						{/if}
+
+						{#if todosWithFinishBy.length > 0}
+							<div class="flex items-center gap-1 mb-0.5 {todosWithDeadline.length > 0 ? 'mt-1.5' : 'mt-0.5'}">
+								<span class="text-[9px] text-orange-400/70 font-medium">FINISH</span>
+								<span class="flex-1 h-px bg-orange-400/20"></span>
+							</div>
+							{#each todosWithFinishBy as task (task.id)}
+								<TaskRow {task} showDueDate={true} showUrgency={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+							{/each}
+						{/if}
+
+						{#if regularTodos.length > 0}
+							<div class="flex items-center gap-1 mb-0.5 {(todosWithDeadline.length > 0 || todosWithFinishBy.length > 0) ? 'mt-1.5' : 'mt-0.5'}">
+								<span class="text-[9px] text-zinc-500/70 font-medium">TODO</span>
+								<span class="flex-1 h-px bg-zinc-700/50"></span>
+							</div>
+							{#each regularTodos as task (task.id)}
+								<TaskRow {task} showDueDate={true} showUrgency={true} onToggle={onToggleTask} onClick={onClickTask} onHover={onHoverTask} isHighlighted={hoveredTaskId === task.id} />
+							{/each}
+						{/if}
 					</div>
 				</div>
 			{/each}

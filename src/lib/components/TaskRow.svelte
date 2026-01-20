@@ -10,12 +10,13 @@
 		onClick?: (task: Task) => void;
 		onHover?: (id: string | null) => void;
 		showDueDate?: boolean;
+		showUrgency?: boolean;
 		isHighlighted?: boolean;
 		workOrder?: number;
 		isGhost?: boolean; // Show as ghost (promoted to current week)
 	}
 
-	let { task, onToggle, onClick, onHover, showDueDate = false, isHighlighted = false, workOrder, isGhost = false }: Props = $props();
+	let { task, onToggle, onClick, onHover, showDueDate = false, showUrgency = false, isHighlighted = false, workOrder, isGhost = false }: Props = $props();
 
 	const priorityColors: Record<string, string> = {
 		P0: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -65,6 +66,40 @@
 		const label = task.deadline ? 'due' : 'finish';
 		return `${label} ${formatShortDate(dueDate)}`;
 	});
+
+	// Urgency meter (0-4 dots filled based on time pressure)
+	let urgency = $derived.by(() => {
+		if (isCompleted) return { level: 0, color: 'zinc' };
+
+		const deadlineDays = task.deadline ? daysDiff(task.deadline, today) : null;
+		const finishByDays = task.finishBy ? daysDiff(task.finishBy, today) : null;
+
+		// Deadline takes priority
+		if (deadlineDays !== null) {
+			if (deadlineDays <= 0) return { level: 4, color: 'red' }; // today or overdue
+			if (deadlineDays <= 2) return { level: 3, color: 'orange' };
+			if (deadlineDays <= 7) return { level: 2, color: 'yellow' };
+			if (deadlineDays <= 14) return { level: 1, color: 'zinc' };
+			return { level: 0, color: 'zinc' };
+		}
+
+		// FinishBy is less urgent
+		if (finishByDays !== null) {
+			if (finishByDays <= 0) return { level: 3, color: 'orange' }; // today or overdue
+			if (finishByDays <= 2) return { level: 2, color: 'yellow' };
+			if (finishByDays <= 7) return { level: 1, color: 'zinc' };
+			return { level: 0, color: 'zinc' };
+		}
+
+		return { level: 0, color: 'zinc' };
+	});
+
+	const urgencyColors: Record<string, { filled: string; empty: string }> = {
+		red: { filled: 'bg-red-400', empty: 'bg-red-400/20' },
+		orange: { filled: 'bg-orange-400', empty: 'bg-orange-400/20' },
+		yellow: { filled: 'bg-yellow-400', empty: 'bg-yellow-400/20' },
+		zinc: { filled: 'bg-zinc-500', empty: 'bg-zinc-700' }
+	};
 </script>
 
 <div
@@ -104,6 +139,15 @@
 			tabindex="0"
 		>
 			<Checkbox checked={isCompleted} class="border-zinc-600 data-[state=checked]:bg-zinc-600" />
+		</div>
+	{/if}
+
+	<!-- Urgency Meter (4 dots) - only shown in todo column -->
+	{#if showUrgency && urgency.level > 0 && !isCompleted && !isGhost}
+		<div class="flex gap-0.5 shrink-0" title="Urgency: {urgency.level}/4">
+			{#each [1, 2, 3, 4] as dot}
+				<span class="w-1.5 h-1.5 rounded-full {dot <= urgency.level ? urgencyColors[urgency.color].filled : urgencyColors[urgency.color].empty}"></span>
+			{/each}
 		</div>
 	{/if}
 

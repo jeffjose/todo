@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Plus, CalendarDays, FlaskConical, X } from '@lucide/svelte';
+	import { Plus, CalendarDays, FlaskConical } from '@lucide/svelte';
 	import WeeklyView from '$lib/components/WeeklyView.svelte';
 	import AddTaskDialog from '$lib/components/AddTaskDialog.svelte';
 	import type { Task, NewTask, TaskStatus } from '$lib/types';
@@ -122,41 +122,24 @@
 	}
 </script>
 
-<!-- Demo Mode Banner -->
-{#if isDemoMode}
-	<div class="bg-amber-500/20 border-b border-amber-500/30 px-3 py-1.5 flex items-center justify-between">
-		<div class="flex items-center gap-2">
-			<FlaskConical class="w-4 h-4 text-amber-400" />
-			<span class="text-sm text-amber-200">Demo Mode</span>
-			<span class="text-xs text-amber-400/70">Changes won't be saved</span>
-		</div>
-		<button
-			class="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-amber-200 hover:bg-amber-500/30 transition-colors"
-			onclick={exitDemoMode}
-		>
-			<X class="w-3 h-3" />
-			Exit Demo
-		</button>
-	</div>
-{/if}
-
 <!-- Header Toolbar -->
 <header class="h-11 bg-zinc-900 border-b border-zinc-800 flex items-center px-3 shrink-0">
 	<h1 class="text-sm font-medium text-zinc-100">Todo</h1>
+	{#if isDemoMode}
+		<span class="ml-2 text-[10px] text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded">demo</span>
+	{/if}
 
 	<div class="flex-1"></div>
 
 	<div class="flex items-center gap-1">
-		<!-- Demo Mode Button -->
-		{#if !isDemoMode}
-			<button
-				class="w-7 h-7 flex items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-amber-400 transition-colors"
-				onclick={enterDemoMode}
-				title="Enter demo mode (try features without affecting your data)"
-			>
-				<FlaskConical class="w-4 h-4" />
-			</button>
-		{/if}
+		<!-- Demo Mode Toggle -->
+		<button
+			class="w-7 h-7 flex items-center justify-center rounded-md transition-colors {isDemoMode ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30' : 'text-zinc-500 hover:bg-zinc-800 hover:text-amber-400'}"
+			onclick={isDemoMode ? exitDemoMode : enterDemoMode}
+			title={isDemoMode ? "Exit demo mode" : "Enter demo mode (try features without affecting your data)"}
+		>
+			<FlaskConical class="w-4 h-4" />
+		</button>
 
 		<!-- Today Button -->
 		<button

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task } from '$lib/types';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { formatShortDate, daysDiff } from '$lib/utils/dates';
+	import { formatRelativeDate, daysDiff } from '$lib/utils/dates';
 	import { ChevronsRight } from '@lucide/svelte';
 
 	interface Props {
@@ -64,7 +64,7 @@
 	let dueDateLabel = $derived.by(() => {
 		if (!dueDate) return null;
 		const label = task.deadline ? 'due' : 'finish';
-		return `${label} ${formatShortDate(dueDate)}`;
+		return `${label} ${formatRelativeDate(dueDate, today)}`;
 	});
 
 	// Urgency meter (0-4 dots filled based on time pressure, with overflow for overdue)

@@ -29,6 +29,32 @@ export function formatShortDate(date: Date): string {
 	return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Format a date relative to today (e.g., "today", "tomorrow", "Wed", "next Wed", "Jan 16")
+export function formatRelativeDate(date: Date, currentDate: Date = new Date()): string {
+	const today = new Date(currentDate);
+	today.setHours(0, 0, 0, 0);
+	const target = new Date(date);
+	target.setHours(0, 0, 0, 0);
+
+	const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+	const dayName = target.toLocaleDateString('en-US', { weekday: 'short' });
+
+	// Special cases
+	if (diffDays === 0) return 'today';
+	if (diffDays === 1) return 'tomorrow';
+	if (diffDays === -1) return 'yesterday';
+
+	// This week (within -6 to +6 days, same week context)
+	if (diffDays >= 2 && diffDays <= 6) return dayName; // "Wed"
+	if (diffDays >= -6 && diffDays <= -2) return `last ${dayName}`; // "last Wed"
+
+	// Next week
+	if (diffDays >= 7 && diffDays <= 13) return `next ${dayName}`; // "next Wed"
+
+	// Further out - use short date format
+	return formatShortDate(date);
+}
+
 // Format a date as "Mon, Jan 13"
 export function formatDayDate(date: Date): string {
 	return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });

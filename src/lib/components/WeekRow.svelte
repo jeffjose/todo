@@ -1,16 +1,19 @@
 <script lang="ts">
-	import type { Task } from '$lib/types';
+	import type { Task, WeekEvent } from '$lib/types';
 	import TaskRow from './TaskRow.svelte';
 	import { formatWeekRange, isCurrentWeek, getWeekDays, isDateInWeek, isSameDay, isToday, isDateBeforeWeek } from '$lib/utils/dates';
-	import { Plus, ChevronRight } from '@lucide/svelte';
+	import { Plus, ChevronRight, CalendarPlus } from '@lucide/svelte';
 
 	interface Props {
 		weekStart: Date;
 		tasks: Task[];
+		weekEvents?: WeekEvent[];
 		currentDate?: Date;
 		onToggleTask?: (id: string) => void;
 		onClickTask?: (task: Task) => void;
 		onAddTask?: (date: Date, column: 'deadline' | 'finishBy' | 'todo') => void;
+		onAddEvent?: (weekStart: Date) => void;
+		onClickEvent?: (event: WeekEvent) => void;
 		hoveredTaskId?: string | null;
 		onHoverTask?: (id: string | null) => void;
 		workOrderMap?: Map<string, number>;
@@ -19,14 +22,27 @@
 	let {
 		weekStart,
 		tasks,
+		weekEvents = [],
 		currentDate = new Date(),
 		onToggleTask,
 		onClickTask,
 		onAddTask,
+		onAddEvent,
+		onClickEvent,
 		hoveredTaskId = null,
 		onHoverTask,
 		workOrderMap = new Map()
 	}: Props = $props();
+
+	// Color mapping for events
+	const eventColors: Record<string, string> = {
+		blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+		green: 'bg-green-500/20 text-green-300 border-green-500/30',
+		amber: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+		red: 'bg-red-500/20 text-red-300 border-red-500/30',
+		purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+		pink: 'bg-pink-500/20 text-pink-300 border-pink-500/30'
+	};
 
 	let isCurrent = $derived(isCurrentWeek(weekStart, currentDate));
 	let weekDays = $derived(getWeekDays(weekStart));
@@ -143,13 +159,16 @@
 	class="border-b border-zinc-800 {isCurrent ? 'border-l-2 border-l-yellow-500' : ''}"
 >
 	<!-- Week Header -->
-	<button
-		class="w-full flex items-center gap-2 px-2 py-1 {effectiveCollapsed ? '' : 'border-b border-zinc-800/50'} {isPastWeek ? 'hover:bg-zinc-800/50 cursor-pointer' : ''} text-left"
-		onclick={isPastWeek ? toggleCollapse : undefined}
-		disabled={!isPastWeek}
+	<div
+		class="group flex items-center gap-2 px-2 py-1 {effectiveCollapsed ? '' : 'border-b border-zinc-800/50'}"
 	>
 		{#if isPastWeek}
-			<ChevronRight class="w-3 h-3 text-zinc-500 transition-transform {effectiveCollapsed ? '' : 'rotate-90'}" />
+			<button
+				class="hover:bg-zinc-800/50 rounded p-0.5 -ml-0.5"
+				onclick={toggleCollapse}
+			>
+				<ChevronRight class="w-3 h-3 text-zinc-500 transition-transform {effectiveCollapsed ? '' : 'rotate-90'}" />
+			</button>
 		{/if}
 		<span class="text-[11px] font-medium {isCurrent ? 'text-yellow-400' : 'text-zinc-400'}">
 			{formatWeekRange(weekStart)}
@@ -157,6 +176,27 @@
 		{#if isCurrent}
 			<span class="text-[9px] text-yellow-300 bg-yellow-500/20 px-1 py-0.5 rounded font-medium">Current</span>
 		{/if}
+
+		<!-- Week Events -->
+		{#each weekEvents as event (event.id)}
+			<button
+				class="text-[10px] px-1.5 py-0.5 rounded border {eventColors[event.color || 'blue']} hover:opacity-80 transition-opacity"
+				onclick={() => onClickEvent?.(event)}
+				title="Click to edit"
+			>
+				{event.title}
+			</button>
+		{/each}
+
+		<!-- Add Event Button (shows on hover) -->
+		<button
+			class="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+			onclick={() => onAddEvent?.(weekStart)}
+			title="Add event to this week"
+		>
+			<CalendarPlus class="w-3 h-3" />
+		</button>
+
 		{#if effectiveCollapsed}
 			{@const totalTasks = deadlineTasks.length + finishByTasks.length + todoTasks.length}
 			{@const incompleteTasks = deadlineTasks.filter(t => t.status !== 'completed').length + finishByTasks.filter(t => t.status !== 'completed').length + todoTasks.filter(t => t.status !== 'completed').length}
@@ -168,7 +208,7 @@
 				{/if}
 			</span>
 		{/if}
-	</button>
+	</div>
 
 	{#if effectiveCollapsed}
 		<!-- Collapsed: show nothing, header has summary -->

@@ -1,26 +1,35 @@
 <script lang="ts">
-	import type { Task, NewTask } from '$lib/types';
+	import type { Task, NewTask, WeekEvent } from '$lib/types';
 	import WeekRow from './WeekRow.svelte';
 	import AddTaskDialog from './AddTaskDialog.svelte';
 	import EditTaskDialog from './EditTaskDialog.svelte';
-	import { getWeeksAroundCurrent, isCurrentWeek } from '$lib/utils/dates';
+	import WeekEventDialog from './WeekEventDialog.svelte';
+	import { getWeeksAroundCurrent, isCurrentWeek, getWeekStart } from '$lib/utils/dates';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import { tick } from 'svelte';
 
 	interface Props {
 		tasks: Task[];
+		weekEvents?: WeekEvent[];
 		onCreateTask?: (task: NewTask) => void;
 		onUpdateTask?: (id: string, updates: Partial<Task>) => void;
 		onDeleteTask?: (id: string) => void;
 		onToggleTask?: (id: string) => void;
+		onCreateEvent?: (data: Omit<WeekEvent, 'id'>) => void;
+		onUpdateEvent?: (id: string, updates: Partial<WeekEvent>) => void;
+		onDeleteEvent?: (id: string) => void;
 	}
 
 	let {
 		tasks,
+		weekEvents = [],
 		onCreateTask,
 		onUpdateTask,
 		onDeleteTask,
-		onToggleTask
+		onToggleTask,
+		onCreateEvent,
+		onUpdateEvent,
+		onDeleteEvent
 	}: Props = $props();
 
 	// The actual current date (today) - never changes with navigation
@@ -44,12 +53,17 @@
 		}
 	});
 
-	// Dialog state
+	// Task dialog state
 	let addDialogOpen = $state(false);
 	let editDialogOpen = $state(false);
 	let selectedTask = $state<Task | null>(null);
 	let addDefaultDate = $state<Date | undefined>(undefined);
 	let addDefaultColumn = $state<'deadline' | 'finishBy' | 'todo' | undefined>(undefined);
+
+	// Event dialog state
+	let eventDialogOpen = $state(false);
+	let selectedEvent = $state<WeekEvent | null>(null);
+	let eventWeekStart = $state<Date>(new Date());
 
 	// Hover state for cross-column highlighting
 	let hoveredTaskId = $state<string | null>(null);
@@ -117,6 +131,37 @@
 	function handleDeleteTask(id: string) {
 		onDeleteTask?.(id);
 	}
+
+	// Event handlers
+	function handleAddEvent(weekStart: Date) {
+		eventWeekStart = weekStart;
+		selectedEvent = null;
+		eventDialogOpen = true;
+	}
+
+	function handleClickEvent(event: WeekEvent) {
+		eventWeekStart = event.weekStart;
+		selectedEvent = event;
+		eventDialogOpen = true;
+	}
+
+	function handleCreateOrUpdateEvent(data: Omit<WeekEvent, 'id'>) {
+		if (selectedEvent) {
+			onUpdateEvent?.(selectedEvent.id, data);
+		} else {
+			onCreateEvent?.(data);
+		}
+	}
+
+	function handleDeleteEvent(id: string) {
+		onDeleteEvent?.(id);
+	}
+
+	// Get events for a specific week
+	function getEventsForWeek(weekStart: Date): WeekEvent[] {
+		const weekStartTime = getWeekStart(weekStart).getTime();
+		return weekEvents.filter(e => getWeekStart(e.weekStart).getTime() === weekStartTime);
+	}
 </script>
 
 <div class="flex flex-col h-full">
@@ -153,10 +198,13 @@
 			<WeekRow
 				weekStart={week}
 				{tasks}
+				weekEvents={getEventsForWeek(week)}
 				currentDate={today}
 				onToggleTask={onToggleTask}
 				onClickTask={handleClickTask}
 				onAddTask={handleAddTask}
+				onAddEvent={handleAddEvent}
+				onClickEvent={handleClickEvent}
 				{hoveredTaskId}
 				onHoverTask={handleHoverTask}
 				workOrderMap={workOrderMap()}
@@ -179,4 +227,12 @@
 	task={selectedTask}
 	onSubmit={handleUpdateTask}
 	onDelete={handleDeleteTask}
+/>
+
+<WeekEventDialog
+	bind:open={eventDialogOpen}
+	weekStart={eventWeekStart}
+	event={selectedEvent}
+	onSubmit={handleCreateOrUpdateEvent}
+	onDelete={handleDeleteEvent}
 />
